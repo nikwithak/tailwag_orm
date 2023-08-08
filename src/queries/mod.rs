@@ -1,4 +1,6 @@
+mod filters;
 mod query_builder;
+pub use filters::*;
 pub use query_builder::*;
 
 #[cfg(test)]
