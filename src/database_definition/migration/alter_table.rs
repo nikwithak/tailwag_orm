@@ -40,9 +40,7 @@ impl AsSql for AlterTable {
             .map(|action| action.as_sql())
             .collect::<Vec<String>>()
             .iter()
-            .map(|action_sql| {
-                format!("ALTER TABLE IF EXISTS {} {};", self.table_name.as_str(), &action_sql)
-            })
+            .map(|action_sql| format!("ALTER TABLE IF EXISTS {} {};", self.table_name, &action_sql))
             .collect::<Vec<String>>()
             .join("\n");
 

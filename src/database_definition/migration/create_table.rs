@@ -20,7 +20,7 @@ impl CreateTable {
 impl AsSql for CreateTable {
     fn as_sql(&self) -> String {
         let mut sql =
-            format!("CREATE TABLE IF NOT EXISTS {} (\n", self.table_definition.table_name.as_str());
+            format!("CREATE TABLE IF NOT EXISTS {} (\n", self.table_definition.table_name);
         let columns_sql = self
             .table_definition
             .columns

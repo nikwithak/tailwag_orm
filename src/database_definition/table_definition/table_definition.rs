@@ -57,9 +57,10 @@ impl From<&Field> for DatabaseColumnType {
                     "bool" => DatabaseColumnType::Boolean,
                     "u32" | "u64" | "i32" | "i64" | "usize" | "isize" => DatabaseColumnType::Int,
                     "f32" | "f64" | "fsize" => DatabaseColumnType::Float,
-                    "chrono::_" => DatabaseColumnType::Timestamp,
+                    "chrono::_" => DatabaseColumnType::Timestamp, // TODO
                     "uuid::Uuid" | "Uuid" => DatabaseColumnType::Uuid,
                     _ => {
+                        // TODO: Impl for joinable tables
                         unimplemented!("{} not a supported type.", qualified_path)
                     },
                 };

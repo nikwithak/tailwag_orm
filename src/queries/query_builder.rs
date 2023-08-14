@@ -4,11 +4,11 @@ use crate::{database_definition::table_definition::Identifier, AsSql};
 
 use super::Filter;
 
-struct Query<T: Queryable> {
-    table_name: Identifier,
-    filter: Filter,
-    limit: Option<usize>,
-    _t: T,
+pub struct Query<T: Queryable> {
+    pub table_name: Identifier,
+    pub filter: Filter,
+    pub limit: Option<usize>,
+    pub _t: Option<T>,
 }
 
 trait Saveable<T> {
@@ -31,6 +31,10 @@ impl<T: Queryable> AsSql for Query<T> {
         while let Some(f) = preproc_stack.pop() {
             match f {
                 Filter::And(children) | Filter::Or(children) => {
+                    if children.len() == 0 {
+                        // Skip any empty filters - they'll mess up the SQL
+                        continue;
+                    }
                     for child in children {
                         preproc_stack.push(child);
                     }
@@ -42,19 +46,20 @@ impl<T: Queryable> AsSql for Query<T> {
         // Would this be easier if I just did it recursively instead of trying to build an iterative solution?
         // Depends if call stack will ever get deep enough (with a huuuuuuuuge amount of nested ands/ors)
 
-        // Now grok the stack in reverse to build the query.
-        let mut where_clauses = Vec::new();
-        while let Some(f) = postproc_stack.pop() {
-            match f {
-                Filter::And(_) => todo!(),
-                Filter::Or(_) => todo!(),
-                _ => where_clauses.push(f.as_sql()),
-            };
-        }
+        // // Now grok the stack in reverse to build the query.
+        // let mut where_clauses = Vec::new();
+        // while let Some(f) = postproc_stack.pop() {
+        //     match f {
+        //         Filter::And(_) => todo!(),
+        //         Filter::Or(_) => todo!(),
+        //         _ => where_clauses.push(f.as_sql()),
+        //     };
+        // }
 
         // TODO: Add support for joins with filters
         let select_query =
             format!("SELECT * FROM {} WHERE {}", &self.table_name, self.filter.as_sql()); // TODO: Remove * in favor of a real type definition
+                                                                                          // format!("SELECT * FROM {};", &self.table_name); // TODO: Remove * in favor of a real type definition
 
         // TODO: Make prepped statements work
         // let prepared_stmt = format!("PREPARE {} AS {};", query_name, select_query,);
@@ -82,7 +87,7 @@ impl<T: Queryable> Query<T> {
         todo!()
     }
 
-    fn filter(
+    pub fn filter(
         mut self,
         filter: Filter,
     ) -> Self {

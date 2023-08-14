@@ -101,6 +101,9 @@ impl AsSql for Filter {
     fn as_sql(&self) -> String {
         match self {
             Filter::And(children) => {
+                if children.len() == 0 {
+                    return "true".to_string();
+                }
                 // TODO: This is a recursive solution, refactor to iterative one if it causes issues.
                 format!(
                     "({})",
@@ -112,6 +115,9 @@ impl AsSql for Filter {
                 )
             },
             Filter::Or(children) => {
+                if children.len() == 0 {
+                    return "".to_string();
+                }
                 // TODO: This is a recursive solution, refactor to iterative one if it causes issues.
                 format!(
                     "({})",

@@ -3,16 +3,18 @@ use std::ops::Deref;
 /// Represents a Database Identifier, for column names and table names.
 /// It's just a string under the hood, but forcing calls to use Identifier::new(String),
 /// we are able to perform field validation.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Identifier {
     value: String,
 }
 
 impl Deref for Identifier {
-    type Target = String;
+    type Target = str;
 
     fn deref(&self) -> &Self::Target {
-        &self.value
+        self.validate()
+            .expect(&format!("Identifier {} is invalid - this should have been caught on create. If you are seeing this mesage then you have found a bug - please file a bug report", self.value()));
+        self.value()
     }
 }
 
@@ -26,17 +28,31 @@ impl std::fmt::Display for Identifier {
 }
 
 impl Identifier {
-    pub fn new<S: Into<String>>(value: S) -> Result<Self, &'static str> {
-        let value: String = value.into();
-        if value.chars().all(|c| match c {
+    fn validate(&self) -> Result<(), String> {
+        if Self::is_valid(&self.value) {
+            Ok(())
+        } else {
+            Err(format!(
+                "Identifier {} contains invalid characters. [a-zA-Z0-9_] are only allowed values.",
+                &self.value
+            ))
+        }
+    }
+
+    fn is_valid(value: &str) -> bool {
+        value.chars().all(|c| match c {
             'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => true,
             _ => false,
-        }) {
-            Ok(Self {
-                value,
-            })
-        } else {
-            Err("Contains invalid characters. [a-zA-Z0-9_] are only allowed values.")
+        })
+    }
+
+    pub fn new<S: Into<String>>(value: S) -> Result<Self, String> {
+        let identifier = Self {
+            value: value.into(),
+        };
+        match identifier.validate() {
+            Ok(()) => Ok(identifier),
+            Err(e) => Err(e),
         }
     }
 
