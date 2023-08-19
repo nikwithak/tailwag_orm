@@ -14,13 +14,13 @@ mod tests {
     use crate::{
         database_definition::{
             database_definition::DatabaseDefinition,
-            migration::{
-                create_table, AlterColumn, AlterColumnAction, AlterTable, AlterTableAction,
-                MigrationAction,
-            },
             table_definition::{
                 DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
             },
+        },
+        migration::{
+            create_table, AlterColumn, AlterColumnAction, AlterTable, AlterTableAction,
+            MigrationAction,
         },
         AsSql,
     };
@@ -37,6 +37,7 @@ mod tests {
                     column_type: DatabaseColumnType::String,
                     is_primary_key: false,
                     is_nullable: true,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
@@ -44,6 +45,7 @@ mod tests {
                     column_type: DatabaseColumnType::Boolean,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
@@ -51,6 +53,7 @@ mod tests {
                     column_type: DatabaseColumnType::Int,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
@@ -58,6 +61,7 @@ mod tests {
                     column_type: DatabaseColumnType::Float,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
@@ -65,6 +69,7 @@ mod tests {
                     column_type: DatabaseColumnType::Timestamp,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
@@ -72,6 +77,7 @@ mod tests {
                     column_type: DatabaseColumnType::Uuid,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
             ],
         }
@@ -87,6 +93,7 @@ mod tests {
                     column_type: DatabaseColumnType::String,
                     is_primary_key: false,
                     is_nullable: true,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
@@ -94,6 +101,7 @@ mod tests {
                     column_type: DatabaseColumnType::Boolean,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
@@ -101,6 +109,7 @@ mod tests {
                     column_type: DatabaseColumnType::Int,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
@@ -108,6 +117,7 @@ mod tests {
                     column_type: DatabaseColumnType::Float,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
@@ -115,6 +125,7 @@ mod tests {
                     column_type: DatabaseColumnType::Timestamp,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
@@ -122,6 +133,7 @@ mod tests {
                     column_type: DatabaseColumnType::Uuid,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
             ],
         }
@@ -137,6 +149,7 @@ mod tests {
                     column_type: DatabaseColumnType::Timestamp,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_3".to_string()).unwrap(),
@@ -144,6 +157,7 @@ mod tests {
                     column_type: DatabaseColumnType::Uuid,
                     is_primary_key: true,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
             ],
         }
@@ -159,6 +173,7 @@ mod tests {
                     column_type: DatabaseColumnType::Uuid,
                     is_primary_key: true,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
@@ -166,6 +181,7 @@ mod tests {
                     column_type: DatabaseColumnType::Timestamp,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
             ],
         }
@@ -195,6 +211,7 @@ mod tests {
                         column_type: DatabaseColumnType::String,
                         is_primary_key: false,
                         is_nullable: false,
+                        foreign_key_to: None,
                     }),
                     AlterTableAction::AlterColumn(AlterColumn {
                         column_name: Identifier::new("string_nullable".to_string()).unwrap(),
@@ -289,6 +306,7 @@ mod tests {
             column_type: DatabaseColumnType::String,
             is_primary_key: false,
             is_nullable: false,
+            foreign_key_to: None,
         });
         // Delete "timestamp" column
         after_t1.columns = after_t1
@@ -304,6 +322,7 @@ mod tests {
             column_type: DatabaseColumnType::Timestamp,
             is_primary_key: false,
             is_nullable: true,
+            foreign_key_to: None,
         });
 
         let before = DatabaseDefinition::new(
@@ -344,6 +363,7 @@ mod tests {
                                 column_type: DatabaseColumnType::String,
                                 is_primary_key: false,
                                 is_nullable: false,
+                                foreign_key_to: None,
                             }),
                             AlterTableAction::AlterColumn(AlterColumn {
                                 column_name: Identifier::new("string_nullable".to_string())
@@ -365,6 +385,7 @@ mod tests {
                             column_type: DatabaseColumnType::Timestamp,
                             is_primary_key: false,
                             is_nullable: true,
+                            foreign_key_to: None,
                         }),],
                     }),
                 ],

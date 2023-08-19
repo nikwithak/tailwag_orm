@@ -11,8 +11,6 @@ Tailwag is the Brand Name for a suite of tools to improve productivity. It is in
 
 ## Related Projects
 
-
-
 ## Roadmap
 
 - Postgres Support

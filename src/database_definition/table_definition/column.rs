@@ -33,6 +33,7 @@ pub struct TableColumn {
     // TODO: If this grows too big, add a new type for "ColumnModifiers" or similar
     pub is_primary_key: bool,
     pub is_nullable: bool,
+    pub foreign_key_to: Option<Box<TableColumn>>,
     // _default: Option<String>, // TODO
 }
 

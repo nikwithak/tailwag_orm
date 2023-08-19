@@ -34,12 +34,12 @@ mod tests {
             table_name: Identifier::new("products".to_string()).unwrap(),
             columns: vec![
                 TableColumn {
-                    // TODO: Is it worth it to make this Identifier a ref back to parent?
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     is_primary_key: true,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
@@ -47,6 +47,7 @@ mod tests {
                     column_type: DatabaseColumnType::String,
                     is_primary_key: true,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
@@ -54,6 +55,7 @@ mod tests {
                     column_type: DatabaseColumnType::String,
                     is_primary_key: true,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
@@ -61,6 +63,7 @@ mod tests {
                     column_type: DatabaseColumnType::Timestamp,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
             ],
         }

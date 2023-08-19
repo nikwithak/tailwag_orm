@@ -41,12 +41,10 @@ mod test {
     use create_table::CreateTable;
 
     use crate::{
-        database_definition::{
-            migration::create_table,
-            table_definition::{
-                DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
-            },
+        database_definition::table_definition::{
+            DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
         },
+        migration::create_table,
         AsSql,
     };
 
@@ -62,6 +60,7 @@ mod test {
                     column_type: DatabaseColumnType::Uuid,
                     is_primary_key: true,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
@@ -69,6 +68,7 @@ mod test {
                     column_type: DatabaseColumnType::String,
                     is_primary_key: false,
                     is_nullable: true,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
@@ -76,6 +76,7 @@ mod test {
                     column_type: DatabaseColumnType::Boolean,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
@@ -83,6 +84,7 @@ mod test {
                     column_type: DatabaseColumnType::Float,
                     is_primary_key: false,
                     is_nullable: false,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
@@ -90,6 +92,7 @@ mod test {
                     column_type: DatabaseColumnType::Int,
                     is_primary_key: false,
                     is_nullable: true,
+                    foreign_key_to: None,
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
@@ -97,6 +100,7 @@ mod test {
                     column_type: DatabaseColumnType::Timestamp,
                     is_primary_key: false,
                     is_nullable: true,
+                    foreign_key_to: None,
                 },
             ],
         };

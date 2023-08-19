@@ -1,9 +1,9 @@
 use crate::{
     database_definition::{
         database_definition::DatabaseDefinition,
-        migration::{AlterColumn, AlterColumnAction, AlterTableAction},
         table_definition::{DatabaseTableDefinition, Identifier, TableColumn},
     },
+    migration::{AlterColumn, AlterColumnAction, AlterTableAction},
     AsSql,
 };
 
@@ -54,6 +54,7 @@ impl Migration {
     ) -> Option<Self> {
         let mut actions: Vec<MigrationAction> = Vec::new();
         if let Some(before) = before {
+            // Migrations needed
             let mut before_tables_sorted =
                 before.tables.iter().collect::<Vec<&DatabaseTableDefinition>>();
             before_tables_sorted.sort_by(|l, r| l.table_name.cmp(&r.table_name));
