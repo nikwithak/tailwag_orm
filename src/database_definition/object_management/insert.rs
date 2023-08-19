@@ -1,9 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
-use syn::Ident;
-
 use crate::{
-    database_definition::table_definition::{self, DatabaseTableDefinition, Identifier},
+    database_definition::table_definition::{DatabaseTableDefinition, Identifier},
     AsSql,
 };
 

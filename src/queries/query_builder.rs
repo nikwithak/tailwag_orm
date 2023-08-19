@@ -1,5 +1,3 @@
-use chrono::Utc;
-
 use crate::{database_definition::table_definition::Identifier, AsSql};
 
 use super::Filter;
@@ -22,7 +20,8 @@ trait Deletable<T> {
 impl<T: Queryable> AsSql for Query<T> {
     fn as_sql(&self) -> String {
         // TODO: This needs to be unique, add millis or find a better way. What does SQLX do?
-        let query_name = format!("{}_{}", Utc::now().format("%Y%m%d%H%M%S"), self.table_name);
+        // TODO: This is part of the half-written prepared statement support
+        // let query_name = format!("{}_{}", Utc::now().format("%Y%m%d%H%M%S"), self.table_name);
 
         // TODO: Go through filters, build list of inputs ($1) -> values (literals)
         let mut preproc_stack = Vec::new();
@@ -70,11 +69,11 @@ impl<T: Queryable> AsSql for Query<T> {
 }
 
 impl<T: Queryable> Query<T> {
-    fn execute() -> Vec<T> {
+    fn _execute() -> Vec<T> {
         todo!()
     }
 
-    fn limit(
+    fn _limit(
         mut self,
         limit: usize,
     ) -> Self {
@@ -82,7 +81,7 @@ impl<T: Queryable> Query<T> {
         self
     }
 
-    fn get(filter: Filter) -> Option<T> {
+    fn _get(_filter: Filter) -> Option<T> {
         // TODO: get by ID
         todo!()
     }

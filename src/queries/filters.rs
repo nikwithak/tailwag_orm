@@ -47,11 +47,11 @@ pub enum Filter {
 trait Likeable {
     fn like<T: Into<String>>(
         &self,
-        t: T,
+        _t: T,
     ) -> Filter {
         Filter::Like(
             FilterComparisonParam::TableColumn(todo!()),
-            FilterComparisonParam::String(t.into()),
+            FilterComparisonParam::String(_t.into()),
         )
     }
 }
