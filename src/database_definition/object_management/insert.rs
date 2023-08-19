@@ -8,13 +8,13 @@ use crate::{
 pub struct InsertStatement {
     table_def: Arc<DatabaseTableDefinition>,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
-    object_repr: HashMap<Arc<Identifier>, String>,
+    object_repr: HashMap<Identifier, String>,
 }
 
 impl InsertStatement {
     pub fn new(
         table_def: Arc<DatabaseTableDefinition>,
-        object_map: HashMap<Arc<Identifier>, String>,
+        object_map: HashMap<Identifier, String>,
     ) -> Self {
         Self {
             table_def,

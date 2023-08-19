@@ -8,7 +8,7 @@ use crate::queries::Filter;
 pub struct UpdateStatement {
     table_def: Arc<DatabaseTableDefinition>,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
-    object_repr: HashMap<Arc<Identifier>, String>,
+    object_repr: HashMap<Identifier, String>,
     filter: Filter,
 }
 

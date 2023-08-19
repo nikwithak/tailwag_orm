@@ -1,20 +1,20 @@
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
 /// Represents a Database Identifier, for column names and table names.
 /// It's just a string under the hood, but forcing calls to use Identifier::new(String),
 /// we are able to perform field validation.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct Identifier {
-    value: String,
+    value: Arc<String>,
 }
 
 impl Deref for Identifier {
-    type Target = str;
+    type Target = Arc<String>;
 
     fn deref(&self) -> &Self::Target {
         self.validate()
             .expect(&format!("Identifier {} is invalid - this should have been caught on create. If you are seeing this mesage then you have found a bug - please file a bug report", self.value()));
-        self.value()
+        &self.value
     }
 }
 
@@ -48,7 +48,7 @@ impl Identifier {
 
     pub fn new<S: Into<String>>(value: S) -> Result<Self, String> {
         let identifier = Self {
-            value: value.into(),
+            value: Arc::new(value.into()),
         };
         match identifier.validate() {
             Ok(()) => Ok(identifier),
