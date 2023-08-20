@@ -57,8 +57,10 @@ impl<T: Queryable> AsSql for Query<T> {
 
         // TODO: Add support for joins with filters
         let select_query =
-            format!("SELECT * FROM {} WHERE {}", &self.table_name, self.filter.as_sql()); // TODO: Remove * in favor of a real type definition
-                                                                                          // format!("SELECT * FROM {};", &self.table_name); // TODO: Remove * in favor of a real type definition
+            format!("SELECT * FROM {} WHERE {}", &self.table_name, self.filter.as_sql());
+        // TODO: Remove * in favor of a real type definition
+        // format!("SELECT * FROM {};", &self.table_name);
+        // TODO: Remove * in favor of a real type definition
 
         // TODO: Make prepped statements work
         // let prepared_stmt = format!("PREPARE {} AS {};", query_name, select_query,);

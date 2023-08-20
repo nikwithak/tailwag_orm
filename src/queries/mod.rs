@@ -37,33 +37,34 @@ mod tests {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
-                    is_primary_key: true,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        TableColumnConstraint::primary_key(),
+                        TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("description".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
-                    is_primary_key: true,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        TableColumnConstraint::primary_key(),
+                        TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("name".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
-                    is_primary_key: true,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        TableColumnConstraint::primary_key(),
+                        TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("created_at".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![TableColumnConstraint::non_null()],
                 },
             ],
         }
@@ -80,7 +81,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::database_definition::table_definition::{
-        DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
+        DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn, TableColumnConstraint,
     };
 
     #[test]

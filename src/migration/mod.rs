@@ -16,6 +16,7 @@ mod tests {
             database_definition::DatabaseDefinition,
             table_definition::{
                 DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
+                TableColumnConstraintDetail,
             },
         },
         migration::{
@@ -35,49 +36,47 @@ mod tests {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("string_nullable".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
-                    is_primary_key: false,
-                    is_nullable: true,
-                    foreign_key_to: None,
+                    constraints: vec![],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("bool".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Boolean,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("int".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Int,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("float".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Float,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("timestamp".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("uuid".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
             ],
         }
@@ -91,49 +90,47 @@ mod tests {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("string_nullable".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
-                    is_primary_key: false,
-                    is_nullable: true,
-                    foreign_key_to: None,
+                    constraints: vec![],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("bool".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Boolean,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("int".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Int,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("float".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Float,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("timestamp".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("uuid".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
             ],
         }
@@ -147,17 +144,18 @@ mod tests {
                     parent_table_name: Identifier::new("table_3".to_string()).unwrap(),
                     column_name: Identifier::new("created_at".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_3".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
-                    is_primary_key: true,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+crate::database_definition::table_definition::TableColumnConstraint::primary_key(),
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
             ],
         }
@@ -171,17 +169,18 @@ mod tests {
                     parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
-                    is_primary_key: true,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+crate::database_definition::table_definition::TableColumnConstraint::primary_key(),
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
                     column_name: Identifier::new("created_at".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                    ],
                 },
             ],
         }
@@ -209,9 +208,9 @@ mod tests {
                         parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                         column_name: Identifier::new("new_column".to_string()).unwrap(),
                         column_type: DatabaseColumnType::String,
-                        is_primary_key: false,
-                        is_nullable: false,
-                        foreign_key_to: None,
+                        constraints: vec![
+                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                        ],
                     }),
                     AlterTableAction::AlterColumn(AlterColumn {
                         column_name: Identifier::new("string_nullable".to_string()).unwrap(),
@@ -232,7 +231,7 @@ mod tests {
         let mut expected_queries: Vec<&str> = vec![
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN bool TYPE VARCHAR, ALTER COLUMN bool DROP NOT NULL;",
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN int TYPE FLOAT;",
-            "ALTER TABLE IF EXISTS table_1 ADD COLUMN IF NOT EXISTS  new_column VARCHAR  NOT NULL ;",
+            "ALTER TABLE IF EXISTS table_1 ADD COLUMN IF NOT EXISTS new_column VARCHAR NOT NULL;",
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN string_nullable SET NOT NULL;",
             "ALTER TABLE IF EXISTS table_1 DROP COLUMN IF EXISTS timestamp;",
         ];
@@ -293,20 +292,32 @@ mod tests {
             .find(|c| c.column_name.value().eq("string_nullable"))
             .map(|c| {
                 // Tests Nullability changes
-                c.is_nullable = false;
+                c.constraints.push(
+                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                );
             });
         after_t1.columns.iter_mut().find(|c| c.column_name.value().eq("bool")).map(|c| {
             // Tests a mix of the two changes
             c.column_type = DatabaseColumnType::String;
-            c.is_nullable = true;
+
+            println!("+++++++++++++++=====================+++++++++++++++++++=");
+            println!("   after_t1.columns.{}: {:?} ", c.column_name, c.constraints);
+            println!("+++++++++++++++=====================+++++++++++++++++++=");
+            c.constraints.retain(|c| match *c.detail {
+                TableColumnConstraintDetail::NotNull => false,
+                _ => true,
+            });
+            println!("+++++++++++++++= AFTER FILTERING =+++++++++++++++++++++=");
+            println!("   after_t1.columns.{}: {:?} ", c.column_name, c.constraints);
+            println!("+++++++++++++++=====================+++++++++++++++++++=");
         });
         after_t1.columns.push(TableColumn {
             parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
             column_name: Identifier::new("new_column".to_string()).unwrap(),
             column_type: DatabaseColumnType::String,
-            is_primary_key: false,
-            is_nullable: false,
-            foreign_key_to: None,
+            constraints: vec![
+                crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+            ],
         });
         // Delete "timestamp" column
         after_t1.columns = after_t1
@@ -320,9 +331,7 @@ mod tests {
             parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
             column_name: Identifier::new("updated_at".to_string()).unwrap(),
             column_type: DatabaseColumnType::Timestamp,
-            is_primary_key: false,
-            is_nullable: true,
-            foreign_key_to: None,
+            constraints: vec![],
         });
 
         let before = DatabaseDefinition::new(
@@ -361,9 +370,9 @@ mod tests {
                                 parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                                 column_name: Identifier::new("new_column".to_string()).unwrap(),
                                 column_type: DatabaseColumnType::String,
-                                is_primary_key: false,
-                                is_nullable: false,
-                                foreign_key_to: None,
+                                constraints: vec![
+                                crate::database_definition::table_definition::TableColumnConstraint::non_null(),
+                                ],
                             }),
                             AlterTableAction::AlterColumn(AlterColumn {
                                 column_name: Identifier::new("string_nullable".to_string())
@@ -383,9 +392,7 @@ mod tests {
                             parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
                             column_name: Identifier::new("updated_at".to_string()).unwrap(),
                             column_type: DatabaseColumnType::Timestamp,
-                            is_primary_key: false,
-                            is_nullable: true,
-                            foreign_key_to: None,
+                            constraints: vec![],
                         }),],
                     }),
                 ],

@@ -168,15 +168,9 @@ impl Migration {
         let mut after_columns_sorted = after.columns.iter().collect::<Vec<&TableColumn>>();
         after_columns_sorted.sort_by(|l, r| l.column_name.cmp(&r.column_name));
 
-        for c in &before_columns_sorted {
-            println!("{:?}", c);
-        }
-        println!("=========================");
-        for c in &after_columns_sorted {
-            println!("{:?}", c);
-        }
-
         // Second, iterate through both. Any out-of-sync issues indicate a column only in that set.
+        // TODO: Can make this a map instead of a list, which will make it much easier to just say "hey does the table have this column?"
+        // It also will improve performance (less important for migration use-cases, but I <3 snappy fast things
         let mut old_sorted_iter = before_columns_sorted.into_iter().peekable();
         let mut new_sorted_iter = after_columns_sorted.into_iter().peekable();
 
@@ -222,10 +216,71 @@ impl Migration {
                             alter_column_actions
                                 .push(AlterColumnAction::SetType(new.column_type.clone()));
                         }
-                        if old.is_nullable != new.is_nullable {
-                            alter_column_actions
-                                .push(AlterColumnAction::SetNullability(new.is_nullable));
+
+                        // TODO: Make this more robust when it comes to comparing constraints. Code is legacied from when Constraints were just bools for nullable / primary key
+
+                        // * NONNULL calculation - Compares `NotNull`
+                        {
+                            // Debugging purposes - TODO delete this or wrap in a `#[cfg(debug)]`
+                            println!("{}", old.column_name.value());
+                            if old.column_name.value() == "bool" {
+                                println!("NIK LOOK HERE");
+                                println!("old: {:?}", old);
+                                println!("new: {:?}", new);
+                            }
+
+                            // Uggggh this is really hacky. Wanna clean this up later.
+                            // Find the existence of a `NotNull` constraint. If it does *not* exist (`.is_none()`) then the field *is* nullable.
+                            // A confusing mess of double negative magic going on here.
+                            // THIS IS WHY WE TEST OUR SHIT - I caught this running tests from the old approach ( had my true/false/is_some/is_none swapped)
+                            let old_is_nullable = old.constraints.iter().find(|c| match *c.detail {
+                                // Allowed null unless NOT NULL
+                                crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => true,
+                                _ => false,
+                            }).is_none();
+                            println!(
+                                "old {} nullable",
+                                if old_is_nullable {
+                                    "is"
+                                } else {
+                                    "is not"
+                                }
+                            );
+                            let new_is_nullable = new.constraints.iter().find(|c| match *c.detail {
+                                crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => true,
+                                _ => false,
+                            }).is_none();
+                            println!(
+                                "new {} nullable",
+                                if new_is_nullable {
+                                    "is"
+                                } else {
+                                    "is not"
+                                }
+                            );
+                            if old_is_nullable != new_is_nullable {
+                                println!("Adding nonnull");
+                                alter_column_actions
+                                    .push(AlterColumnAction::SetNullability(new_is_nullable));
+                            } else {
+                                println!("NOT adding nonnull");
+                            }
                         }
+
+                        // * TODO: PK Changes
+                        {}
+
+                        // * TODO: Foreign Key Changes
+                        // {
+                        //     let old_fks = old.constraints.iter().find(|c| match *c.detail {
+                        //         // TODO: DRY this out a bit so that TableConstraintDetail /
+                        //         crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => todo!(),
+                        //         crate::database_definition::table_definition::TableColumnConstraintDetail::Null => todo!(),
+                        //         crate::database_definition::table_definition::TableColumnConstraintDetail::Unique(_) => todo!(),
+                        //         crate::database_definition::table_definition::TableColumnConstraintDetail::PrimaryKey(_) => todo!(),
+                        //         crate::database_definition::table_definition::TableColumnConstraintDetail::References(_) => todo!(),
+                        //     });
+                        // }
 
                         if alter_column_actions.len() > 0 {
                             actions.push(AlterTableAction::AlterColumn(AlterColumn {

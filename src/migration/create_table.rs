@@ -43,6 +43,7 @@ mod test {
     use crate::{
         database_definition::table_definition::{
             DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
+            TableColumnConstraint, TableColumnConstraintDetail,
         },
         migration::create_table,
         AsSql,
@@ -58,49 +59,43 @@ mod test {
                     parent_table_name: table_name.clone(),
                     column_name: Identifier::new("uuid_pk_nonnull".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
-                    is_primary_key: true,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    // is_primary_key: true,
+                    // is_nullable: false,
+                    // foreign_key_to: None,
+                    constraints: vec![
+                        TableColumnConstraint::non_null(),
+                        TableColumnConstraint::primary_key(),
+                    ],
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
                     column_name: Identifier::new("string".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
-                    is_primary_key: false,
-                    is_nullable: true,
-                    foreign_key_to: None,
+                    constraints: vec![],
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
                     column_name: Identifier::new("bool_nonnull".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Boolean,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![TableColumnConstraint::non_null()],
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
                     column_name: Identifier::new("float_nonnull".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Float,
-                    is_primary_key: false,
-                    is_nullable: false,
-                    foreign_key_to: None,
+                    constraints: vec![TableColumnConstraint::non_null()],
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
                     column_name: Identifier::new("int".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Int,
-                    is_primary_key: false,
-                    is_nullable: true,
-                    foreign_key_to: None,
+                    constraints: vec![],
                 },
                 TableColumn {
                     parent_table_name: table_name.clone(),
                     column_name: Identifier::new("create_timestamp".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
-                    is_primary_key: false,
-                    is_nullable: true,
-                    foreign_key_to: None,
+                    constraints: vec![],
                 },
             ],
         };
@@ -116,12 +111,12 @@ mod test {
         #[rustfmt::skip]
         let expected_query = vec![
             "CREATE TABLE IF NOT EXISTS new_table (",
-                " uuid_pk_nonnull UUID PRIMARY KEY NOT NULL ,",
-                " string VARCHAR   ,",
-                " bool_nonnull BOOL  NOT NULL ,",
-                " float_nonnull FLOAT  NOT NULL ,",
-                " int INT   ,",
-                " create_timestamp TIMESTAMP   ",
+                "uuid_pk_nonnull UUID NOT NULL PRIMARY KEY,",
+                "string VARCHAR,",
+                "bool_nonnull BOOL NOT NULL,",
+                "float_nonnull FLOAT NOT NULL,",
+                "int INT,",
+                "create_timestamp TIMESTAMP",
             ");"
         ].join("\n");
 

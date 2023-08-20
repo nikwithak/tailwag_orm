@@ -8,3 +8,4 @@ pub struct DatabaseTableDefinition {
     // TODO: Compoisite keys, Constraints, etc.
     pub columns: Vec<TableColumn>,
 }
+
