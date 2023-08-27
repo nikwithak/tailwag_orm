@@ -97,13 +97,14 @@ impl TableColumn {
 
     pub fn new_uuid_fk(
         column_name: Identifier,
-        table: DatabaseTableDefinition,
+        target_table: DatabaseTableDefinition,
     ) -> Self {
         // TODO: Don't need to loop once I expose this info from DatabaseTableDefinition
-        let foreign_column_name = table
+        let foreign_column_name = target_table
             .columns
             .iter()
             .find(|column| {
+                // Matches the first column in target_table that is a UUID and a PK
                 let is_uuid = column.column_type == DatabaseColumnType::Uuid;
                 let is_pk = column
                     .constraints
@@ -121,7 +122,7 @@ impl TableColumn {
             column_name,
             column_type: DatabaseColumnType::Float,
             constraints: vec![TableColumnConstraint::foreign_key(
-                table.table_name.clone(),
+                target_table.table_name.clone(),
                 foreign_column_name.column_name.clone(),
             )],
         }

@@ -101,6 +101,40 @@ enum ReferentialAction {
     SetDefault(Vec<Identifier>),
 }
 
+impl AsSql for ReferentialAction {
+    fn as_sql(&self) -> String {
+        match self {
+            ReferentialAction::NoAction => "NO ACTION".to_string(),
+            ReferentialAction::Restrict => "RESTRICT".to_string(),
+            ReferentialAction::Cascade => "CASCADE".to_string(),
+            ReferentialAction::SetNull(column_names) => {
+                let mut statement = "SET NULL ( ".to_string();
+                statement.push_str(
+                    &column_names
+                        .iter()
+                        .map(|column_name| column_name.as_str())
+                        .collect::<Vec<&str>>()
+                        .join(", "),
+                );
+                statement.push_str(" )");
+                statement
+            },
+            ReferentialAction::SetDefault(column_names) => {
+                let mut statement = "SET DEFAULT ( ".to_string();
+                statement.push_str(
+                    &column_names
+                        .iter()
+                        .map(|column_name| column_name.as_str())
+                        .collect::<Vec<&str>>()
+                        .join(", "),
+                );
+                statement.push_str(" )");
+                statement
+            },
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug)]
 enum ReferencesConstraintMatchType {
     Full,
@@ -123,7 +157,25 @@ impl AsSql for ReferencesConstraintMatchType {
 
 impl AsSql for ReferencesConstraint {
     fn as_sql(&self) -> String {
-        todo!()
+        let mut statement = format!("REFERENCES {}", &self.ref_table);
+        if let Some(column) = &self.ref_column {
+            statement.push_str(" ");
+            statement.push_str(column.as_str());
+        }
+        if let Some(match_type) = &self.match_type {
+            statement.push_str(" ");
+            statement.push_str(&match_type.as_sql());
+        }
+        if let Some(ref_action) = &self.on_delete_action {
+            statement.push_str(" ON DELETE ");
+            statement.push_str(&ref_action.as_sql());
+        }
+        if let Some(ref_action) = &self.on_delete_action {
+            statement.push_str(" ON UPDATE ");
+            statement.push_str(&ref_action.as_sql());
+        }
+
+        statement
     }
 }
 
