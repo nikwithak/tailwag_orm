@@ -3,11 +3,11 @@ use std::{ops::Deref, sync::Arc};
 use super::table_definition::{DatabaseTableDefinition, Identifier};
 
 pub struct DatabaseDefinition {
-    data: Arc<DatabaseDefinitionBuilder>,
+    data: Arc<DatabaseDefinitionData>,
 }
 
 impl Deref for DatabaseDefinition {
-    type Target = DatabaseDefinitionBuilder;
+    type Target = DatabaseDefinitionData;
 
     fn deref(&self) -> &Self::Target {
         &self.data
@@ -20,7 +20,7 @@ impl DatabaseDefinition {
         tables: Vec<DatabaseTableDefinition>,
     ) -> Self {
         Self {
-            data: Arc::new(DatabaseDefinitionBuilder {
+            data: Arc::new(DatabaseDefinitionData {
                 name: Identifier::new(name).unwrap(), // TODO: remove `.unwrap` calls
                 tables,
             }),
@@ -29,7 +29,7 @@ impl DatabaseDefinition {
 }
 
 #[derive(Clone)]
-pub struct DatabaseDefinitionBuilder {
+pub struct DatabaseDefinitionData {
     pub name: Identifier,
     pub tables: Vec<DatabaseTableDefinition>,
 }
@@ -39,7 +39,7 @@ pub struct DatabaseDefinitionBuilder {
 //     tables: Vec<DatabaseTableDefinition
 // }
 
-impl DatabaseDefinitionBuilder {
+impl DatabaseDefinitionData {
     pub fn new(name: String) -> Self {
         Self {
             name: Identifier::new(name).expect("Invalid Database name - panicking"), // TODO: Throw this error upstream

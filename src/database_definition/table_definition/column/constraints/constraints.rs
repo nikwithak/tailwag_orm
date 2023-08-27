@@ -119,6 +119,8 @@ impl AsSql for ReferencesConstraintMatchType {
     }
 }
 
+// TODO: Aside from implemetning this, I need to refactor how I handle (some?) constraints that reference other tables, to avoid referencing the table before it exists.
+
 impl AsSql for ReferencesConstraint {
     fn as_sql(&self) -> String {
         todo!()

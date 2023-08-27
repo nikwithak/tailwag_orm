@@ -34,7 +34,6 @@ mod tests {
             table_name: Identifier::new("products".to_string()).unwrap(),
             columns: vec![
                 TableColumn {
-                    parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     constraints: vec![
@@ -43,7 +42,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("description".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
                     constraints: vec![
@@ -52,7 +50,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("name".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
                     constraints: vec![
@@ -61,7 +58,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("products".to_string()).unwrap(),
                     column_name: Identifier::new("created_at".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
                     constraints: vec![TableColumnConstraint::non_null()],

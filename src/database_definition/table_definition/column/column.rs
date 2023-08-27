@@ -1,8 +1,10 @@
-use crate::AsSql;
+use crate::{database_definition::table_definition::DatabaseTableDefinition, AsSql};
 
 use crate::database_definition::table_definition::Identifier;
 
-use super::TableColumnConstraint;
+use super::{
+    PrimaryKeyConstraint, ReferencesConstraint, TableColumnConstraint, TableColumnConstraintDetail,
+};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DatabaseColumnType {
@@ -34,32 +36,111 @@ impl DatabaseColumnType {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableColumn {
     // TODO: Is parent_table_name needed here??? Parent should track it, doesn't  need a call back (why did I add this in the first place??)
-    pub parent_table_name: Identifier, // Identifier is just an Arc<String> (with validation) under the hood
-    pub column_name: Identifier,       // Part of spec
+    // pub parent_table_name: Identifier, // Identifier is just an Arc<String> (with validation) under the hood
+    pub column_name: Identifier,         // Part of spec
     pub column_type: DatabaseColumnType, // Part of spec - named `data_type` in spec
     // pub compression_method: Optional<CompressionMethod>, // TODO: Adds `COMPRESSION compression_method` after `data_type`
     // pub collation: Optional<Collation>, // TODO: Adds `COMPRESSION compression_method` after `data_type`
     pub constraints: Vec<TableColumnConstraint>,
 }
+// TODO: Wrap in an `Arc` with `Deref` - wonder what the idomatic term for this pattern is.
 
 impl TableColumn {
+    /// Creates a new TableColumn.
+    ///
+    /// Before using TableColumn::new, see if any of the provided helper
+    /// `TableColumn::new_*` functions fit your use case.
     pub fn new(
         column_name: Identifier,
-        parent_table_name: Identifier,
         column_type: DatabaseColumnType,
         constraints: Vec<TableColumnConstraint>,
     ) -> Self {
         Self {
-            parent_table_name,
+            // parent_table_name,
             column_name,
             column_type,
             constraints,
         }
     }
 
-    fn make_primary_key(mut self) -> Self {
-        self.constraints.push(TableColumnConstraint::primary_key());
-        self
+    pub fn new_int(column_name: Identifier) -> Self {
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::Int,
+            constraints: vec![],
+        }
+    }
+
+    pub fn new_string(column_name: Identifier) -> Self {
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::String,
+            constraints: vec![],
+        }
+    }
+
+    pub fn new_timestamp(column_name: Identifier) -> Self {
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::Timestamp,
+            constraints: vec![],
+        }
+    }
+
+    pub fn new_float(column_name: Identifier) -> Self {
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::Float,
+            constraints: vec![],
+        }
+    }
+
+    pub fn new_uuid_fk(
+        column_name: Identifier,
+        table: DatabaseTableDefinition,
+    ) -> Self {
+        // TODO: Don't need to loop once I expose this info from DatabaseTableDefinition
+        let foreign_column_name = table
+            .columns
+            .iter()
+            .find(|column| {
+                let is_uuid = column.column_type == DatabaseColumnType::Uuid;
+                let is_pk = column
+                    .constraints
+                    .iter()
+                    .find(|constraint| match *constraint.detail {
+                        TableColumnConstraintDetail::PrimaryKey(_) => true,
+                        _ => false,
+                    })
+                    .is_some();
+                is_uuid && is_pk
+            })
+            .expect("Uuid foreign key relationship does not exist."); // TODO: Add some error responses instead of just panicking.
+
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::Float,
+            constraints: vec![TableColumnConstraint::foreign_key(
+                table.table_name.clone(),
+                foreign_column_name.column_name.clone(),
+            )],
+        }
+    }
+
+    pub fn new_bool(column_name: Identifier) -> Self {
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::Boolean,
+            constraints: vec![],
+        }
+    }
+
+    pub fn new_uuid_pk(column_name: Identifier) -> Self {
+        Self {
+            column_name,
+            column_type: DatabaseColumnType::Uuid,
+            constraints: vec![TableColumnConstraint::primary_key()],
+        }
     }
 }
 

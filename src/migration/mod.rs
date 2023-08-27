@@ -33,13 +33,11 @@ mod tests {
             table_name: Identifier::new("table_2".to_string()).unwrap(),
             columns: vec![
                 TableColumn {
-                    parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("string_nullable".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
                     constraints: vec![],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("bool".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Boolean,
                     constraints: vec![
@@ -47,7 +45,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("int".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Int,
                     constraints: vec![
@@ -55,7 +52,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("float".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Float,
                     constraints: vec![
@@ -63,7 +59,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("timestamp".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
                     constraints: vec![
@@ -71,7 +66,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_2".to_string()).unwrap(),
                     column_name: Identifier::new("uuid".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     constraints: vec![
@@ -87,13 +81,11 @@ mod tests {
             table_name: Identifier::new("table_1".to_string()).unwrap(),
             columns: vec![
                 TableColumn {
-                    parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("string_nullable".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
                     constraints: vec![],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("bool".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Boolean,
                     constraints: vec![
@@ -101,7 +93,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("int".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Int,
                     constraints: vec![
@@ -109,7 +100,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("float".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Float,
                     constraints: vec![
@@ -117,7 +107,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("timestamp".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
                     constraints: vec![
@@ -125,7 +114,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                     column_name: Identifier::new("uuid".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     constraints: vec![
@@ -141,7 +129,6 @@ mod tests {
             table_name: Identifier::new("table_3".to_string()).unwrap(),
             columns: vec![
                 TableColumn {
-                    parent_table_name: Identifier::new("table_3".to_string()).unwrap(),
                     column_name: Identifier::new("created_at".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
                     constraints: vec![
@@ -149,7 +136,6 @@ mod tests {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_3".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     constraints: vec![
@@ -166,7 +152,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
             table_name: Identifier::new("table_4".to_string()).unwrap(),
             columns: vec![
                 TableColumn {
-                    parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
                     column_name: Identifier::new("id".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     constraints: vec![
@@ -175,7 +160,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                     ],
                 },
                 TableColumn {
-                    parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
                     column_name: Identifier::new("created_at".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
                     constraints: vec![
@@ -205,7 +189,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                         actions: vec![AlterColumnAction::SetType(DatabaseColumnType::Float)],
                     }),
                     AlterTableAction::AddColumn(TableColumn {
-                        parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                         column_name: Identifier::new("new_column".to_string()).unwrap(),
                         column_type: DatabaseColumnType::String,
                         constraints: vec![
@@ -313,7 +296,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
             println!("+++++++++++++++=====================+++++++++++++++++++=");
         });
         after_t1.columns.push(TableColumn {
-            parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
             column_name: Identifier::new("new_column".to_string()).unwrap(),
             column_type: DatabaseColumnType::String,
             constraints: vec![
@@ -329,7 +311,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
 
         let mut after_t4 = table_4();
         after_t4.columns.push(TableColumn {
-            parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
             column_name: Identifier::new("updated_at".to_string()).unwrap(),
             column_type: DatabaseColumnType::Timestamp,
             constraints: vec![],
@@ -368,7 +349,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                                 ),]
                             }),
                             AlterTableAction::AddColumn(TableColumn {
-                                parent_table_name: Identifier::new("table_1".to_string()).unwrap(),
                                 column_name: Identifier::new("new_column".to_string()).unwrap(),
                                 column_type: DatabaseColumnType::String,
                                 constraints: vec![
@@ -390,7 +370,6 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                     MigrationAction::AlterTable(AlterTable {
                         table_name: Identifier::new("table_4".to_string()).unwrap(),
                         actions: vec![AlterTableAction::AddColumn(TableColumn {
-                            parent_table_name: Identifier::new("table_4".to_string()).unwrap(),
                             column_name: Identifier::new("updated_at".to_string()).unwrap(),
                             column_type: DatabaseColumnType::Timestamp,
                             constraints: vec![],

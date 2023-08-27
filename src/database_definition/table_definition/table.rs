@@ -1,5 +1,3 @@
-use syn::Ident;
-
 use super::{DatabaseColumnType, Identifier, TableColumn};
 
 // The details of the Database table. Used to generate the queries for setting up and iteracting with the database.
@@ -19,27 +17,35 @@ impl DatabaseTableDefinition {
         }
     }
 
-    fn add_column(
+    pub fn add_column(
+        mut self,
+        column: TableColumn,
+    ) -> Self {
+        self.columns.push(column);
+        self
+    }
+
+    fn add_column_helper(
         &mut self,
         column_name: String,
         column_type: DatabaseColumnType,
     ) {
         self.columns.push(TableColumn::new(
             Identifier::new(column_name).unwrap(),
-            self.table_name.clone(),
             column_type,
             Vec::new(),
         ));
     }
 
-    // TODO: Audit Trail stuff. Create/modify/audit-tables, or a list of audit trail associated to the table.
+    // TODO: Audit Trail stuff. Create/modify/audit-tables, or a list of audit
+    // trail associated to the table.
     // fn standard_audit_trail() -> Self {}
 
     pub fn add_column_int(
         mut self,
         column_name: String,
     ) -> Self {
-        self.add_column(column_name, DatabaseColumnType::Int);
+        self.add_column_helper(column_name, DatabaseColumnType::Int);
         self
     }
 
@@ -47,7 +53,7 @@ impl DatabaseTableDefinition {
         mut self,
         column_name: String,
     ) -> Self {
-        self.add_column(column_name, DatabaseColumnType::Boolean);
+        self.add_column_helper(column_name, DatabaseColumnType::Boolean);
         self
     }
 
@@ -55,7 +61,7 @@ impl DatabaseTableDefinition {
         mut self,
         column_name: String,
     ) -> Self {
-        self.add_column(column_name, DatabaseColumnType::Float);
+        self.add_column_helper(column_name, DatabaseColumnType::Float);
         self
     }
 
@@ -63,7 +69,7 @@ impl DatabaseTableDefinition {
         mut self,
         column_name: String,
     ) -> Self {
-        self.add_column(column_name, DatabaseColumnType::String);
+        self.add_column_helper(column_name, DatabaseColumnType::String);
         self
     }
 
@@ -71,7 +77,7 @@ impl DatabaseTableDefinition {
         mut self,
         column_name: String,
     ) -> Self {
-        self.add_column(column_name, DatabaseColumnType::Timestamp);
+        self.add_column_helper(column_name, DatabaseColumnType::Timestamp);
         self
     }
 
@@ -81,7 +87,6 @@ impl DatabaseTableDefinition {
     ) -> Self {
         self.columns.push(TableColumn::new(
             Identifier::new(column_name).unwrap(),
-            self.table_name.clone(),
             super::DatabaseColumnType::Uuid,
             Vec::new(),
         ));

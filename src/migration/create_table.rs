@@ -61,7 +61,6 @@ mod test {
             table_name: table_name.clone(),
             columns: vec![
                 TableColumn {
-                    parent_table_name: table_name.clone(),
                     column_name: Identifier::new("uuid_pk_nonnull".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Uuid,
                     // is_primary_key: true,
@@ -73,31 +72,26 @@ mod test {
                     ],
                 },
                 TableColumn {
-                    parent_table_name: table_name.clone(),
                     column_name: Identifier::new("string".to_string()).unwrap(),
                     column_type: DatabaseColumnType::String,
                     constraints: vec![],
                 },
                 TableColumn {
-                    parent_table_name: table_name.clone(),
                     column_name: Identifier::new("bool_nonnull".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Boolean,
                     constraints: vec![TableColumnConstraint::non_null()],
                 },
                 TableColumn {
-                    parent_table_name: table_name.clone(),
                     column_name: Identifier::new("float_nonnull".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Float,
                     constraints: vec![TableColumnConstraint::non_null()],
                 },
                 TableColumn {
-                    parent_table_name: table_name.clone(),
                     column_name: Identifier::new("int".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Int,
                     constraints: vec![],
                 },
                 TableColumn {
-                    parent_table_name: table_name.clone(),
                     column_name: Identifier::new("create_timestamp".to_string()).unwrap(),
                     column_type: DatabaseColumnType::Timestamp,
                     constraints: vec![],
