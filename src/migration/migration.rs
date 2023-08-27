@@ -78,15 +78,11 @@ impl Migration {
                         // new = an entirely new table
                         actions
                             .push(MigrationAction::CreateTable(CreateTable::new((*new).clone())));
-                        println!("new: {:?}", &new_table);
-                        println!("old: {:?}", &old_table);
                         new_table = new_sorted_iter.next();
                     },
                     (Some(old), None) => {
                         // old = removed (we never found a match)
                         actions.push(MigrationAction::DropTable(old.table_name.clone()));
-                        println!("new: {:?}", &new_table);
-                        println!("old: {:?}", &old_table);
                         old_table = old_sorted_iter.next();
                     },
                     (Some(old), Some(new)) => {
@@ -94,9 +90,6 @@ impl Migration {
                             std::cmp::Ordering::Less => {
                                 // Old table comes first, and has been deleted.
                                 actions.push(MigrationAction::DropTable(old.table_name.clone()));
-                                // TODO: Remove all the println!s here. Maybe convert them to debug? Definitely move it to top of thing so it's only called once.
-                                println!("new: {:?}", &new_table);
-                                println!("old: {:?}", &old_table);
                                 old_table = old_sorted_iter.next();
                             },
                             std::cmp::Ordering::Equal => {
@@ -112,13 +105,9 @@ impl Migration {
                                 actions.push(MigrationAction::CreateTable(CreateTable::new(
                                     (*new).clone(),
                                 )));
-                                println!("new: {:?}", &new_table);
-                                println!("old: {:?}", &old_table);
                                 new_table = new_sorted_iter.next();
                             },
                         }
-                        println!("new: {:?}", &new_table);
-                        println!("old: {:?}", &old_table);
                     },
                     (None, None) => panic!("Should not ever reach here"),
                 }
@@ -182,34 +171,23 @@ impl Migration {
                 (None, Some(new)) => {
                     // new = an entirely new column
                     actions.push(AlterTableAction::AddColumn(new.clone()));
-                    println!("    new: {:?}", &new_column);
-                    println!("    old: {:?}", &old_column);
                     new_column = new_sorted_iter.next();
                 },
                 (Some(old), None) => {
                     // old = removed (we never found a match)
                     actions.push(AlterTableAction::DropColumn(old.column_name.clone()));
-                    println!("    new: {:?}", &new_column);
-                    println!("    old: {:?}", &old_column);
                     old_column = old_sorted_iter.next();
                 },
                 (Some(old), Some(new)) => match old.column_name.cmp(&new.column_name) {
                     std::cmp::Ordering::Less => {
-                        println!("    new: {:?}", &new_column);
-                        println!("    old: {:?}", &old_column);
                         actions.push(AlterTableAction::DropColumn(old.column_name.clone()));
                         old_column = old_sorted_iter.next();
                     },
                     std::cmp::Ordering::Greater => {
-                        println!("    new: {:?}", &new_column);
-                        println!("    old: {:?}", &old_column);
                         actions.push(AlterTableAction::AddColumn(new.clone()));
                         new_column = new_sorted_iter.next();
                     },
                     std::cmp::Ordering::Equal => {
-                        println!("    new: {:?}", &new_column);
-                        println!("    old: {:?}", &old_column);
-
                         // TODO move this logic into TableColumn? Or AlterColumnAction?
                         let mut alter_column_actions = Vec::new();
                         if !old.column_type.eq(&new.column_type) {
@@ -221,14 +199,6 @@ impl Migration {
 
                         // * NONNULL calculation - Compares `NotNull`
                         {
-                            // Debugging purposes - TODO delete this or wrap in a `#[cfg(debug)]`
-                            println!("{}", old.column_name.value());
-                            if old.column_name.value() == "bool" {
-                                println!("NIK LOOK HERE");
-                                println!("old: {:?}", old);
-                                println!("new: {:?}", new);
-                            }
-
                             // Uggggh this is really hacky. Wanna clean this up later.
                             // Find the existence of a `NotNull` constraint. If it does *not* exist (`.is_none()`) then the field *is* nullable.
                             // A confusing mess of double negative magic going on here.
@@ -238,32 +208,13 @@ impl Migration {
                                 crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
                             }).is_none();
-                            println!(
-                                "old {} nullable",
-                                if old_is_nullable {
-                                    "is"
-                                } else {
-                                    "is not"
-                                }
-                            );
                             let new_is_nullable = new.constraints.iter().find(|c| match *c.detail {
                                 crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
                             }).is_none();
-                            println!(
-                                "new {} nullable",
-                                if new_is_nullable {
-                                    "is"
-                                } else {
-                                    "is not"
-                                }
-                            );
                             if old_is_nullable != new_is_nullable {
-                                println!("Adding nonnull");
                                 alter_column_actions
                                     .push(AlterColumnAction::SetNullability(new_is_nullable));
-                            } else {
-                                println!("NOT adding nonnull");
                             }
                         }
 
@@ -298,9 +249,6 @@ impl Migration {
         }
 
         if actions.len() > 0 {
-            println!("=====   RESULT   =====");
-            println!("{:?}", &actions);
-            println!("===== END RESULT =====");
             Some(Self {
                 actions: vec![MigrationAction::AlterTable(AlterTable {
                     actions,

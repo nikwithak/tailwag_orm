@@ -19,8 +19,6 @@ impl CreateTable {
 
 impl AsSql for CreateTable {
     fn as_sql(&self) -> String {
-        let mut sql =
-            format!("CREATE TABLE IF NOT EXISTS {} (\n", self.table_definition.table_name);
         let columns_sql = self
             .table_definition
             .columns
@@ -29,6 +27,8 @@ impl AsSql for CreateTable {
             .collect::<Vec<String>>()
             .join(",\n");
 
+        let mut sql =
+            format!("CREATE TABLE IF NOT EXISTS {} (\n", self.table_definition.table_name);
         sql.push_str(&columns_sql);
         sql.push_str("\n);");
 
@@ -43,11 +43,16 @@ mod test {
     use crate::{
         database_definition::table_definition::{
             DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
-            TableColumnConstraint, TableColumnConstraintDetail,
+            TableColumnConstraint,
         },
         migration::create_table,
         AsSql,
     };
+
+    #[test]
+    fn as_sql_foreign_key_on_column_works() {
+        todo!()
+    }
 
     #[test]
     fn as_sql_works() {

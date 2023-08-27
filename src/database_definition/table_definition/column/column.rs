@@ -2,7 +2,7 @@ use crate::AsSql;
 
 use crate::database_definition::table_definition::Identifier;
 
-use super::{TableColumnConstraint, TableColumnConstraintDetail};
+use super::TableColumnConstraint;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DatabaseColumnType {
@@ -33,12 +33,34 @@ impl DatabaseColumnType {
 /// [ref](https://www.postgresql.org/docs/current/sql-createtable.html)
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TableColumn {
-    pub parent_table_name: Identifier,
-    pub column_name: Identifier,         // Part of spec
-    pub column_type: DatabaseColumnType, // Part of spec - named `data_type in spec
+    // TODO: Is parent_table_name needed here??? Parent should track it, doesn't  need a call back (why did I add this in the first place??)
+    pub parent_table_name: Identifier, // Identifier is just an Arc<String> (with validation) under the hood
+    pub column_name: Identifier,       // Part of spec
+    pub column_type: DatabaseColumnType, // Part of spec - named `data_type` in spec
     // pub compression_method: Optional<CompressionMethod>, // TODO: Adds `COMPRESSION compression_method` after `data_type`
     // pub collation: Optional<Collation>, // TODO: Adds `COMPRESSION compression_method` after `data_type`
     pub constraints: Vec<TableColumnConstraint>,
+}
+
+impl TableColumn {
+    pub fn new(
+        column_name: Identifier,
+        parent_table_name: Identifier,
+        column_type: DatabaseColumnType,
+        constraints: Vec<TableColumnConstraint>,
+    ) -> Self {
+        Self {
+            parent_table_name,
+            column_name,
+            column_type,
+            constraints,
+        }
+    }
+
+    fn make_primary_key(mut self) -> Self {
+        self.constraints.push(TableColumnConstraint::primary_key());
+        self
+    }
 }
 
 impl AsSql for TableColumn {

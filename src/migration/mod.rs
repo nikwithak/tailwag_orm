@@ -300,9 +300,10 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
             // Tests a mix of the two changes
             c.column_type = DatabaseColumnType::String;
 
-            println!("+++++++++++++++=====================+++++++++++++++++++=");
-            println!("   after_t1.columns.{}: {:?} ", c.column_name, c.constraints);
-            println!("+++++++++++++++=====================+++++++++++++++++++=");
+            // TODO: Move from log::info! to log::info! calls in tests
+            log::info!("+++++++++++++++=====================+++++++++++++++++++=");
+            log::info!("   after_t1.columns.{}: {:?} ", c.column_name, c.constraints);
+            log::info!("+++++++++++++++=====================+++++++++++++++++++=");
             c.constraints.retain(|c| match *c.detail {
                 TableColumnConstraintDetail::NotNull => false,
                 _ => true,

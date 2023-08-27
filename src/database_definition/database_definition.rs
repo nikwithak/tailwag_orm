@@ -1,9 +1,17 @@
-use super::table_definition::DatabaseTableDefinition;
+use std::{ops::Deref, sync::Arc};
 
-#[derive(Clone)]
+use super::table_definition::{DatabaseTableDefinition, Identifier};
+
 pub struct DatabaseDefinition {
-    pub name: String,
-    pub tables: Vec<DatabaseTableDefinition>,
+    data: Arc<DatabaseDefinitionBuilder>,
+}
+
+impl Deref for DatabaseDefinition {
+    type Target = DatabaseDefinitionBuilder;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
 }
 
 impl DatabaseDefinition {
@@ -12,8 +20,42 @@ impl DatabaseDefinition {
         tables: Vec<DatabaseTableDefinition>,
     ) -> Self {
         Self {
-            name,
-            tables,
+            data: Arc::new(DatabaseDefinitionBuilder {
+                name: Identifier::new(name).unwrap(), // TODO: remove `.unwrap` calls
+                tables,
+            }),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct DatabaseDefinitionBuilder {
+    pub name: Identifier,
+    pub tables: Vec<DatabaseTableDefinition>,
+}
+
+// pub struct DatabaseBuilder {
+//     name: String,
+//     tables: Vec<DatabaseTableDefinition
+// }
+
+impl DatabaseDefinitionBuilder {
+    pub fn new(name: String) -> Self {
+        Self {
+            name: Identifier::new(name).expect("Invalid Database name - panicking"), // TODO: Throw this error upstream
+            tables: Vec::new(),
+        }
+    }
+
+    pub fn add_table(
+        mut self,
+        table_name: String,
+    ) -> Self {
+        let new_table = DatabaseTableDefinition {
+            table_name: Identifier::new(table_name).expect("Invalid Table name - panicking"), // TODO: Throw this error upstream
+            columns: Vec::new(),
+        };
+        self.tables.push(new_table);
+        self
     }
 }
