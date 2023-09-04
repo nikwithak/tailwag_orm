@@ -5,7 +5,7 @@ use super::{DatabaseColumnType, Identifier, TableColumn};
 pub struct DatabaseTableDefinition {
     pub table_name: Identifier,
     // TODO: Make it so that there can only be one ID column.
-    // TODO: Compoisite keys, Constraints, etc.
+    // TODO: Composite keys, Constraints, etc.
     pub columns: Vec<TableColumn>,
 }
 
@@ -17,7 +17,10 @@ impl DatabaseTableDefinition {
         }
     }
 
-    pub fn column<T: Into<TableColumn>>(self, column: T,) -> Self {
+    pub fn column<T: Into<TableColumn>>(
+        self,
+        column: T,
+    ) -> Self {
         self.add_column(column)
     }
 
