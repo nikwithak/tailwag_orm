@@ -41,10 +41,7 @@ mod test {
     use create_table::CreateTable;
 
     use crate::{
-        database_definition::table_definition::{
-            DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
-            TableColumnConstraint,
-        },
+        database_definition::table_definition::{DatabaseTableDefinition, Identifier, TableColumn},
         migration::create_table,
         AsSql,
     };
@@ -62,8 +59,8 @@ mod test {
             columns: vec![
                 TableColumn::new_uuid("uuid_pk_nonnull")?.non_null().pk().into(),
                 TableColumn::new_string("string")?.into(),
-                TableColumn::new_bool("bool_nonnull")?.non_null().into(), // TODO: Add non_null constraint
-                TableColumn::new_float("float_nonnull")?.non_null().into(), // TODO: Add non_null constraint
+                TableColumn::new_bool("bool_nonnull")?.non_null().into(),
+                TableColumn::new_float("float_nonnull")?.non_null().into(),
                 TableColumn::new_int("int")?.into(),
                 TableColumn::new_timestamp("create_timestamp")?.into(),
             ],

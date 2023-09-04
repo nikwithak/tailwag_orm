@@ -34,13 +34,13 @@ impl DatabaseDefinition {
     pub fn new(
         name: String,
         tables: Vec<DatabaseTableDefinition>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, String> {
+        Ok(Self {
             data: Arc::new(DatabaseDefinitionData {
-                name: Identifier::new(name).unwrap(), // TODO: remove `.unwrap` calls
+                name: Identifier::new(name)?,
                 tables,
             }),
-        }
+        })
     }
 }
 
