@@ -1,13 +1,11 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::{database_definition::table_definition::DatabaseTableDefinitionData, AsSql};
+use crate::AsSql;
 
-use crate::database_definition::table_definition::{column, DatabaseTableDefinition, Identifier};
+use crate::database_definition::table_definition::{DatabaseTableDefinition, Identifier};
 
-use super::{
-    PrimaryKeyConstraint, ReferencesConstraint, TableColumnConstraint, TableColumnConstraintDetail,
-};
+use super::TableColumnConstraint;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DatabaseColumnType {

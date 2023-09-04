@@ -6,11 +6,11 @@ use crate::{
 };
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct PrimaryKeyConstraint {
+pub struct PrimaryKeyColumnConstraint {
     index_parameters: Option<IndexParameters>,
 }
 
-impl AsSql for PrimaryKeyConstraint {
+impl AsSql for PrimaryKeyColumnConstraint {
     fn as_sql(&self) -> String {
         let mut statement = "PRIMARY KEY".to_string();
         if let Some(params) = &self.index_parameters {
@@ -21,9 +21,9 @@ impl AsSql for PrimaryKeyConstraint {
     }
 }
 
-impl Default for PrimaryKeyConstraint {
+impl Default for PrimaryKeyColumnConstraint {
     fn default() -> Self {
-        PrimaryKeyConstraint {
+        PrimaryKeyColumnConstraint {
             index_parameters: None,
         }
     }
@@ -47,11 +47,11 @@ impl AsSql for IndexParameters {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct UniqueConstraint {
+pub struct UniqueColumnConstraint {
     is_null_distinct: bool,
     index_parameters: Option<IndexParameters>,
 }
-impl Default for UniqueConstraint {
+impl Default for UniqueColumnConstraint {
     fn default() -> Self {
         Self {
             is_null_distinct: false,
@@ -60,7 +60,7 @@ impl Default for UniqueConstraint {
     }
 }
 
-impl AsSql for UniqueConstraint {
+impl AsSql for UniqueColumnConstraint {
     fn as_sql(&self) -> String {
         let mut statement = "UNIQUE".to_string();
         if self.is_null_distinct {
@@ -208,7 +208,9 @@ impl TableColumnConstraint {
     pub fn unique() -> Self {
         Self {
             name: None,
-            detail: Arc::new(TableColumnConstraintDetail::Unique(UniqueConstraint::default())),
+            detail: Arc::new(
+                TableColumnConstraintDetail::Unique(UniqueColumnConstraint::default()),
+            ),
         }
     }
 
@@ -230,7 +232,7 @@ impl TableColumnConstraint {
         Self {
             name: None,
             detail: Arc::new(TableColumnConstraintDetail::PrimaryKey(
-                PrimaryKeyConstraint::default(),
+                PrimaryKeyColumnConstraint::default(),
             )),
         }
     }
@@ -260,8 +262,8 @@ pub enum TableColumnConstraintDetail {
     // Check(CheckExpressionConstraint), // TODO
     // Default(_), // TODO
     // Generated(GeneratedConstraint), // TODO
-    Unique(UniqueConstraint),
-    PrimaryKey(PrimaryKeyConstraint),
+    Unique(UniqueColumnConstraint),
+    PrimaryKey(PrimaryKeyColumnConstraint),
     References(ReferencesConstraint),
 }
 

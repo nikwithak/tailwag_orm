@@ -44,17 +44,17 @@ pub enum Filter {
     In(FilterComparisonParam, Vec<FilterComparisonParam>),         // All types
 }
 
-trait Likeable {
-    fn like<T: Into<String>>(
-        &self,
-        _t: T,
-    ) -> Filter {
-        Filter::Like(
-            FilterComparisonParam::TableColumn(todo!()),
-            FilterComparisonParam::String(_t.into()),
-        )
-    }
-}
+// trait Likeable {
+//     fn like<T: Into<String>>(
+//         &self,
+//         _t: T,
+//     ) -> Filter {
+//         Filter::Like(
+//             FilterComparisonParam::TableColumn(todo!()),
+//             FilterComparisonParam::String(_t.into()),
+//         )
+//     }
+// }
 
 impl BitAndAssign for Filter {
     fn bitand_assign(

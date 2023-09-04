@@ -35,7 +35,6 @@ impl AsSql for TableConstraintDetail {
             Self::ForeignKey() => "",
             Self::Unique(_) => todo!(),
             Self::PrimaryKey(_) => todo!(),
-            Self::ForeignKey() => todo!(),
         }
         .into()
     }

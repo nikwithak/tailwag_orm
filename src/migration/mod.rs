@@ -16,7 +16,6 @@ mod tests {
             database_definition::DatabaseDefinition,
             table_definition::{
                 DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
-                TableColumnConstraintDetail,
             },
         },
         migration::{
@@ -170,7 +169,7 @@ mod tests {
     #[test]
     fn compare_tables_builds_diff() {
         // Arrange
-        let mut after_t1 = DatabaseTableDefinition::new("table_1")
+        let after_t1 = DatabaseTableDefinition::new("table_1")
             .unwrap()
             .add_column(TableColumn::string("string_nullable").unwrap().non_null())
             .add_column(TableColumn::string("bool").unwrap())

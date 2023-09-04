@@ -71,22 +71,22 @@ impl<T: Queryable> AsSql for Query<T> {
 }
 
 impl<T: Queryable> Query<T> {
-    fn execute() -> Vec<T> {
-        todo!()
-    }
+    // fn execute() -> Vec<T> {
+    //     todo!()
+    // }
 
-    fn limit(
-        mut self,
-        limit: usize,
-    ) -> Self {
-        self.limit = Some(limit);
-        self
-    }
+    // fn limit(
+    //     mut self,
+    //     limit: usize,
+    // ) -> Self {
+    //     self.limit = Some(limit);
+    //     self
+    // }
 
-    fn get(filter: Filter) -> Option<T> {
-        // TODO: get by ID
-        todo!()
-    }
+    // fn get(filter: Filter) -> Option<T> {
+    //     // TODO: get by ID
+    //     todo!()
+    // }
 
     pub fn filter(
         mut self,

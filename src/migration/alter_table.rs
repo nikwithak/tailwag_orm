@@ -31,7 +31,6 @@ impl AsSql for AlterTableAction {
             E::AddConstraint(constraint) => format!("ADD {}", &constraint.as_sql()),
             E::AlterConstraint() => todo!(),
             E::DropConstraint() => todo!(),
-            _ => todo!(),
         }
     }
 }

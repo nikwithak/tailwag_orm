@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ops::Deref, sync::Arc};
 
-use super::{Identifier, TableColumn, TableConstraint, TableConstraintDetail};
+use super::{Identifier, TableColumn, TableConstraint};
 
 // The details of the Database table. Used to generate the queries for setting up and iteracting with the database.
 #[derive(Clone, PartialEq, Eq, Debug)]

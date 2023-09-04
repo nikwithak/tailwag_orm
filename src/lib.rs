@@ -11,7 +11,7 @@ pub trait AsSql {
 }
 
 pub trait FromSql {
-    fn from_sql<T: AsSql>(sql: &str) -> T {
+    fn from_sql<T: AsSql>(_sql: &str) -> T {
         todo!("FromSql is not yet implemented.")
     }
 }
