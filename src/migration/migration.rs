@@ -152,11 +152,9 @@ impl Migration {
 
         // Figure out added / removed / changed columns
         // First sort them, so we can iterate in one pass.
-        let mut before_columns_sorted =
-            before.columns.iter().map(|(_, v)| v).collect::<Vec<&TableColumn>>();
+        let mut before_columns_sorted = before.columns.iter().collect::<Vec<&TableColumn>>();
         before_columns_sorted.sort_by(|l, r| l.column_name.cmp(&r.column_name));
-        let mut after_columns_sorted =
-            after.columns.iter().map(|(_, v)| v).collect::<Vec<&TableColumn>>();
+        let mut after_columns_sorted = after.columns.iter().collect::<Vec<&TableColumn>>();
         after_columns_sorted.sort_by(|l, r| l.column_name.cmp(&r.column_name));
 
         // Second, iterate through both. Any out-of-sync issues indicate a column only in that set.

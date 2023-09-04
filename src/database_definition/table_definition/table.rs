@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref, sync::Arc};
+use std::{ops::Deref, sync::Arc};
 
 use super::{Identifier, TableColumn, TableConstraint};
 
@@ -27,8 +27,8 @@ pub struct DatabaseTableDefinitionData {
     pub table_name: Identifier,
     // TODO: Make it so that there can only be one ID column.
     // TODO: Composite keys, Constraints, etc.
-    // pub columns: Vec<TableColumn>,
-    pub columns: HashMap<Identifier, TableColumn>,
+    pub columns: Vec<TableColumn>,
+    // pub columns: HashMap<Identifier, TableColumn>,
     pub constraints: Vec<TableConstraint>,
 }
 
@@ -44,7 +44,8 @@ impl DatabaseTableDefinitionData {
     pub fn new(table_name: &str) -> Result<Self, String> {
         Ok(Self {
             table_name: Identifier::new(table_name)?, // TODO: Clean this up
-            columns: HashMap::new(),
+            // columns: HashMap::new(),
+            columns: Vec::new(),
             constraints: vec![],
         })
     }
@@ -61,7 +62,8 @@ impl DatabaseTableDefinitionData {
         column: T,
     ) -> Self {
         let column = column.into();
-        self.columns.insert(column.column_name.clone(), column);
+        // self.columns.insert(column.column_name.clone(), column);
+        self.columns.push(column);
         self
     }
 }
