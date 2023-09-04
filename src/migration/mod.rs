@@ -30,49 +30,44 @@ mod tests {
 
     fn table_2() -> DatabaseTableDefinition {
         type T = TableColumn;
-        DatabaseTableDefinition {
-            table_name: Identifier::new("table_2".to_string()).unwrap(),
-            columns: vec![
-                T::string("string_nullable").unwrap().into(),
-                T::bool("bool").unwrap().non_null().into(),
-                T::int("int").unwrap().non_null().into(),
-                T::float("float").unwrap().non_null().into(),
-                T::timestamp("timestamp").unwrap().non_null().into(),
-                T::uuid("uuid").unwrap().non_null().into(),
-            ],
-        }
+        DatabaseTableDefinition::new("table_2")
+            .unwrap()
+            .column(T::string("string_nullable").unwrap())
+            .column(T::bool("bool").unwrap().non_null())
+            .column(T::int("int").unwrap().non_null())
+            .column(T::float("float").unwrap().non_null())
+            .column(T::timestamp("timestamp").unwrap().non_null())
+            .column(T::uuid("uuid").unwrap().non_null())
+            .into()
     }
 
     fn table_1() -> DatabaseTableDefinition {
         DatabaseTableDefinition::new("table_1")
+            .unwrap()
             .add_column(TableColumn::string("string_nullable").unwrap())
             .add_column(TableColumn::bool("bool").unwrap().non_null())
             .add_column(TableColumn::int("int").unwrap().non_null())
             .add_column(TableColumn::float("float").unwrap().non_null())
             .add_column(TableColumn::timestamp("timestamp").unwrap().non_null())
             .add_column(TableColumn::uuid("uuid").unwrap().non_null())
+            .into()
     }
 
     fn table_3() -> DatabaseTableDefinition {
         type T = TableColumn;
-        DatabaseTableDefinition {
-            table_name: Identifier::new("table_3".to_string()).unwrap(),
-            columns: vec![
-                T::timestamp("created_at").unwrap().non_null().into(),
-                T::uuid("id").unwrap().non_null().pk().into(),
-            ],
-        }
+        DatabaseTableDefinition::new("table_3")
+            .unwrap()
+            .column(T::timestamp("created_at").unwrap().non_null())
+            .column(T::uuid("id").unwrap().non_null().pk())
+            .into()
     }
 
     fn table_4() -> DatabaseTableDefinition {
-        type T = TableColumn;
-        DatabaseTableDefinition {
-            table_name: Identifier::new("table_4".to_string()).unwrap(),
-            columns: vec![
-                T::uuid("id").unwrap().pk().non_null().into(),
-                T::timestamp("created_at").unwrap().non_null().into(),
-            ],
-        }
+        DatabaseTableDefinition::new("table_4")
+            .unwrap()
+            .column(TableColumn::uuid("id").unwrap().pk().non_null())
+            .column(TableColumn::timestamp("created_at").unwrap().non_null())
+            .into()
     }
 
     #[test]
@@ -176,6 +171,7 @@ mod tests {
     fn compare_tables_builds_diff() {
         // Arrange
         let mut after_t1 = DatabaseTableDefinition::new("table_1")
+            .unwrap()
             .add_column(TableColumn::string("string_nullable").unwrap().non_null())
             .add_column(TableColumn::string("bool").unwrap())
             .add_column(TableColumn::float("int").unwrap().non_null()) // Changing type for the test
@@ -183,8 +179,11 @@ mod tests {
             .add_column(TableColumn::uuid("uuid").unwrap().non_null())
             .add_column(TableColumn::string("new_column").unwrap().non_null());
 
-        let mut after_t4 = table_4();
-        after_t4.columns.push(TableColumn::timestamp("updated_at").unwrap().into());
+        let after_t4 = DatabaseTableDefinition::new("table_4")
+            .unwrap()
+            .column(TableColumn::uuid("id").unwrap().pk().non_null())
+            .column(TableColumn::timestamp("created_at").unwrap().non_null())
+            .column(TableColumn::timestamp("updated_at").unwrap());
 
         let before = DatabaseDefinition::new("my_new_database")
             .unwrap()

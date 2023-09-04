@@ -54,17 +54,15 @@ mod test {
     #[test]
     fn as_sql_works() -> Result<(), String> {
         let table_name = Identifier::new("new_table".to_string()).unwrap();
-        let table_definition = DatabaseTableDefinition {
-            table_name: table_name.clone(),
-            columns: vec![
-                TableColumn::new_uuid("uuid_pk_nonnull")?.non_null().pk().into(),
-                TableColumn::new_string("string")?.into(),
-                TableColumn::new_bool("bool_nonnull")?.non_null().into(),
-                TableColumn::new_float("float_nonnull")?.non_null().into(),
-                TableColumn::new_int("int")?.into(),
-                TableColumn::new_timestamp("create_timestamp")?.into(),
-            ],
-        };
+        let table_definition = DatabaseTableDefinition::new(&table_name)
+            .unwrap()
+            .column(TableColumn::new_uuid("uuid_pk_nonnull")?.non_null().pk())
+            .column(TableColumn::new_string("string")?)
+            .column(TableColumn::new_bool("bool_nonnull")?.non_null())
+            .column(TableColumn::new_float("float_nonnull")?.non_null())
+            .column(TableColumn::new_int("int")?)
+            .column(TableColumn::new_timestamp("create_timestamp")?)
+            .into();
 
         let create_table = CreateTable {
             table_definition,

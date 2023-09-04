@@ -30,15 +30,13 @@ mod tests {
     impl ProductFilters {}
 
     fn get_product_table_def() -> DatabaseTableDefinition {
-        DatabaseTableDefinition {
-            table_name: Identifier::new("products".to_string()).unwrap(),
-            columns: vec![
-                TableColumn::uuid("id").unwrap().pk().non_null().into(),
-                TableColumn::string("description").unwrap().pk().non_null().into(),
-                TableColumn::string("name").unwrap().pk().non_null().into(),
-                TableColumn::timestamp("created_at").unwrap().non_null().into(),
-            ],
-        }
+        DatabaseTableDefinition::new("products")
+            .unwrap()
+            .column(TableColumn::uuid("id").unwrap().pk().non_null())
+            .column(TableColumn::string("description").unwrap().pk().non_null())
+            .column(TableColumn::string("name").unwrap().pk().non_null())
+            .column(TableColumn::timestamp("created_at").unwrap().non_null())
+            .into()
     }
     // impl Queryable for Product {}
 

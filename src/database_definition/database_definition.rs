@@ -66,10 +66,10 @@ impl DatabaseDefinitionData {
         self
     }
 
-    pub fn table(
+    pub fn table<T: Into<DatabaseTableDefinition>>(
         self,
-        table: DatabaseTableDefinition,
+        table: T,
     ) -> Self {
-        self.add_table(table)
+        self.add_table(table.into())
     }
 }

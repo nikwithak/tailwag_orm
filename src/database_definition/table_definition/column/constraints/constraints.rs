@@ -219,7 +219,7 @@ impl TableColumnConstraint {
         Self {
             name: None,
             detail: Arc::new(TableColumnConstraintDetail::References(ReferencesConstraint::new(
-                ref_table.table_name,
+                ref_table.table_name.clone(),
                 ref_column.column_name.clone(),
             ))),
         }
