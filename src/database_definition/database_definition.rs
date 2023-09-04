@@ -31,16 +31,8 @@ impl Deref for DatabaseDefinition {
 // }
 
 impl DatabaseDefinition {
-    pub fn new(
-        name: String,
-        tables: Vec<DatabaseTableDefinition>,
-    ) -> Result<Self, String> {
-        Ok(Self {
-            data: Arc::new(DatabaseDefinitionData {
-                name: Identifier::new(name)?,
-                tables,
-            }),
-        })
+    pub fn new(name: &str) -> Result<DatabaseDefinitionData, String> {
+        DatabaseDefinitionData::new(name)
     }
 }
 
@@ -50,28 +42,34 @@ pub struct DatabaseDefinitionData {
     pub tables: Vec<DatabaseTableDefinition>,
 }
 
-// pub struct DatabaseBuilder {
-//     name: String,
-//     tables: Vec<DatabaseTableDefinition
-// }
+impl Into<DatabaseDefinition> for DatabaseDefinitionData {
+    fn into(self) -> DatabaseDefinition {
+        DatabaseDefinition {
+            data: Arc::new(self),
+        }
+    }
+}
 
 impl DatabaseDefinitionData {
-    pub fn new(name: String) -> Self {
-        Self {
-            name: Identifier::new(name).expect("Invalid Database name - panicking"), // TODO: Throw this error upstream
+    pub fn new(name: &str) -> Result<Self, String> {
+        Ok(Self {
+            name: Identifier::new(name)?,
             tables: Vec::new(),
-        }
+        })
     }
 
     pub fn add_table(
         mut self,
-        table_name: String,
+        table: DatabaseTableDefinition,
     ) -> Self {
-        let new_table = DatabaseTableDefinition {
-            table_name: Identifier::new(table_name).expect("Invalid Table name - panicking"), // TODO: Throw this error upstream
-            columns: Vec::new(),
-        };
-        self.tables.push(new_table);
+        self.tables.push(table);
         self
+    }
+
+    pub fn table(
+        self,
+        table: DatabaseTableDefinition,
+    ) -> Self {
+        self.add_table(table)
     }
 }

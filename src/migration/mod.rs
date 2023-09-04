@@ -133,8 +133,11 @@ mod tests {
     #[test]
     fn compare_tables_new_database() {
         let before = None;
-        let after =
-            DatabaseDefinition::new("my_database".to_string(), vec![table_1(), table_2()]).unwrap();
+        let after = DatabaseDefinition::new("my_database")
+            .unwrap()
+            .table(table_1())
+            .table(table_2())
+            .into();
 
         let migration = Migration::compare(before.as_ref(), &after).unwrap();
 
@@ -151,10 +154,16 @@ mod tests {
 
     #[test]
     fn compare_tables_no_diff() {
-        let before =
-            DatabaseDefinition::new("my_database".to_string(), vec![table_1(), table_2()]).unwrap();
-        let after =
-            DatabaseDefinition::new("my_database".to_string(), vec![table_1(), table_2()]).unwrap();
+        let before = DatabaseDefinition::new("my_database")
+            .unwrap()
+            .table(table_1())
+            .table(table_2())
+            .into();
+        let after = DatabaseDefinition::new("my_database")
+            .unwrap()
+            .table(table_1())
+            .table(table_2())
+            .into();
 
         // Act
         let migration = Migration::compare(Some(&before), &after);
@@ -177,16 +186,19 @@ mod tests {
         let mut after_t4 = table_4();
         after_t4.columns.push(TableColumn::timestamp("updated_at").unwrap().into());
 
-        let before = DatabaseDefinition::new(
-            "my_new_database".to_string(),
-            vec![table_1(), table_2(), table_4()],
-        )
-        .unwrap();
-        let after = DatabaseDefinition::new(
-            "my_new_database".to_string(),
-            vec![after_t1, table_3(), after_t4],
-        )
-        .unwrap();
+        let before = DatabaseDefinition::new("my_new_database")
+            .unwrap()
+            .table(table_1())
+            .table(table_2())
+            .table(table_4())
+            .into();
+        let after = DatabaseDefinition::new("my_new_database")
+            .unwrap()
+            .table(after_t1)
+            .table(table_3())
+            .table(after_t4)
+            .into();
+
         // Act
         let migration = Migration::compare(Some(&before), &after).unwrap();
 
