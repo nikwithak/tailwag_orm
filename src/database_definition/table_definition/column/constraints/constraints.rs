@@ -1,6 +1,9 @@
 use std::{ops::Deref, sync::Arc};
 
-use crate::{database_definition::table_definition::Identifier, AsSql};
+use crate::{
+    database_definition::table_definition::{DatabaseTableDefinition, Identifier, TableColumn},
+    AsSql,
+};
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct PrimaryKeyConstraint {
@@ -210,14 +213,14 @@ impl TableColumnConstraint {
 
     /// Builds a basic foreign key restraint for a column
     pub fn foreign_key(
-        ref_table: Identifier,
-        ref_column: Identifier,
+        ref_table: DatabaseTableDefinition,
+        ref_column: TableColumn,
     ) -> Self {
         Self {
             name: None,
             detail: Arc::new(TableColumnConstraintDetail::References(ReferencesConstraint::new(
-                ref_table,
-                ref_column,
+                ref_table.table_name,
+                ref_column.column_name.clone(),
             ))),
         }
     }

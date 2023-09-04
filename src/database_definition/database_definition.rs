@@ -14,6 +14,22 @@ impl Deref for DatabaseDefinition {
     }
 }
 
+// impl DatabaseDefinition {
+// TODO: Make it so that I can read and parse the existing DB Definition from a file (use serde_json)
+//     pub fn from_file(file_path: &str) {
+//         todo!()
+//     }
+
+//     pub fn to_file(file_path: &str) {
+//         todo!()
+//     }
+//
+// TODO: Make it so that I can read and parse the existing DB Definition on a remote DB
+//     pub fn from_postgres_database(db_connection_string: &str) {
+//         todo!()
+//     }
+// }
+
 impl DatabaseDefinition {
     pub fn new(
         name: String,

@@ -218,9 +218,6 @@ impl Migration {
                             }
                         }
 
-                        // * TODO: PK Changes
-                        {}
-
                         // * TODO: Foreign Key Changes
                         // {
                         //     let old_fks = old.constraints.iter().find(|c| match *c.detail {

@@ -33,35 +33,10 @@ mod tests {
         DatabaseTableDefinition {
             table_name: Identifier::new("products".to_string()).unwrap(),
             columns: vec![
-                TableColumn {
-                    column_name: Identifier::new("id".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Uuid,
-                    constraints: vec![
-                        TableColumnConstraint::primary_key(),
-                        TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("description".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::String,
-                    constraints: vec![
-                        TableColumnConstraint::primary_key(),
-                        TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("name".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::String,
-                    constraints: vec![
-                        TableColumnConstraint::primary_key(),
-                        TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("created_at".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Timestamp,
-                    constraints: vec![TableColumnConstraint::non_null()],
-                },
+                TableColumn::uuid("id").unwrap().pk().non_null().into(),
+                TableColumn::string("description").unwrap().pk().non_null().into(),
+                TableColumn::string("name").unwrap().pk().non_null().into(),
+                TableColumn::timestamp("created_at").unwrap().non_null().into(),
             ],
         }
     }

@@ -29,143 +29,48 @@ mod tests {
     use super::Migration;
 
     fn table_2() -> DatabaseTableDefinition {
+        type T = TableColumn;
         DatabaseTableDefinition {
             table_name: Identifier::new("table_2".to_string()).unwrap(),
             columns: vec![
-                TableColumn {
-                    column_name: Identifier::new("string_nullable".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::String,
-                    constraints: vec![],
-                },
-                TableColumn {
-                    column_name: Identifier::new("bool".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Boolean,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("int".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Int,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("float".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Float,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("timestamp".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Timestamp,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("uuid".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Uuid,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
+                T::string("string_nullable").unwrap().into(),
+                T::bool("bool").unwrap().non_null().into(),
+                T::int("int").unwrap().non_null().into(),
+                T::float("float").unwrap().non_null().into(),
+                T::timestamp("timestamp").unwrap().non_null().into(),
+                T::uuid("uuid").unwrap().non_null().into(),
             ],
         }
     }
 
     fn table_1() -> DatabaseTableDefinition {
-        DatabaseTableDefinition {
-            table_name: Identifier::new("table_1".to_string()).unwrap(),
-            columns: vec![
-                TableColumn {
-                    column_name: Identifier::new("string_nullable".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::String,
-                    constraints: vec![],
-                },
-                TableColumn {
-                    column_name: Identifier::new("bool".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Boolean,
-                    constraints: vec![
-                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("int".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Int,
-                    constraints: vec![
-                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("float".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Float,
-                    constraints: vec![
-                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("timestamp".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Timestamp,
-                    constraints: vec![
-                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("uuid".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Uuid,
-                    constraints: vec![
-                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-            ],
-        }
+        DatabaseTableDefinition::new("table_1")
+            .add_column(TableColumn::string("string_nullable").unwrap())
+            .add_column(TableColumn::bool("bool").unwrap().non_null())
+            .add_column(TableColumn::int("int").unwrap().non_null())
+            .add_column(TableColumn::float("float").unwrap().non_null())
+            .add_column(TableColumn::timestamp("timestamp").unwrap().non_null())
+            .add_column(TableColumn::uuid("uuid").unwrap().non_null())
     }
 
     fn table_3() -> DatabaseTableDefinition {
+        type T = TableColumn;
         DatabaseTableDefinition {
             table_name: Identifier::new("table_3".to_string()).unwrap(),
             columns: vec![
-                TableColumn {
-                    column_name: Identifier::new("created_at".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Timestamp,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("id".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Uuid,
-                    constraints: vec![
-crate::database_definition::table_definition::TableColumnConstraint::primary_key(),
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
+                T::timestamp("created_at").unwrap().non_null().into(),
+                T::uuid("id").unwrap().non_null().pk().into(),
             ],
         }
     }
 
     fn table_4() -> DatabaseTableDefinition {
+        type T = TableColumn;
         DatabaseTableDefinition {
             table_name: Identifier::new("table_4".to_string()).unwrap(),
             columns: vec![
-                TableColumn {
-                    column_name: Identifier::new("id".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Uuid,
-                    constraints: vec![
-crate::database_definition::table_definition::TableColumnConstraint::primary_key(),
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("created_at".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Timestamp,
-                    constraints: vec![
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                    ],
-                },
+                T::uuid("id").unwrap().pk().non_null().into(),
+                T::timestamp("created_at").unwrap().non_null().into(),
             ],
         }
     }
@@ -188,13 +93,9 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                         column_name: Identifier::new("int".to_string()).unwrap(),
                         actions: vec![AlterColumnAction::SetType(DatabaseColumnType::Float)],
                     }),
-                    AlterTableAction::AddColumn(TableColumn {
-                        column_name: Identifier::new("new_column".to_string()).unwrap(),
-                        column_type: DatabaseColumnType::String,
-                        constraints: vec![
-                        crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                        ],
-                    }),
+                    AlterTableAction::AddColumn(
+                        TableColumn::string("new_column").unwrap().non_null().into(),
+                    ),
                     AlterTableAction::AlterColumn(AlterColumn {
                         column_name: Identifier::new("string_nullable".to_string()).unwrap(),
                         actions: vec![AlterColumnAction::SetNullability(false)],
@@ -262,59 +163,16 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
     #[test]
     fn compare_tables_builds_diff() {
         // Arrange
-        let mut after_t1 = table_1();
-        after_t1
-            .columns
-            .iter_mut()
-            .find(|c| c.column_name.value().eq("int"))
-            // Tests Type changes
-            .map(|c| c.column_type = DatabaseColumnType::Float);
-        after_t1
-            .columns
-            .iter_mut()
-            .find(|c| c.column_name.value().eq("string_nullable"))
-            .map(|c| {
-                // Tests Nullability changes
-                c.constraints.push(
-                    crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                );
-            });
-        after_t1.columns.iter_mut().find(|c| c.column_name.value().eq("bool")).map(|c| {
-            // Tests a mix of the two changes
-            c.column_type = DatabaseColumnType::String;
-
-            // TODO: Move from log::info! to log::info! calls in tests
-            log::info!("+++++++++++++++=====================+++++++++++++++++++=");
-            log::info!("   after_t1.columns.{}: {:?} ", c.column_name, c.constraints);
-            log::info!("+++++++++++++++=====================+++++++++++++++++++=");
-            c.constraints.retain(|c| match *c.detail {
-                TableColumnConstraintDetail::NotNull => false,
-                _ => true,
-            });
-            println!("+++++++++++++++= AFTER FILTERING =+++++++++++++++++++++=");
-            println!("   after_t1.columns.{}: {:?} ", c.column_name, c.constraints);
-            println!("+++++++++++++++=====================+++++++++++++++++++=");
-        });
-        after_t1.columns.push(TableColumn {
-            column_name: Identifier::new("new_column".to_string()).unwrap(),
-            column_type: DatabaseColumnType::String,
-            constraints: vec![
-                crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-            ],
-        });
-        // Delete "timestamp" column
-        after_t1.columns = after_t1
-            .columns
-            .into_iter()
-            .filter(|c| !c.column_name.value().eq("timestamp"))
-            .collect();
+        let mut after_t1 = DatabaseTableDefinition::new("table_1")
+            .add_column(TableColumn::string("string_nullable").unwrap().non_null())
+            .add_column(TableColumn::string("bool").unwrap())
+            .add_column(TableColumn::float("int").unwrap().non_null()) // Changing type for the test
+            .add_column(TableColumn::float("float").unwrap().non_null())
+            .add_column(TableColumn::uuid("uuid").unwrap().non_null())
+            .add_column(TableColumn::string("new_column").unwrap().non_null());
 
         let mut after_t4 = table_4();
-        after_t4.columns.push(TableColumn {
-            column_name: Identifier::new("updated_at".to_string()).unwrap(),
-            column_type: DatabaseColumnType::Timestamp,
-            constraints: vec![],
-        });
+        after_t4.columns.push(TableColumn::timestamp("updated_at").unwrap().into());
 
         let before = DatabaseDefinition::new(
             "my_new_database".to_string(),
@@ -348,13 +206,9 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                                     DatabaseColumnType::Float
                                 ),]
                             }),
-                            AlterTableAction::AddColumn(TableColumn {
-                                column_name: Identifier::new("new_column".to_string()).unwrap(),
-                                column_type: DatabaseColumnType::String,
-                                constraints: vec![
-                                crate::database_definition::table_definition::TableColumnConstraint::non_null(),
-                                ],
-                            }),
+                            AlterTableAction::AddColumn(
+                                TableColumn::string("new_column").unwrap().non_null().into()
+                            ),
                             AlterTableAction::AlterColumn(AlterColumn {
                                 column_name: Identifier::new("string_nullable".to_string())
                                     .unwrap(),
@@ -369,11 +223,9 @@ crate::database_definition::table_definition::TableColumnConstraint::primary_key
                     MigrationAction::CreateTable(CreateTable::new(table_3())),
                     MigrationAction::AlterTable(AlterTable {
                         table_name: Identifier::new("table_4".to_string()).unwrap(),
-                        actions: vec![AlterTableAction::AddColumn(TableColumn {
-                            column_name: Identifier::new("updated_at".to_string()).unwrap(),
-                            column_type: DatabaseColumnType::Timestamp,
-                            constraints: vec![],
-                        }),],
+                        actions: vec![AlterTableAction::AddColumn(
+                            TableColumn::timestamp("updated_at").unwrap().into()
+                        ),],
                     }),
                 ],
             }

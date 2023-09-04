@@ -10,86 +10,22 @@ pub struct DatabaseTableDefinition {
 }
 
 impl DatabaseTableDefinition {
-    pub fn new(table_name: String) -> Self {
+    pub fn new(table_name: &str) -> Self {
         Self {
             table_name: Identifier::new(table_name).unwrap(), // TODO: Clean this up
             columns: Vec::new(),
         }
     }
 
-    pub fn add_column(
-        mut self,
-        column: TableColumn,
-    ) -> Self {
-        self.columns.push(column);
-        self
+    pub fn column<T: Into<TableColumn>>(self, column: T,) -> Self {
+        self.add_column(column)
     }
 
-    fn add_column_helper(
-        &mut self,
-        column_name: String,
-        column_type: DatabaseColumnType,
-    ) {
-        self.columns.push(TableColumn::new(
-            Identifier::new(column_name).unwrap(),
-            column_type,
-            Vec::new(),
-        ));
-    }
-
-    // TODO: Audit Trail stuff. Create/modify/audit-tables, or a list of audit
-    // trail associated to the table.
-    // fn standard_audit_trail() -> Self {}
-
-    pub fn add_column_int(
+    pub fn add_column<T: Into<TableColumn>>(
         mut self,
-        column_name: String,
+        column: T,
     ) -> Self {
-        self.add_column_helper(column_name, DatabaseColumnType::Int);
-        self
-    }
-
-    pub fn add_column_bool(
-        mut self,
-        column_name: String,
-    ) -> Self {
-        self.add_column_helper(column_name, DatabaseColumnType::Boolean);
-        self
-    }
-
-    pub fn add_column_float(
-        mut self,
-        column_name: String,
-    ) -> Self {
-        self.add_column_helper(column_name, DatabaseColumnType::Float);
-        self
-    }
-
-    pub fn add_column_string(
-        mut self,
-        column_name: String,
-    ) -> Self {
-        self.add_column_helper(column_name, DatabaseColumnType::String);
-        self
-    }
-
-    pub fn add_column_timestamp(
-        mut self,
-        column_name: String,
-    ) -> Self {
-        self.add_column_helper(column_name, DatabaseColumnType::Timestamp);
-        self
-    }
-
-    pub fn add_column_uuid(
-        mut self,
-        column_name: String,
-    ) -> Self {
-        self.columns.push(TableColumn::new(
-            Identifier::new(column_name).unwrap(),
-            super::DatabaseColumnType::Uuid,
-            Vec::new(),
-        ));
+        self.columns.push(column.into());
         self
     }
 }

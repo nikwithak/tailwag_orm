@@ -6,22 +6,30 @@ use crate::{
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum AlterTableAction {
     Rename(Identifier),
-    AddColumn(TableColumn), // TODO
-    DropColumn(Identifier), // TODO
+    AddColumn(TableColumn),   // TODO
+    DropColumn(Identifier),   // TODO
     AlterColumn(AlterColumn), // TODO
-                            // TODO: Add the rest of the actions.
-                            // Ref: https://www.postgresql.org/docs/current/sql-altertable.html
+    // TODO: Add the rest of the actions.
+    // Ref: https://www.postgresql.org/docs/current/sql-altertable.html
+    AddConstraint(),
+    AlterConstraint(),
+    DropConstraint(),
 }
 
 impl AsSql for AlterTableAction {
     fn as_sql(&self) -> String {
+        type E = AlterTableAction;
         match self {
-            AlterTableAction::Rename(ident) => format!("RENAME TO {}", ident),
-            AlterTableAction::AddColumn(table_column) => {
+            E::Rename(ident) => format!("RENAME TO {}", ident),
+            E::AddColumn(table_column) => {
                 format!("ADD COLUMN IF NOT EXISTS {}", table_column.as_sql())
             },
-            AlterTableAction::DropColumn(ident) => format!("DROP COLUMN IF EXISTS {}", ident),
-            AlterTableAction::AlterColumn(alter_column) => alter_column.as_sql(),
+            E::DropColumn(ident) => format!("DROP COLUMN IF EXISTS {}", ident),
+            E::AlterColumn(alter_column) => alter_column.as_sql(),
+            E::AddConstraint() => todo!(),
+            E::AlterConstraint() => todo!(),
+            E::DropConstraint() => todo!(),
+            _ => todo!(),
         }
     }
 }

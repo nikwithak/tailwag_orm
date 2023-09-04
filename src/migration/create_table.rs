@@ -55,47 +55,17 @@ mod test {
     }
 
     #[test]
-    fn as_sql_works() {
+    fn as_sql_works() -> Result<(), String> {
         let table_name = Identifier::new("new_table".to_string()).unwrap();
         let table_definition = DatabaseTableDefinition {
             table_name: table_name.clone(),
             columns: vec![
-                TableColumn {
-                    column_name: Identifier::new("uuid_pk_nonnull".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Uuid,
-                    // is_primary_key: true,
-                    // is_nullable: false,
-                    // foreign_key_to: None,
-                    constraints: vec![
-                        TableColumnConstraint::non_null(),
-                        TableColumnConstraint::primary_key(),
-                    ],
-                },
-                TableColumn {
-                    column_name: Identifier::new("string".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::String,
-                    constraints: vec![],
-                },
-                TableColumn {
-                    column_name: Identifier::new("bool_nonnull".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Boolean,
-                    constraints: vec![TableColumnConstraint::non_null()],
-                },
-                TableColumn {
-                    column_name: Identifier::new("float_nonnull".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Float,
-                    constraints: vec![TableColumnConstraint::non_null()],
-                },
-                TableColumn {
-                    column_name: Identifier::new("int".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Int,
-                    constraints: vec![],
-                },
-                TableColumn {
-                    column_name: Identifier::new("create_timestamp".to_string()).unwrap(),
-                    column_type: DatabaseColumnType::Timestamp,
-                    constraints: vec![],
-                },
+                TableColumn::new_uuid("uuid_pk_nonnull")?.non_null().pk().into(),
+                TableColumn::new_string("string")?.into(),
+                TableColumn::new_bool("bool_nonnull")?.non_null().into(), // TODO: Add non_null constraint
+                TableColumn::new_float("float_nonnull")?.non_null().into(), // TODO: Add non_null constraint
+                TableColumn::new_int("int")?.into(),
+                TableColumn::new_timestamp("create_timestamp")?.into(),
             ],
         };
 
@@ -120,5 +90,6 @@ mod test {
         ].join("\n");
 
         assert_eq!(queries, expected_query);
+        Ok(())
     }
 }
