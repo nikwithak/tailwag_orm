@@ -1,9 +1,9 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::{database_definition::table_definition::DatabaseTableDefinition, AsSql};
+use crate::{database_definition::table_definition::DatabaseTableDefinitionData, AsSql};
 
-use crate::database_definition::table_definition::{column, Identifier};
+use crate::database_definition::table_definition::{column, DatabaseTableDefinition, Identifier};
 
 use super::{
     PrimaryKeyConstraint, ReferencesConstraint, TableColumnConstraint, TableColumnConstraintDetail,

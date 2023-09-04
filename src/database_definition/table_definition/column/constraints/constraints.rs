@@ -66,6 +66,7 @@ impl AsSql for UniqueConstraint {
         if self.is_null_distinct {
             statement.push_str(" NULLS DISTINCT");
         }
+        // TODO: index_parameters impl
         statement
     }
 }
@@ -96,7 +97,7 @@ impl ReferencesConstraint {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-enum ReferentialAction {
+pub enum ReferentialAction {
     NoAction,
     Restrict,
     Cascade,
@@ -139,7 +140,7 @@ impl AsSql for ReferentialAction {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-enum ReferencesConstraintMatchType {
+pub enum ReferencesConstraintMatchType {
     Full,
     Partial,
     Simple,

@@ -1,5 +1,7 @@
 use crate::{
-    database_definition::table_definition::{DatabaseColumnType, Identifier, TableColumn},
+    database_definition::table_definition::{
+        DatabaseColumnType, Identifier, TableColumn, TableConstraint,
+    },
     AsSql,
 };
 
@@ -11,7 +13,7 @@ pub enum AlterTableAction {
     AlterColumn(AlterColumn), // TODO
     // TODO: Add the rest of the actions.
     // Ref: https://www.postgresql.org/docs/current/sql-altertable.html
-    AddConstraint(),
+    AddConstraint(TableConstraint),
     AlterConstraint(),
     DropConstraint(),
 }
@@ -26,7 +28,7 @@ impl AsSql for AlterTableAction {
             },
             E::DropColumn(ident) => format!("DROP COLUMN IF EXISTS {}", ident),
             E::AlterColumn(alter_column) => alter_column.as_sql(),
-            E::AddConstraint() => todo!(),
+            E::AddConstraint(constraint) => format!("ADD {}", &constraint.as_sql()),
             E::AlterConstraint() => todo!(),
             E::DropConstraint() => todo!(),
             _ => todo!(),

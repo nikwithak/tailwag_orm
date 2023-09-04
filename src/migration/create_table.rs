@@ -23,7 +23,7 @@ impl AsSql for CreateTable {
             .table_definition
             .columns
             .iter()
-            .map(|col| col.as_sql())
+            .map(|(_id, col)| col.as_sql())
             .collect::<Vec<String>>()
             .join(",\n");
 
