@@ -27,6 +27,8 @@ impl AsSql for CreateTable {
             .collect::<Vec<String>>()
             .join(",\n");
 
+        // TODO: I'm gonna need to do this in multiple passes. First pass: Create the tables / columns, and second pass: Add the table constraints
+
         let mut sql =
             format!("CREATE TABLE IF NOT EXISTS {} (\n", self.table_definition.table_name);
         sql.push_str(&columns_sql);

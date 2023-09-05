@@ -82,7 +82,13 @@ impl BitOr for Filter {
         self,
         rhs: Self,
     ) -> Self::Output {
-        Filter::Or(vec![self, rhs])
+        match self {
+            Filter::Or(mut existing_ors) => {
+                existing_ors.push(rhs);
+                Filter::Or(existing_ors)
+            },
+            _ => Filter::Or(vec![self, rhs]),
+        }
     }
 }
 
@@ -93,14 +99,21 @@ impl BitAnd for Filter {
         self,
         rhs: Self,
     ) -> Self::Output {
-        Filter::And(vec![self, rhs])
+        match self {
+            Filter::And(mut existing_ors) => {
+                existing_ors.push(rhs);
+                Filter::And(existing_ors)
+            },
+            _ => Filter::And(vec![self, rhs]),
+        }
     }
 }
 
 impl AsSql for Filter {
     fn as_sql(&self) -> String {
+        type F = Filter;
         match self {
-            Filter::And(children) => {
+            F::And(children) => {
                 if children.len() == 0 {
                     return "true".to_string();
                 }
@@ -114,7 +127,7 @@ impl AsSql for Filter {
                         .join(" AND "),
                 )
             },
-            Filter::Or(children) => {
+            F::Or(children) => {
                 if children.len() == 0 {
                     return "".to_string();
                 }
@@ -128,29 +141,29 @@ impl AsSql for Filter {
                         .join(" OR "),
                 )
             },
-            Filter::Equal(lhs, rhs) => {
+            F::Equal(lhs, rhs) => {
                 // TODO: This is UNSAFE for production, open to injection attacks. Need to do pre-processing, might have to rework how filter as_sql works
                 format!("({} = {})", lhs.as_sql(), rhs.as_sql(),)
             },
-            Filter::NotEqual(lhs, rhs) => {
+            F::NotEqual(lhs, rhs) => {
                 format!("({} != {})", lhs.as_sql(), rhs.as_sql())
             },
-            Filter::Like(lhs, rhs) => {
+            F::Like(lhs, rhs) => {
                 format!("({} LIKE {})", lhs.as_sql(), rhs.as_sql())
             },
-            Filter::LessThan(lhs, rhs) => {
+            F::LessThan(lhs, rhs) => {
                 format!("({} < {})", lhs.as_sql(), rhs.as_sql())
             },
-            Filter::LessThanOrEqual(lhs, rhs) => {
+            F::LessThanOrEqual(lhs, rhs) => {
                 format!("({} <= {})", lhs.as_sql(), rhs.as_sql())
             },
-            Filter::GreaterThan(lhs, rhs) => {
+            F::GreaterThan(lhs, rhs) => {
                 format!("({} > {})", lhs.as_sql(), rhs.as_sql())
             },
-            Filter::GreaterThanOrEqual(lhs, rhs) => {
+            F::GreaterThanOrEqual(lhs, rhs) => {
                 format!("({} >= {})", lhs.as_sql(), rhs.as_sql())
             },
-            Filter::In(lhs, rhs) => {
+            F::In(lhs, rhs) => {
                 format!(
                     "({} IN ({}))",
                     lhs.as_sql(),

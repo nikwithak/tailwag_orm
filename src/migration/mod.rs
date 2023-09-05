@@ -209,6 +209,11 @@ mod tests {
                         table_name: Identifier::new("table_1".to_string()).unwrap(),
                         actions: vec![
                             AlterTableAction::AlterColumn(AlterColumn {
+                                column_name: Identifier::new("string_nullable".to_string())
+                                    .unwrap(),
+                                actions: vec![AlterColumnAction::SetNullability(false),]
+                            }),
+                            AlterTableAction::AlterColumn(AlterColumn {
                                 column_name: Identifier::new("bool".to_string()).unwrap(),
                                 actions: vec![
                                     AlterColumnAction::SetType(DatabaseColumnType::String),
@@ -221,27 +226,22 @@ mod tests {
                                     DatabaseColumnType::Float
                                 ),]
                             }),
-                            AlterTableAction::AddColumn(
-                                TableColumn::string("new_column").unwrap().non_null().into()
-                            ),
-                            AlterTableAction::AlterColumn(AlterColumn {
-                                column_name: Identifier::new("string_nullable".to_string())
-                                    .unwrap(),
-                                actions: vec![AlterColumnAction::SetNullability(false),]
-                            }),
                             AlterTableAction::DropColumn(
                                 Identifier::new("timestamp".to_string()).unwrap()
+                            ),
+                            AlterTableAction::AddColumn(
+                                TableColumn::string("new_column").unwrap().non_null().into()
                             ),
                         ],
                     }),
                     MigrationAction::DropTable(Identifier::new("table_2").unwrap()),
-                    MigrationAction::CreateTable(CreateTable::new(table_3())),
                     MigrationAction::AlterTable(AlterTable {
                         table_name: Identifier::new("table_4".to_string()).unwrap(),
                         actions: vec![AlterTableAction::AddColumn(
                             TableColumn::timestamp("updated_at").unwrap().into()
                         ),],
                     }),
+                    MigrationAction::CreateTable(CreateTable::new(table_3())),
                 ],
             }
         );
