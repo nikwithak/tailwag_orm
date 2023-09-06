@@ -51,19 +51,19 @@ impl DatabaseTableDefinitionData {
     }
 
     pub fn column<T: Into<TableColumn>>(
-        self,
-        column: T,
-    ) -> Self {
-        self.add_column(column)
-    }
-
-    pub fn add_column<T: Into<TableColumn>>(
         mut self,
         column: T,
     ) -> Self {
+        self.add_column(column);
+        self
+    }
+
+    pub fn add_column<T: Into<TableColumn>>(
+        &mut self,
+        column: T,
+    ) {
         let column = column.into();
         // self.columns.insert(column.column_name.clone(), column);
         self.columns.push(column);
-        self
     }
 }

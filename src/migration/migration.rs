@@ -181,16 +181,19 @@ impl Migration {
                     }
 
                     // * TODO: Foreign Key Changes
-                    // {
-                    //     let old_fks = old.constraints.iter().find(|c| match *c.detail {
-                    //         // TODO: DRY this out a bit so that TableConstraintDetail /
-                    //         crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => todo!(),
-                    //         crate::database_definition::table_definition::TableColumnConstraintDetail::Null => todo!(),
-                    //         crate::database_definition::table_definition::TableColumnConstraintDetail::Unique(_) => todo!(),
-                    //         crate::database_definition::table_definition::TableColumnConstraintDetail::PrimaryKey(_) => todo!(),
-                    //         crate::database_definition::table_definition::TableColumnConstraintDetail::References(_) => todo!(),
-                    //     });
-                    // }
+                    {
+                        let old_fk = old.constraints.iter().find(|c| match *c.detail {
+                            // TODO: DRY this out a bit so that TableConstraintDetail /
+                            crate::database_definition::table_definition::TableColumnConstraintDetail::References(_) => true,
+                            _ => false
+                        });
+                        let new_fk = new.constraints.iter().find(|c| match *c.detail {
+                            // TODO: DRY this out a bit so that TableConstraintDetail /
+                            crate::database_definition::table_definition::TableColumnConstraintDetail::References(_) => true,
+                            _ => false
+                        });
+                        
+                    }
 
                     if alter_column_actions.len() > 0 {
                         actions.push(AlterTableAction::AlterColumn(AlterColumn {

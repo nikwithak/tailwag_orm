@@ -43,12 +43,12 @@ mod tests {
     fn table_1() -> DatabaseTableDefinition {
         DatabaseTableDefinition::new("table_1")
             .unwrap()
-            .add_column(TableColumn::string("string_nullable").unwrap())
-            .add_column(TableColumn::bool("bool").unwrap().non_null())
-            .add_column(TableColumn::int("int").unwrap().non_null())
-            .add_column(TableColumn::float("float").unwrap().non_null())
-            .add_column(TableColumn::timestamp("timestamp").unwrap().non_null())
-            .add_column(TableColumn::uuid("uuid").unwrap().non_null())
+            .column(TableColumn::string("string_nullable").unwrap())
+            .column(TableColumn::bool("bool").unwrap().non_null())
+            .column(TableColumn::int("int").unwrap().non_null())
+            .column(TableColumn::float("float").unwrap().non_null())
+            .column(TableColumn::timestamp("timestamp").unwrap().non_null())
+            .column(TableColumn::uuid("uuid").unwrap().non_null())
             .into()
     }
 
@@ -171,12 +171,12 @@ mod tests {
         // Arrange
         let after_t1 = DatabaseTableDefinition::new("table_1")
             .unwrap()
-            .add_column(TableColumn::string("string_nullable").unwrap().non_null())
-            .add_column(TableColumn::string("bool").unwrap())
-            .add_column(TableColumn::float("int").unwrap().non_null()) // Changing type for the test
-            .add_column(TableColumn::float("float").unwrap().non_null())
-            .add_column(TableColumn::uuid("uuid").unwrap().non_null())
-            .add_column(TableColumn::string("new_column").unwrap().non_null());
+            .column(TableColumn::string("string_nullable").unwrap().non_null())
+            .column(TableColumn::string("bool").unwrap())
+            .column(TableColumn::float("int").unwrap().non_null()) // Changing type for the test
+            .column(TableColumn::float("float").unwrap().non_null())
+            .column(TableColumn::uuid("uuid").unwrap().non_null())
+            .column(TableColumn::string("new_column").unwrap().non_null());
 
         let after_t4 = DatabaseTableDefinition::new("table_4")
             .unwrap()
