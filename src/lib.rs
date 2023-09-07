@@ -1,3 +1,4 @@
+pub mod data_manager;
 pub mod database_definition;
 pub mod executor;
 pub mod migration;

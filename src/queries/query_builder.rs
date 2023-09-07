@@ -1,4 +1,9 @@
-use crate::{database_definition::table_definition::DatabaseTableDefinition, AsSql};
+use std::marker::PhantomData;
+
+use crate::{
+    database_definition::table_definition::DatabaseTableDefinition,
+    object_management::insert::InsertStatement, AsSql,
+};
 
 use super::Filter;
 
@@ -6,7 +11,13 @@ pub struct Query<T: Queryable> {
     pub table: DatabaseTableDefinition,
     pub filter: Option<Filter>,
     pub limit: Option<usize>,
-    pub _t: Option<T>,
+    pub _t: PhantomData<T>,
+}
+
+impl<T: Queryable> Into<Vec<T>> for Query<T> {
+    fn into(self) -> Vec<T> {
+        todo!()
+    }
 }
 
 trait Saveable<T> {
@@ -105,3 +116,7 @@ impl<T: Queryable> Query<T> {
 }
 
 pub trait Queryable {}
+
+pub trait Insertable {
+    fn get_insert_statement(&self) -> InsertStatement;
+}

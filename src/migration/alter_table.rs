@@ -15,7 +15,7 @@ pub enum AlterTableAction {
     // Ref: https://www.postgresql.org/docs/current/sql-altertable.html
     AddConstraint(TableConstraint),
     AlterConstraint(),
-    DropConstraint(),
+    DropConstraint(TableConstraint),
 }
 
 impl AsSql for AlterTableAction {
@@ -30,7 +30,16 @@ impl AsSql for AlterTableAction {
             E::AlterColumn(alter_column) => alter_column.as_sql(),
             E::AddConstraint(constraint) => format!("ADD {}", &constraint.as_sql()),
             E::AlterConstraint() => todo!(),
-            E::DropConstraint() => todo!(),
+            E::DropConstraint(constraint) => {
+                format!(
+                    "DROP CONSTRAINT IF EXISTS {}",
+                    &constraint
+                        .name
+                        .as_ref()
+                        .map(|c| c.to_string())
+                        .unwrap_or("UNNAMED_CONSTRAINT".to_string())
+                )
+            },
         }
     }
 }
