@@ -5,7 +5,7 @@ use crate::AsSql;
 
 use crate::database_definition::table_definition::{DatabaseTableDefinition, Identifier};
 
-use super::TableColumnConstraint;
+use super::{TableColumnConstraint, TableColumnConstraintDetail};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DatabaseColumnType {
@@ -63,6 +63,33 @@ impl Into<TableColumn> for TableColumnData {
         TableColumn {
             data: Arc::new(self),
         }
+    }
+}
+
+impl TableColumnData {
+    pub fn is_nullable(&self) -> bool {
+        self.constraints
+            .iter()
+            .find(|constraint| {
+                if let TableColumnConstraintDetail::NotNull = &*constraint.detail {
+                    true
+                } else {
+                    false
+                }
+            })
+            .is_none()
+    }
+    pub fn is_pk(&self) -> bool {
+        self.constraints
+            .iter()
+            .find(|constraint| {
+                if let TableColumnConstraintDetail::PrimaryKey(_) = &*constraint.detail {
+                    true
+                } else {
+                    false
+                }
+            })
+            .is_some()
     }
 }
 

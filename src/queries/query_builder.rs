@@ -59,7 +59,7 @@ impl<T: Queryable> AsSql for Query<T> {
                 | Filter::LessThanOrEqual(lhs, rhs)
                 | Filter::GreaterThan(lhs, rhs)
                 | Filter::GreaterThanOrEqual(lhs, rhs) => (),
-                // TODO: Figure out what preprocessing needs doing here
+                // TODO: Think about what preprocessing needs doing here
                 Filter::In(lhs, rhs) => (),
             }
             postproc_stack.push(f);
