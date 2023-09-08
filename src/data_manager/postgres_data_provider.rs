@@ -6,7 +6,10 @@ use std::{
 use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
 
 use crate::{
-    database_definition::table_definition::DatabaseTableDefinition,
+    database_definition::{
+        database_definition::DatabaseDefinition, table_definition::DatabaseTableDefinition,
+    },
+    migration::Migration,
     queries::{Insertable, Query, Queryable},
     AsSql,
 };
@@ -59,6 +62,34 @@ impl<T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> Exec
     }
 }
 
+// Migration Handling
+impl<T: Queryable + Insertable> PostgresDataProvider<T> {
+    fn build_migration(&self) -> Option<Migration> {
+        Migration::compare(
+            None, // TODO: Need to get the old migration
+            &DatabaseDefinition::new_unchecked("postgres")
+                .table(self.table_definition.clone())
+                .into(),
+        )
+    }
+    pub async fn run_migrations(&self) -> Result<(), String> {
+        log::info!("[DATABASE] Running Migrations");
+        let migration = self.build_migration();
+        if let Some(migration) = migration {
+            match sqlx::query::<Postgres>(&migration.as_sql()).execute(&self.db_pool).await {
+                Ok(_) => {},
+                Err(e) => {
+                    log::error!("Failed to run migrations");
+                    return Err(format!("{}", e));
+                },
+            }
+        } else {
+            log::info!("[DATABASE] No Migrations");
+        }
+        Ok(())
+    }
+}
+
 impl<T: Queryable + Insertable> PostgresDataProvider<T> {
     pub fn all(&self) -> ExecutableQuery<T> {
         let query = Query::<T> {
@@ -73,11 +104,17 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
         }
     }
 
-    pub async fn create<I: Insertable>(
+    pub async fn create(
         &self,
-        item: &I,
-    ) {
+        item: &T,
+    ) -> Result<(), String> {
         let insert = item.get_insert_statement();
-        sqlx::query(&insert.as_sql()).execute(&self.db_pool).await.unwrap();
+        match sqlx::query(&insert.as_sql()).execute(&self.db_pool).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                log::error!("Failed to create item");
+                Err(e.to_string())
+            },
+        }
     }
 }

@@ -31,6 +31,9 @@ impl AsSql for FilterComparisonParam {
 }
 
 #[derive(Clone)]
+// TODO: Make Filters associated with their tables
+// There's a lot more to do with the filters here - nailing this down is gonna be super powerful
+// Will work with PG stuff, and also let me piecemeal replace the functionality...
 pub enum Filter {
     And(Vec<Filter>),
     Or(Vec<Filter>),

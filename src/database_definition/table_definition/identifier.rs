@@ -56,6 +56,13 @@ impl Identifier {
         }
     }
 
+    pub fn new_unchecked<S: Into<String>>(value: S) -> Self {
+        match Self::new(value) {
+            Ok(ident) => ident,
+            Err(e) => panic!("Identifier::new_unchecked() failed: {}", &e),
+        }
+    }
+
     pub fn value(&self) -> &str {
         &self.value
     }
