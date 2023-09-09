@@ -26,7 +26,7 @@ pub trait GetTableDefinition {
 }
 
 /// Wraps a `Query<T>` alongside a DB Pool (using sqlx), to enable ergonomic querying.
-pub struct ExecutableQuery<T: Queryable + Insertable> {
+pub struct ExecutableQuery<T: Queryable> {
     query: Query<T>,
     db_pool: Pool<Postgres>,
 }
