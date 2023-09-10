@@ -12,6 +12,7 @@ impl Deref for Identifier {
     type Target = Arc<String>;
 
     fn deref(&self) -> &Self::Target {
+        // TODO: Once I'm confident that this is impossible (it should b), remove the validate() call  - it adds a string pass on every deref.
         self.validate()
             .expect(&format!("Identifier {} is invalid - this should have been caught on create. If you are seeing this mesage then you have found a bug - please file a bug report", self.value()));
         &self.value

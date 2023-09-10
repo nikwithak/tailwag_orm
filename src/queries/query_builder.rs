@@ -52,15 +52,15 @@ impl<T: Queryable> AsSql for Query<T> {
                         preproc_stack.push(child);
                     }
                 },
-                Filter::Equal(lhs, rhs)
-                | Filter::NotEqual(lhs, rhs)
-                | Filter::Like(lhs, rhs)
-                | Filter::LessThan(lhs, rhs)
-                | Filter::LessThanOrEqual(lhs, rhs)
-                | Filter::GreaterThan(lhs, rhs)
-                | Filter::GreaterThanOrEqual(lhs, rhs) => (),
+                Filter::Equal(_lhs, _rhs)
+                | Filter::NotEqual(_lhs, _rhs)
+                | Filter::Like(_lhs, _rhs)
+                | Filter::LessThan(_lhs, _rhs)
+                | Filter::LessThanOrEqual(_lhs, _rhs)
+                | Filter::GreaterThan(_lhs, _rhs)
+                | Filter::GreaterThanOrEqual(_lhs, _rhs) => (),
                 // TODO: Think about what preprocessing needs doing here
-                Filter::In(lhs, rhs) => (),
+                Filter::In(_lhs, _rhs) => (),
             }
             postproc_stack.push(f);
         }

@@ -1,10 +1,3 @@
-use std::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-};
-
-use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
-
 use crate::{
     database_definition::{
         database_definition::DatabaseDefinition, table_definition::DatabaseTableDefinition,
@@ -12,6 +5,11 @@ use crate::{
     migration::Migration,
     queries::{Insertable, Query, Queryable},
     AsSql,
+};
+use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
+use std::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
 };
 
 #[derive(Clone)]
