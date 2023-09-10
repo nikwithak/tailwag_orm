@@ -41,7 +41,7 @@ impl DatabaseDefinition {
     /// ```
     /// let database_definition: DatabaseDefinition
     ///     = DatabaseDefinition::new("new_database")
-    ///         .expect("Name is not allowed")
+    ///         .expect("Something went wrong")
     ///         .into();
     /// ```
     pub fn new(name: &str) -> Result<DatabaseDefinitionData, String> {
