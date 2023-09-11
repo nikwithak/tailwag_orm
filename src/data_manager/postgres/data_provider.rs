@@ -1,7 +1,5 @@
 use crate::{
-    database_definition::{
-        database_definition::DatabaseDefinition, table_definition::DatabaseTableDefinition,
-    },
+    data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
     queries::{Insertable, Query, Queryable},
     AsSql,
@@ -114,5 +112,19 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
                 Err(e.to_string())
             },
         }
+    }
+}
+
+pub trait BuildDataProvider
+where
+    Self: Sized + Queryable + Insertable,
+{
+    fn build_data_provider(&self) -> PostgresDataProvider<Self>;
+}
+
+impl<T> BuildDataProvider for T where T: Sized + Queryable + Insertable {
+    fn build_data_provider(&self) -> PostgresDataProvider<Self> {
+
+        todo!()
     }
 }

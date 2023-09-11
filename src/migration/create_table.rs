@@ -1,4 +1,4 @@
-use crate::{database_definition::table_definition::DatabaseTableDefinition, AsSql};
+use crate::{data_definition::table::DatabaseTableDefinition, AsSql};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CreateTable {
@@ -43,7 +43,7 @@ mod test {
     use create_table::CreateTable;
 
     use crate::{
-        database_definition::table_definition::{DatabaseTableDefinition, Identifier, TableColumn},
+        data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
         migration::create_table,
         AsSql,
     };

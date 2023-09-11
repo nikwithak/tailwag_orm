@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use crate::{
-    database_definition::table_definition::{DatabaseTableDefinition, Identifier, TableColumn},
+    data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
     AsSql,
 };
 

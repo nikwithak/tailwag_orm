@@ -1,5 +1,5 @@
-mod postgres_data_provider;
-pub use postgres_data_provider::*;
+mod postgres;
+pub use postgres::*;
 pub mod traits;
 
 // struct PostgresDataProvider {}

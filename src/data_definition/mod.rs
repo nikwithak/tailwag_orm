@@ -1,5 +1,5 @@
 pub mod database_definition;
-pub mod table_definition;
+pub mod table;
 
 #[cfg(test)]
 mod tests {

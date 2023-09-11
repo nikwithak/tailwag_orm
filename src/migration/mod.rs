@@ -12,9 +12,9 @@ mod tests {
     use create_table::CreateTable;
 
     use crate::{
-        database_definition::{
+        data_definition::{
             database_definition::DatabaseDefinition,
-            table_definition::{
+            table::{
                 DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
             },
         },

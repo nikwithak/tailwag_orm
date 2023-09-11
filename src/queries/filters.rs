@@ -2,7 +2,7 @@ use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 
 use uuid::Uuid;
 
-use crate::{database_definition::table_definition::TableColumn, AsSql};
+use crate::{data_definition::table::TableColumn, AsSql};
 
 #[derive(Clone)]
 pub enum FilterComparisonParam {

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    database_definition::{
+    data_definition::{
         database_definition::DatabaseDefinition,
-        table_definition::{DatabaseTableDefinition, Identifier, TableColumn},
+        table::{DatabaseTableDefinition, Identifier, TableColumn},
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
     AsSql,
@@ -167,11 +167,11 @@ impl Migration {
                         // A confusing mess of double negative magic going on here.
                         let old_is_nullable = old.constraints.iter().find(|c| match *c.detail {
                                 // Allowed null unless NOT NULL
-                                crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => true,
+                                crate::data_definition::table::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
                             }).is_none();
                         let new_is_nullable = new.constraints.iter().find(|c| match *c.detail {
-                                crate::database_definition::table_definition::TableColumnConstraintDetail::NotNull => true,
+                                crate::data_definition::table::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
                             }).is_none();
                         if old_is_nullable != new_is_nullable {
@@ -184,15 +184,14 @@ impl Migration {
                     {
                         let old_fk = old.constraints.iter().find(|c| match *c.detail {
                             // TODO: DRY this out a bit so that TableConstraintDetail /
-                            crate::database_definition::table_definition::TableColumnConstraintDetail::References(_) => true,
+                            crate::data_definition::table::TableColumnConstraintDetail::References(_) => true,
                             _ => false
                         });
                         let new_fk = new.constraints.iter().find(|c| match *c.detail {
                             // TODO: DRY this out a bit so that TableConstraintDetail /
-                            crate::database_definition::table_definition::TableColumnConstraintDetail::References(_) => true,
+                            crate::data_definition::table::TableColumnConstraintDetail::References(_) => true,
                             _ => false
                         });
-                        
                     }
 
                     if alter_column_actions.len() > 0 {

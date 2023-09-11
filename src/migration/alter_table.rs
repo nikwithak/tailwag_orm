@@ -1,5 +1,5 @@
 use crate::{
-    database_definition::table_definition::{
+    data_definition::table::{
         DatabaseColumnType, Identifier, TableColumn, TableConstraint,
     },
     AsSql,

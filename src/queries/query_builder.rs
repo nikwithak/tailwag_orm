@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    database_definition::table_definition::DatabaseTableDefinition,
+    data_definition::table::DatabaseTableDefinition,
     object_management::insert::InsertStatement, AsSql,
 };
 

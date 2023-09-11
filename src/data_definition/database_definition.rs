@@ -1,14 +1,14 @@
 use std::{ops::Deref, sync::Arc};
 
-use super::table_definition::{DatabaseTableDefinition, Identifier};
+use super::table::{DatabaseTableDefinition, Identifier};
 
 #[derive(Debug)]
 pub struct DatabaseDefinition {
-    data: Arc<DatabaseDefinitionData>,
+    data: Arc<DatabaseDefinitionBuilder>,
 }
 
 impl Deref for DatabaseDefinition {
-    type Target = DatabaseDefinitionData;
+    type Target = DatabaseDefinitionBuilder;
 
     fn deref(&self) -> &Self::Target {
         &self.data
@@ -44,8 +44,8 @@ impl DatabaseDefinition {
     ///         .expect("Something went wrong")
     ///         .into();
     /// ```
-    pub fn new(name: &str) -> Result<DatabaseDefinitionData, String> {
-        DatabaseDefinitionData::new(name)
+    pub fn new(name: &str) -> Result<DatabaseDefinitionBuilder, String> {
+        DatabaseDefinitionBuilder::new(name)
     }
 
     /// Creates an empty DatabaseDefinitionData object.  Does not wrap the result in a Result,
@@ -55,8 +55,8 @@ impl DatabaseDefinition {
     /// let database_definition: DatabaseDefinition
     ///     = DatabaseDefinition::new("new_database").into();
     /// ```
-    pub fn new_unchecked(name: &str) -> DatabaseDefinitionData {
-        match DatabaseDefinitionData::new(name) {
+    pub fn new_unchecked(name: &str) -> DatabaseDefinitionBuilder {
+        match DatabaseDefinitionBuilder::new(name) {
             Ok(def) => def,
             Err(e) => panic!("DatabaseDefinition::new_unchecked() failed: {}", e),
         }
@@ -64,12 +64,12 @@ impl DatabaseDefinition {
 }
 
 #[derive(Debug, Clone)]
-pub struct DatabaseDefinitionData {
+pub struct DatabaseDefinitionBuilder {
     pub name: Identifier,
     pub tables: Vec<DatabaseTableDefinition>,
 }
 
-impl Into<DatabaseDefinition> for DatabaseDefinitionData {
+impl Into<DatabaseDefinition> for DatabaseDefinitionBuilder {
     fn into(self) -> DatabaseDefinition {
         DatabaseDefinition {
             data: Arc::new(self),
@@ -77,7 +77,7 @@ impl Into<DatabaseDefinition> for DatabaseDefinitionData {
     }
 }
 
-impl DatabaseDefinitionData {
+impl DatabaseDefinitionBuilder {
     pub fn new(name: &str) -> Result<Self, String> {
         Ok(Self {
             name: Identifier::new(name)?,

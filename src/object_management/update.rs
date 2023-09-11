@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::AsSql;
 
-use crate::database_definition::table_definition::{DatabaseTableDefinition, Identifier};
+use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
 use crate::queries::Filter;
 
 pub struct UpdateStatement {

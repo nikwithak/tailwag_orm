@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    database_definition::table_definition::{DatabaseTableDefinition, Identifier},
+    data_definition::table::{DatabaseTableDefinition, Identifier},
     AsSql,
 };
 
