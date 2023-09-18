@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    data_definition::table::DatabaseTableDefinition,
-    object_management::insert::InsertStatement, AsSql,
+    data_definition::table::DatabaseTableDefinition, object_management::insert::InsertStatement,
+    AsSql,
 };
 
 use super::Filter;
@@ -89,6 +89,7 @@ impl<T: Queryable> Query<T> {
     //     todo!()
     // }
 
+    #[allow(unused)]
     fn limit(
         mut self,
         limit: usize,

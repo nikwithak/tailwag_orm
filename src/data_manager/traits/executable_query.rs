@@ -47,6 +47,7 @@ impl<T: Queryable + Insertable> DerefMut for ExecutableQuery<T> {
 
 // This is a fun mess of requirements inherited for T
 impl<T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
+    #[allow(unused)]
     pub async fn execute(self) -> Result<Vec<T>, String> {
         let sql = self.query.as_sql();
         log::debug!("Executing Query: {}", &sql);
