@@ -1,7 +1,7 @@
 use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
-    queries::{Insertable, Query, Queryable, Updateable},
+    queries::{Deleteable, Insertable, Query, Queryable, Updateable},
     AsSql,
 };
 use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
@@ -37,6 +37,16 @@ impl<T: Queryable + Insertable> Deref for ExecutableQuery<T> {
 impl<T: Queryable + Insertable> DerefMut for ExecutableQuery<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.query
+    }
+}
+
+impl<T> Into<Vec<T>> for ExecutableQuery<T>
+where
+    T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin,
+{
+    fn into(self) -> Vec<T> {
+        todo!()
+        // futures::executor::block_on(self.execute())
     }
 }
 
@@ -86,7 +96,7 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
     }
 }
 
-impl<T: Queryable + Insertable + Updateable> PostgresDataProvider<T> {
+impl<T: Queryable + Insertable + Updateable + Deleteable> PostgresDataProvider<T> {
     pub fn all(&self) -> ExecutableQuery<T> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
@@ -109,6 +119,20 @@ impl<T: Queryable + Insertable + Updateable> PostgresDataProvider<T> {
             Ok(_) => Ok(()),
             Err(e) => {
                 log::error!("Failed to create item");
+                Err(e.to_string())
+            },
+        }
+    }
+
+    pub async fn delete(
+        &self,
+        item: T,
+    ) -> Result<(), String> {
+        let delete = item.get_delete_statement();
+        match sqlx::query(&delete.as_sql()).execute(&self.db_pool).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                log::error!("Failed to delete item");
                 Err(e.to_string())
             },
         }

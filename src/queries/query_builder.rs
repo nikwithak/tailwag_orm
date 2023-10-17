@@ -2,7 +2,9 @@ use std::marker::PhantomData;
 
 use crate::{
     data_definition::table::DatabaseTableDefinition,
-    object_management::{insert::InsertStatement, update::UpdateStatement},
+    object_management::{
+        delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
+    },
     AsSql,
 };
 
@@ -25,12 +27,12 @@ pub trait Saveable {
     fn save(&self) -> Result<(), String>;
 }
 
-pub trait Updateable {
-    fn get_update_statement(&self) -> UpdateStatement;
+pub trait Deleteable {
+    fn get_delete_statement(&self) -> DeleteStatement;
 }
 
-trait Deletable<T> {
-    fn delete(self) -> Result<(), String>;
+pub trait Updateable {
+    fn get_update_statement(&self) -> UpdateStatement;
 }
 
 impl<T: Queryable> AsSql for Query<T> {
