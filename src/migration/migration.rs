@@ -1,9 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     data_definition::{
         database_definition::DatabaseDefinition,
-        table::{DatabaseTableDefinition, Identifier, TableColumn},
+        table::{
+            DatabaseTableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
+            TableConstraint, TableConstraintDetail,
+        },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
     AsSql,
@@ -151,13 +154,13 @@ impl Migration {
 
         // Build a map for quick lookup of after_tables, then compare each
         let mut after_columns = build_column_map(after);
-        for old in &before.columns {
-            match after_columns.remove(&old.column_name) {
-                Some(new) => {
+        for old_column in &before.columns {
+            match after_columns.remove(&old_column.column_name) {
+                Some(new_column) => {
                     let mut alter_column_actions = Vec::new();
-                    if !old.column_type.eq(&new.column_type) {
+                    if !old_column.column_type.eq(&new_column.column_type) {
                         alter_column_actions
-                            .push(AlterColumnAction::SetType(new.column_type.clone()));
+                            .push(AlterColumnAction::SetType(new_column.column_type.clone()));
                     }
 
                     // * NONNULL calculation - Compares `NotNull`
@@ -165,12 +168,12 @@ impl Migration {
                         // Uggggh this is really hacky. Wanna clean this up later.
                         // Find the existence of a `NotNull` constraint. If it does *not* exist (`.is_none()`) then the field *is* nullable.
                         // A confusing mess of double negative magic going on here.
-                        let old_is_nullable = old.constraints.iter().find(|c| match *c.detail {
+                        let old_is_nullable = old_column.constraints.iter().find(|c| match *c.detail {
                                 // Allowed null unless NOT NULL
                                 crate::data_definition::table::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
                             }).is_none();
-                        let new_is_nullable = new.constraints.iter().find(|c| match *c.detail {
+                        let new_is_nullable = new_column.constraints.iter().find(|c| match *c.detail {
                                 crate::data_definition::table::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
                             }).is_none();
@@ -181,29 +184,60 @@ impl Migration {
                     }
 
                     // * TODO: Foreign Key Changes
-                    // {
-                    //     let old_fk = old.constraints.iter().find(|c| match *c.detail {
-                    //         // TODO: DRY this out a bit so that TableConstraintDetail /
-                    //         crate::data_definition::table::TableColumnConstraintDetail::References(_) => true,
-                    //         _ => false
-                    //     });
-                    //     let new_fk = new.constraints.iter().find(|c| match *c.detail {
-                    //         // TODO: DRY this out a bit so that TableConstraintDetail /
-                    //         crate::data_definition::table::TableColumnConstraintDetail::References(_) => true,
-                    //         _ => false
-                    //     });
-                    // }
+                    // We compare the columns, and add the _TABLE'S_ FK constraint, because we can't add the constraint to column except at creation.
+                    // TODO: Do another pass for the FK constraints.
+                    {
+                        let old_fk = old_column.constraints.iter().find_map(|c| match &*c.detail {
+                            crate::data_definition::table::TableColumnConstraintDetail::References(fk) => Some(fk),
+                            _ => None,
+                        });
+                        let new_fk = new_column.constraints.iter().find_map(|c| match &*c.detail {
+                            crate::data_definition::table::TableColumnConstraintDetail::References(fk) => Some(fk),
+                            _ => None,
+                        });
+                        match (old_fk, new_fk) {
+                            (None, None) => None,
+                            (None, Some(new_fk)) => {
+                                // FK was added
+                                Some(AlterTableAction::AddConstraint(TableConstraint {
+                                    name: None, // TODO: Infer name. I might need to rework how these constraints work :facepalm:
+                                    detail: Arc::new(TableConstraintDetail::ForeignKey(
+                                        ForeignKeyConstraint {
+                                            ref_table: new_fk.ref_table.clone(),
+                                            ref_columns: vec![new_fk
+                                                .ref_column
+                                                .as_ref()
+                                                .unwrap()
+                                                .clone()],
+                                            columns: vec![new_column.clone()],
+                                            match_type: new_fk.match_type.clone(),
+                                            on_delete_action: new_fk.on_delete_action.clone(),
+                                            on_update_action: new_fk.on_update_action.clone(),
+                                        },
+                                    )),
+                                }))
+                            },
+                            (Some(_), None) => todo!(), // DELETE constraint from column. Need a consistent way to name constraints in order to do this.
+                            (Some(old_fk), Some(new_fk)) => {
+                                if old_fk.ne(new_fk) {
+                                    todo!("Support for updating FKs not yet implemented")
+                                } else {
+                                    None
+                                }
+                            }, // COMPARE constraints
+                        };
+                    }
 
                     if alter_column_actions.len() > 0 {
                         actions.push(AlterTableAction::AlterColumn(AlterColumn {
-                            column_name: new.column_name.clone(),
+                            column_name: new_column.column_name.clone(),
                             actions: alter_column_actions,
                         }));
                     }
                 },
                 None => {
                     // Column Deleted
-                    actions.push(AlterTableAction::DropColumn(old.column_name.clone()));
+                    actions.push(AlterTableAction::DropColumn(old_column.column_name.clone()));
                 },
             }
         }

@@ -74,11 +74,11 @@ impl AsSql for UniqueColumnConstraint {
 /// Foreign Key
 #[derive(PartialEq, Eq, Debug)]
 pub struct ReferencesConstraint {
-    ref_table: Identifier,
-    ref_column: Option<Identifier>,
-    match_type: Option<ReferencesConstraintMatchType>,
-    on_delete_action: Option<ReferentialAction>,
-    on_update_action: Option<ReferentialAction>,
+    pub ref_table: Identifier,
+    pub ref_column: Option<Identifier>,
+    pub match_type: Option<ReferencesConstraintMatchType>,
+    pub on_delete_action: Option<ReferentialAction>,
+    pub on_update_action: Option<ReferentialAction>,
 }
 
 impl ReferencesConstraint {
@@ -94,9 +94,16 @@ impl ReferencesConstraint {
             on_update_action: None,
         }
     }
+
+    fn compare(
+        old: Self,
+        new: Self,
+    ) -> Option<String> {
+        todo!()
+    }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum ReferentialAction {
     NoAction,
     Restrict,
@@ -139,7 +146,7 @@ impl AsSql for ReferentialAction {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum ReferencesConstraintMatchType {
     Full,
     Partial,

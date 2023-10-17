@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    data_definition::table::DatabaseTableDefinition, object_management::insert::InsertStatement,
+    data_definition::table::DatabaseTableDefinition,
+    object_management::{insert::InsertStatement, update::UpdateStatement},
     AsSql,
 };
 
@@ -20,8 +21,12 @@ impl<T: Queryable> Into<Vec<T>> for Query<T> {
     }
 }
 
-trait Saveable<T> {
-    fn save(item: T) -> Result<(), String>;
+pub trait Saveable {
+    fn save(&self) -> Result<(), String>;
+}
+
+pub trait Updateable {
+    fn get_update_statement(&self) -> UpdateStatement;
 }
 
 trait Deletable<T> {

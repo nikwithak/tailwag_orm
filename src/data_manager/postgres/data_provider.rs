@@ -1,7 +1,7 @@
 use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
-    queries::{Insertable, Query, Queryable},
+    queries::{Insertable, Query, Queryable, Updateable},
     AsSql,
 };
 use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
@@ -86,7 +86,7 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
     }
 }
 
-impl<T: Queryable + Insertable> PostgresDataProvider<T> {
+impl<T: Queryable + Insertable + Updateable> PostgresDataProvider<T> {
     pub fn all(&self) -> ExecutableQuery<T> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
@@ -113,6 +113,21 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
             },
         }
     }
+
+    pub async fn update(
+        &self,
+        item: &T,
+    ) -> Result<(), String> {
+        let update = item.get_update_statement();
+        println!("UPDATING: {}", &update.as_sql());
+        match sqlx::query(&update.as_sql()).execute(&self.db_pool).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                log::error!("Failed to create item");
+                Err(e.to_string())
+            },
+        }
+    }
 }
 
 pub trait BuildDataProvider
@@ -122,9 +137,11 @@ where
     fn build_data_provider(&self) -> PostgresDataProvider<Self>;
 }
 
-impl<T> BuildDataProvider for T where T: Sized + Queryable + Insertable {
+impl<T> BuildDataProvider for T
+where
+    T: Sized + Queryable + Insertable,
+{
     fn build_data_provider(&self) -> PostgresDataProvider<Self> {
-
         todo!()
     }
 }

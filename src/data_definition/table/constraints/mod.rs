@@ -3,7 +3,8 @@ use std::sync::Arc;
 use crate::AsSql;
 
 use super::{
-    Identifier, IndexParameters, ReferencesConstraintMatchType, ReferentialAction, TableColumn,
+    DatabaseTableDefinition, Identifier, IndexParameters, ReferencesConstraint,
+    ReferencesConstraintMatchType, ReferentialAction, TableColumn,
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -26,13 +27,13 @@ impl AsSql for TableConstraint {
 pub enum TableConstraintDetail {
     Unique(UniqueConstraint),
     PrimaryKey(PrimaryKeyConstraint),
-    ForeignKey(),
+    ForeignKey(ForeignKeyConstraint),
 }
 
 impl AsSql for TableConstraintDetail {
     fn as_sql(&self) -> String {
         match self {
-            Self::ForeignKey() => "",
+            Self::ForeignKey(fk) => "",
             Self::Unique(_) => todo!(),
             Self::PrimaryKey(_) => todo!(),
         }
@@ -94,10 +95,10 @@ impl AsSql for PrimaryKeyConstraint {
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct ForeignKeyConstraint {
-    ref_table: Identifier,
-    ref_columns: Vec<TableColumn>, // TODO: Yank this to a more definitive mapping from columns and ref_columns
-    columns: Vec<TableColumn>,
-    match_type: Option<ReferencesConstraintMatchType>,
-    on_delete_action: Option<ReferentialAction>,
-    on_update_action: Option<ReferentialAction>,
+    pub ref_table: Identifier,
+    pub ref_columns: Vec<Identifier>, // TODO: Yank this to a more definitive mapping from columns and ref_columns
+    pub columns: Vec<TableColumn>,
+    pub match_type: Option<ReferencesConstraintMatchType>,
+    pub on_delete_action: Option<ReferentialAction>,
+    pub on_update_action: Option<ReferentialAction>,
 }
