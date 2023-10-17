@@ -143,7 +143,6 @@ impl<T: Queryable + Insertable + Updateable + Deleteable> PostgresDataProvider<T
         item: &T,
     ) -> Result<(), String> {
         let update = item.get_update_statement();
-        println!("UPDATING: {}", &update.as_sql());
         match sqlx::query(&update.as_sql()).execute(&self.db_pool).await {
             Ok(_) => Ok(()),
             Err(e) => {

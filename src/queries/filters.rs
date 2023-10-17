@@ -21,8 +21,8 @@ impl AsSql for FilterComparisonParam {
                 // TODO: Need to bring in table_name for longer queries
                 format!("{}", &col.column_name)
             },
-            FilterComparisonParam::String(s) => format!("\"{}\"", s.to_string()),
-            FilterComparisonParam::Uuid(uuid) => format!("\"{}\"", uuid.to_string()),
+            FilterComparisonParam::String(s) => format!("\"{}\"", s.to_string()), // Weird that Strings need the escaped quotes butUUIDs need single quotes??
+            FilterComparisonParam::Uuid(uuid) => format!("'{}'", uuid.to_string()),
             FilterComparisonParam::Integer(i) => i.to_string(), // TODO: This'll change when we do prepped statmeents anyway
             FilterComparisonParam::Float(f) => f.to_string(),
             FilterComparisonParam::Bool(b) => b.to_string(),
