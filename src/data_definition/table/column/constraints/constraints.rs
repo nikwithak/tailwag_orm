@@ -95,9 +95,9 @@ impl ReferencesConstraint {
         }
     }
 
-    fn compare(
-        old: Self,
-        new: Self,
+    fn _compare(
+        _old: Self,
+        _new: Self,
     ) -> Option<String> {
         todo!()
     }

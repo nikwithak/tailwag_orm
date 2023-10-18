@@ -1,11 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
-
-use uuid::Uuid;
+use std::collections::HashMap;
 
 use crate::AsSql;
 
 use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
-use crate::queries::Filter;
 
 pub struct UpdateStatement {
     table_def: DatabaseTableDefinition,

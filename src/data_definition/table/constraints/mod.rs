@@ -3,8 +3,7 @@ use std::sync::Arc;
 use crate::AsSql;
 
 use super::{
-    DatabaseTableDefinition, Identifier, IndexParameters, ReferencesConstraint,
-    ReferencesConstraintMatchType, ReferentialAction, TableColumn,
+    Identifier, IndexParameters, ReferencesConstraintMatchType, ReferentialAction, TableColumn,
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -33,7 +32,7 @@ pub enum TableConstraintDetail {
 impl AsSql for TableConstraintDetail {
     fn as_sql(&self) -> String {
         match self {
-            Self::ForeignKey(fk) => "",
+            Self::ForeignKey(_fk) => "",
             Self::Unique(_) => todo!(),
             Self::PrimaryKey(_) => todo!(),
         }

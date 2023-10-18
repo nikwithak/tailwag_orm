@@ -2,9 +2,26 @@ use std::ops::{Deref, DerefMut};
 
 use uuid::Uuid;
 
+/// Provides basic CRUD operations for a type's data source
+///
+/// Unless you have a specific use case that warrants a custom implementation,
+/// it is recommended that you use one of the premade DataProviders for typical
+/// use cases (examples below). A long-term goal is to define the configurability
+/// of these to handle contexts / user permissions / etc.
+///
+///  - [ ] PostgresDataProvider      - Manages the
+///  - [ ] TODO: RestApiDataProvider
+///  - [ ] TODO: LocalFileDataProvider
+///  - [ ] TODO: S3DataProvider
+///  - [ ] TODO: InMemoryDataProvider // Intended for debugging/development
+///                                   // primarily, but may have other uses (e.g. used in caching)
+///  - [ ] TODO: CachedDataProvider<P: DataProvider>
+///  - { } TODO: PolicyEnforcedDataProvider
+///  - [ ] TODO: MultiSourceDataProvider
 pub trait DataProvider<T> {
-    type CreateRequest: Into<T>;
-    type QueryType: Into<Vec<T>>;
+    type CreateRequest;
+    type QueryType;
+
     // fn all(&self) -> Vec<T>;
     fn all(&self) -> Self::QueryType;
     fn get(
@@ -53,6 +70,7 @@ where
     }
 }
 
+#[allow(unused)]
 impl<'a, T, P> Provided<'a, T, P>
 where
     P: DataProvider<T>,

@@ -1,5 +1,6 @@
 use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
+    data_manager::traits::DataProvider,
     migration::Migration,
     queries::{Deleteable, Insertable, Query, Queryable, Updateable},
     AsSql,
@@ -96,8 +97,13 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
     }
 }
 
-impl<T: Queryable + Insertable + Updateable + Deleteable> PostgresDataProvider<T> {
-    pub fn all(&self) -> ExecutableQuery<T> {
+impl<'a, T: Queryable + Insertable + Updateable + Deleteable> DataProvider<T>
+    for PostgresDataProvider<T>
+{
+    type QueryType = ExecutableQuery<T>;
+    type CreateRequest = T; // TODO: Implement this based ont he implementaiton of Insertable?
+
+    fn all(&self) -> ExecutableQuery<T> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
             filter: None,
@@ -110,13 +116,13 @@ impl<T: Queryable + Insertable + Updateable + Deleteable> PostgresDataProvider<T
         }
     }
 
-    pub async fn create(
+    fn create(
         &self,
-        item: &T,
-    ) -> Result<(), String> {
+        item: Self::CreateRequest,
+    ) -> Result<T, std::string::String> {
         let insert = item.get_insert_statement();
-        match sqlx::query(&insert.as_sql()).execute(&self.db_pool).await {
-            Ok(_) => Ok(()),
+        match futures::executor::block_on(sqlx::query(&insert.as_sql()).execute(&self.db_pool)) {
+            Ok(_) => Ok(item),
             Err(e) => {
                 log::error!("Failed to create item");
                 Err(e.to_string())
@@ -124,12 +130,12 @@ impl<T: Queryable + Insertable + Updateable + Deleteable> PostgresDataProvider<T
         }
     }
 
-    pub async fn delete(
+    fn delete(
         &self,
         item: T,
     ) -> Result<(), String> {
         let delete = item.get_delete_statement();
-        match sqlx::query(&delete.as_sql()).execute(&self.db_pool).await {
+        match futures::executor::block_on(sqlx::query(&delete.as_sql()).execute(&self.db_pool)) {
             Ok(_) => Ok(()),
             Err(e) => {
                 log::error!("Failed to delete item");
@@ -138,18 +144,25 @@ impl<T: Queryable + Insertable + Updateable + Deleteable> PostgresDataProvider<T
         }
     }
 
-    pub async fn update(
+    fn update(
         &self,
         item: &T,
     ) -> Result<(), String> {
         let update = item.get_update_statement();
-        match sqlx::query(&update.as_sql()).execute(&self.db_pool).await {
+        match futures::executor::block_on(sqlx::query(&update.as_sql()).execute(&self.db_pool)) {
             Ok(_) => Ok(()),
             Err(e) => {
                 log::error!("Failed to create item");
                 Err(e.to_string())
             },
         }
+    }
+
+    fn get(
+        &self,
+        _id: uuid::Uuid,
+    ) -> Option<T> {
+        todo!()
     }
 }
 
