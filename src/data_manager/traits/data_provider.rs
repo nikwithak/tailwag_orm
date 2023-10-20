@@ -18,9 +18,12 @@ use uuid::Uuid;
 ///  - [ ] TODO: CachedDataProvider<P: DataProvider>
 ///  - { } TODO: PolicyEnforcedDataProvider
 ///  - [ ] TODO: MultiSourceDataProvider
-pub trait DataProvider<T> {
-    type CreateRequest;
-    type QueryType;
+pub trait DataProvider<T>
+where
+    Self: Clone + Send,
+{
+    type CreateRequest: Default;
+    type QueryType: Into<Vec<T>>;
 
     // fn all(&self) -> Vec<T>;
     fn all(&self) -> Self::QueryType;
