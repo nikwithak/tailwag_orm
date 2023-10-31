@@ -9,12 +9,12 @@ use uuid::Uuid;
 /// use cases (examples below). A long-term goal is to define the configurability
 /// of these to handle contexts / user permissions / etc.
 ///
-///  - [ ] PostgresDataProvider      - Manages the
-///  - [ ] TODO: RestApiDataProvider
+///  - [x] PostgresDataProvider
+///  - [x] TODO: RestApiDataProvider
+///  - [x] TODO: InMemoryDataProvider // Intended for debugging/development
+///                                   // primarily, but may have other uses (e.g. used in caching)
 ///  - [ ] TODO: LocalFileDataProvider
 ///  - [ ] TODO: S3DataProvider
-///  - [ ] TODO: InMemoryDataProvider // Intended for debugging/development
-///                                   // primarily, but may have other uses (e.g. used in caching)
 ///  - [ ] TODO: CachedDataProvider<P: DataProvider>
 ///  - { } TODO: PolicyEnforcedDataProvider
 ///  - [ ] TODO: MultiSourceDataProvider

@@ -4,6 +4,7 @@ pub mod rest_api;
 pub mod threaded;
 pub mod traits;
 
+pub mod in_memory;
 pub mod local_files;
 // struct PostgresDataProvider {}
 // struct FileS3DataProvider {}
