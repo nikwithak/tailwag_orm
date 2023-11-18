@@ -1,8 +1,7 @@
 use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
-    data_manager::traits::DataProvider,
     migration::Migration,
-    queries::{Deleteable, Insertable, Query, Queryable, Updateable},
+    queries::{Deleteable, Insertable, Query, Updateable},
     AsSql,
 };
 use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
@@ -12,7 +11,7 @@ use std::{
 };
 
 #[derive(Clone)]
-pub struct PostgresDataProvider<T: Queryable + Insertable> {
+pub struct PostgresDataProvider<T: Insertable> {
     pub table_definition: DatabaseTableDefinition,
     pub db_pool: Pool<Postgres>,
     pub _t: PhantomData<T>,
@@ -23,19 +22,19 @@ pub trait GetTableDefinition {
 }
 
 /// Wraps a `Query<T>` alongside a DB Pool (using sqlx), to enable ergonomic querying.
-pub struct ExecutableQuery<T: Queryable> {
+pub struct ExecutableQuery<T> {
     query: Query<T>,
     db_pool: Pool<Postgres>,
 }
 
-impl<T: Queryable + Insertable> Deref for ExecutableQuery<T> {
+impl<T: Insertable> Deref for ExecutableQuery<T> {
     type Target = Query<T>;
     fn deref(&self) -> &Self::Target {
         &self.query
     }
 }
 
-impl<T: Queryable + Insertable> DerefMut for ExecutableQuery<T> {
+impl<T: Insertable> DerefMut for ExecutableQuery<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.query
     }
@@ -43,7 +42,7 @@ impl<T: Queryable + Insertable> DerefMut for ExecutableQuery<T> {
 
 impl<T> Into<Vec<T>> for ExecutableQuery<T>
 where
-    T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin,
+    T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin,
 {
     fn into(self) -> Vec<T> {
         futures::executor::block_on(self.execute()).unwrap()
@@ -51,7 +50,8 @@ where
 }
 
 // This is a fun mess of requirements inherited for T
-impl<T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
+// TODO: Simplify this as much as possible
+impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
     pub async fn execute(self) -> Result<Vec<T>, String> {
         let sql = self.query.as_sql();
         log::debug!("Executing Query: {}", &sql);
@@ -69,7 +69,7 @@ impl<T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> Exec
 }
 
 // Migration Handling
-impl<T: Queryable + Insertable> PostgresDataProvider<T> {
+impl<T: Insertable> PostgresDataProvider<T> {
     fn build_migration(&self) -> Option<Migration> {
         Migration::compare(
             None, // TODO: Need to get the old migration
@@ -99,8 +99,7 @@ impl<T: Queryable + Insertable> PostgresDataProvider<T> {
 // impl<'a, T> DataProvider<T> for PostgresDataProvider<T>
 impl<'a, T> PostgresDataProvider<T>
 where
-    T: Queryable
-        + Insertable
+    T: Insertable
         + Deleteable
         + Updateable
         + for<'r> FromRow<'r, PgRow>
@@ -181,14 +180,14 @@ where
 
 pub trait BuildDataProvider
 where
-    Self: Sized + Queryable + Insertable,
+    Self: Sized + Insertable,
 {
     fn build_data_provider(&self) -> PostgresDataProvider<Self>;
 }
 
 impl<T> BuildDataProvider for T
 where
-    T: Sized + Queryable + Insertable,
+    T: Sized + Insertable,
 {
     fn build_data_provider(&self) -> PostgresDataProvider<Self> {
         todo!()

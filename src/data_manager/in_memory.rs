@@ -1,4 +1,8 @@
-use crate::data_manager::{rest_api::Id, traits::DataProvider};
+use crate::data_manager::{
+    rest_api::Id,
+    traits::{DataProvider, DataResult},
+};
+use async_trait::async_trait;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -14,25 +18,26 @@ pub struct InMemoryDataProvider<T> {
     items: Arc<Mutex<HashMap<Uuid, T>>>,
 }
 
+#[async_trait]
 impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProvider<T> {
     type CreateRequest = T;
     type QueryType = Vec<T>;
 
-    fn all(&self) -> Self::QueryType {
+    async fn all(&self) -> DataResult<Self::QueryType> {
         let items = self.items.lock().unwrap();
-        items.values().map(|item| item.clone()).collect()
+        Ok(items.values().map(|item| item.clone()).collect())
     }
 
-    fn get(
+    async fn get(
         &self,
         id: Uuid,
-    ) -> Option<T> {
+    ) -> DataResult<Option<T>> {
         let items = self.items.lock().unwrap();
         let item = items.get(&id).map(|item| item.clone());
-        item
+        Ok(item)
     }
 
-    fn create(
+    async fn create(
         &self,
         item: Self::CreateRequest,
     ) -> Result<T, String> {
@@ -46,7 +51,7 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
         }
     }
 
-    fn delete(
+    async fn delete(
         &self,
         item: T,
     ) -> Result<(), String> {
@@ -57,7 +62,7 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
         }
     }
 
-    fn update(
+    async fn update(
         &self,
         item: &T,
     ) -> Result<(), String> {

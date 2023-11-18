@@ -4,11 +4,11 @@ use sqlx::{postgres::PgRow, FromRow, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::{
-    queries::{Insertable, Query, Queryable},
+    queries::{Insertable, Query},
     AsSql,
 };
 
-pub trait QueryItems<T: Queryable> {
+pub trait QueryItems<T> {
     fn query(&self) -> ExecutableQuery<T>;
 }
 
@@ -26,27 +26,27 @@ pub trait CreateItem<T> {
     ) -> Result<T, String>;
 }
 
-/// Wraps a `Query<T>` alongside a DB Pool (using sqlx), to enable ergonomic querying.
-pub struct ExecutableQuery<T: Queryable> {
+/// Wraps a `Query<T>` alongside a DB Pool (using sqlx), to enable ergonomic querying
+pub struct ExecutableQuery<T> {
     query: Query<T>,
     db_pool: Pool<Postgres>,
 }
 
-impl<T: Queryable + Insertable> Deref for ExecutableQuery<T> {
+impl<T: Insertable> Deref for ExecutableQuery<T> {
     type Target = Query<T>;
     fn deref(&self) -> &Self::Target {
         &self.query
     }
 }
 
-impl<T: Queryable + Insertable> DerefMut for ExecutableQuery<T> {
+impl<T: Insertable> DerefMut for ExecutableQuery<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.query
     }
 }
 
 // This is a fun mess of requirements inherited for T
-impl<T: Queryable + Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
+impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
     #[allow(unused)]
     pub async fn execute(self) -> Result<Vec<T>, String> {
         let sql = self.query.as_sql();

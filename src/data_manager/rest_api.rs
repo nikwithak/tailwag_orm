@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use uuid::Uuid;
 
-use super::traits::DataProvider;
+use super::traits::{DataProvider, DataResult};
 
 /// Creates a DataProvider that will fetch the given type from the provided REST endpoint.
 /// Makes specific assumptions about the way the REST endpoint works, and implements this for the base-case
@@ -35,44 +35,42 @@ pub trait Id {
     fn id(&self) -> &Uuid;
 }
 
+#[async_trait::async_trait]
 impl<T> DataProvider<T> for RestApiDataProvider<T>
 where
-    T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send,
+    T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send + Sync,
 {
     // TODO: Figure out how to map CreateRequest
     type CreateRequest = T;
     type QueryType = Vec<T>;
 
-    fn all(&self) -> Self::QueryType {
-        futures::executor::block_on(async {
-            self.http_client
-                .get(&self.endpoint)
-                .send()
-                .await
-                .unwrap()
-                .json::<Vec<T>>()
-                .await
-                .unwrap()
-        })
+    async fn all(&self) -> super::traits::DataResult<Self::QueryType> {
+        todo!()
+        // Ok(self
+        //     .http_client
+        //     .get(&self.endpoint)
+        //     .send()
+        //     .await
+        //     .unwrap()
+        //     .json::<Vec<T>>()
+        //     .await
+        //     .unwrap())
     }
 
-    fn get(
+    async fn get(
         &self,
         id: uuid::Uuid,
-    ) -> Option<T> {
+    ) -> DataResult<Option<T>> {
         let url = format!("{}/{}", &self.endpoint, &id);
-        futures::executor::block_on(async {
-            let response = self.http_client.get(&url).send().await.unwrap();
-            // if response.status() == StatusCode::NOT_FOUND {
-            //     None
-            // } else {
-            // }
-            response.json::<Option<T>>().await
-        })
-        .unwrap()
+        let response = self.http_client.get(&url).send().await.unwrap();
+        // if response.status() == StatusCode::NOT_FOUND {
+        //     None
+        // } else {
+        // }
+        Ok(response.json::<Option<T>>().await.unwrap())
     }
 
-    fn create(
+    async fn create(
         &self,
         item: Self::CreateRequest,
     ) -> Result<T, String> {
@@ -82,7 +80,7 @@ where
         })
     }
 
-    fn delete(
+    async fn delete(
         &self,
         item: T,
     ) -> Result<(), String> {
@@ -94,7 +92,7 @@ where
         })
     }
 
-    fn update(
+    async fn update(
         &self,
         item: &T,
     ) -> Result<(), String> {

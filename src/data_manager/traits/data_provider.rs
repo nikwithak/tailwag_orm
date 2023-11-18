@@ -1,6 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
+use async_trait::async_trait;
 use uuid::Uuid;
+
+pub type DataResult<T> = Result<T, String>;
 
 /// Provides basic CRUD operations for a type's data source
 ///
@@ -18,31 +21,29 @@ use uuid::Uuid;
 ///  - [ ] TODO: CachedDataProvider<P: DataProvider>
 ///  - { } TODO: PolicyEnforcedDataProvider
 ///  - [ ] TODO: MultiSourceDataProvider
-pub trait DataProvider<T>
-where
-    Self: Clone + Send,
-{
+#[async_trait]
+pub trait DataProvider<T> {
     type CreateRequest: Default;
     type QueryType: Into<Vec<T>>;
 
     // fn all(&self) -> Vec<T>;
-    fn all(&self) -> Self::QueryType;
-    fn get(
+    async fn all(&self) -> DataResult<Self::QueryType>;
+    async fn get(
         &self,
         id: Uuid,
-    ) -> Option<T>;
-    fn create(
+    ) -> DataResult<Option<T>>;
+    async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, String>; // TODO: Create real error type when needed
-    fn delete(
+    ) -> DataResult<T>; // TODO: Create real error type when needed
+    async fn delete(
         &self,
-        item: T,
-    ) -> Result<(), String>;
-    fn update(
+        item: T, // You give it up when you ask to delete it!
+    ) -> DataResult<()>;
+    async fn update(
         &self,
         item: &T,
-    ) -> Result<(), String>;
+    ) -> DataResult<()>;
 }
 
 pub struct Provided<'a, T, P>
@@ -78,11 +79,11 @@ impl<'a, T, P> Provided<'a, T, P>
 where
     P: DataProvider<T>,
 {
-    fn save(&self) -> Result<(), String> {
-        self.provider.update(&self.data)
+    async fn save(&self) -> Result<(), String> {
+        self.provider.update(&self.data).await
     }
 
-    fn delete(self) -> Result<(), String> {
-        self.provider.delete(self.data)
+    async fn delete(self) -> Result<(), String> {
+        self.provider.delete(self.data).await
     }
 }
