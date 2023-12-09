@@ -15,6 +15,7 @@ pub enum DatabaseColumnType {
     String,    // VARCHAR or TEXT
     Timestamp, // TIMESTAMP
     Uuid,      // UUID
+    Json,      // JSONB
 }
 
 impl DatabaseColumnType {
@@ -26,6 +27,7 @@ impl DatabaseColumnType {
             DatabaseColumnType::String => "VARCHAR",
             DatabaseColumnType::Timestamp => "TIMESTAMP",
             DatabaseColumnType::Uuid => "UUID",
+            DatabaseColumnType::Json => "JSONB",
         }
     }
 }

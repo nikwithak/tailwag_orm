@@ -45,16 +45,15 @@ where
     type QueryType = Vec<T>;
 
     async fn all(&self) -> super::traits::DataResult<Self::QueryType> {
-        todo!()
-        // Ok(self
-        //     .http_client
-        //     .get(&self.endpoint)
-        //     .send()
-        //     .await
-        //     .unwrap()
-        //     .json::<Vec<T>>()
-        //     .await
-        //     .unwrap())
+        Ok(self
+            .http_client
+            .get(&self.endpoint)
+            .send()
+            .await
+            .unwrap()
+            .json::<Vec<T>>()
+            .await
+            .unwrap())
     }
 
     async fn get(

@@ -10,24 +10,26 @@ use crate::{
 
 use super::Filter;
 
-pub struct Query<T: Queryable> {
+pub struct Query<T> {
     pub table: DatabaseTableDefinition,
     pub filter: Option<Filter>,
     pub limit: Option<usize>,
     pub _t: PhantomData<T>,
 }
 
-impl<T: Queryable> Into<Vec<T>> for Query<T> {
+impl<T> Into<Vec<T>> for Query<T> {
     fn into(self) -> Vec<T> {
         todo!()
     }
 }
 
 pub trait Saveable {
+    // TODO: customize error type
     fn save(&self) -> Result<(), String>;
 }
 
 pub trait Deleteable {
+    // TODO: rework this to actually Delete, not get_delete_statement
     fn get_delete_statement(&self) -> DeleteStatement;
 }
 
@@ -35,7 +37,7 @@ pub trait Updateable {
     fn get_update_statement(&self) -> UpdateStatement;
 }
 
-impl<T: Queryable> AsSql for Query<T> {
+impl<T> AsSql for Query<T> {
     fn as_sql(&self) -> String {
         // TODO: This needs to be unique, add millis or find a better way. What does SQLX do?
         // TODO: This is part of the half-written prepared statement support
@@ -91,7 +93,7 @@ impl<T: Queryable> AsSql for Query<T> {
     }
 }
 
-impl<T: Queryable> Query<T> {
+impl<T> Query<T> {
     // fn execute() -> Vec<T> {
     //     todo!()
     // }
@@ -123,7 +125,9 @@ impl<T: Queryable> Query<T> {
     }
 }
 
-pub trait Queryable {}
+/// DEPRECATED - left in for backwards compatibility.
+/// TODO: Remove when old types are updated.
+// pub trait Queryable {}
 
 pub trait Insertable {
     fn get_insert_statement(&self) -> InsertStatement;

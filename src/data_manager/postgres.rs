@@ -4,11 +4,14 @@ use crate::{
     queries::{Deleteable, Insertable, Query, Updateable},
     AsSql,
 };
+use async_trait::async_trait;
 use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
+
+use super::traits::DataResult;
 
 #[derive(Clone)]
 pub struct PostgresDataProvider<T: Insertable> {
@@ -96,35 +99,44 @@ impl<T: Insertable> PostgresDataProvider<T> {
     }
 }
 
-// impl<'a, T> DataProvider<T> for PostgresDataProvider<T>
-impl<'a, T> PostgresDataProvider<T>
+#[async_trait]
+impl<'a, T> super::traits::DataProvider<T> for PostgresDataProvider<T>
+// impl<'a, T> PostgresDataProvider<T>
 where
     T: Insertable
         + Deleteable
         + Updateable
         + for<'r> FromRow<'r, PgRow>
         + Send
+        + Sync
         + Clone
         + Unpin
         + Default,
 {
-    // type QueryType = ExecutableQuery<T>;
-    // type CreateRequest = T; // TODO: Implement this based ont he implementaiton of Insertable?
+    type QueryType = ExecutableQuery<T>;
+    type CreateRequest = T; // TODO: Implement this based ont he implementaiton of Insertable?
 
-    pub async fn all(&self) -> ExecutableQuery<T> {
+    async fn get(
+        &self,
+        _id: uuid::Uuid,
+    ) -> DataResult<Option<T>> {
+        todo!()
+    }
+
+    async fn all(&self) -> DataResult<ExecutableQuery<T>> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
             filter: None,
             limit: None,
             _t: Default::default(),
         };
-        ExecutableQuery {
+        Ok(ExecutableQuery {
             query,
             db_pool: self.db_pool.clone(),
-        }
+        })
     }
 
-    pub async fn create(
+    async fn create(
         &self,
         // item: Self::CreateRequest,
         item: T,
@@ -142,7 +154,7 @@ where
         ret
     }
 
-    pub async fn delete(
+    async fn delete(
         &self,
         item: T,
     ) -> Result<(), String> {
@@ -156,7 +168,7 @@ where
         }
     }
 
-    pub async fn update(
+    async fn update(
         &self,
         item: &T,
     ) -> Result<(), String> {
@@ -168,13 +180,6 @@ where
                 Err(e.to_string())
             },
         }
-    }
-
-    pub async fn get(
-        &self,
-        _id: uuid::Uuid,
-    ) -> Option<T> {
-        todo!()
     }
 }
 
