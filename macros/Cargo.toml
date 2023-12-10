@@ -1,0 +1,18 @@
+[lib]
+proc_macro = true
+
+[package]
+name = "tailwag_orm_macros"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    "logic",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+syn = { version = "2.0.39", features = ["extra-traits"] }
+tailwag_orm_macro_logic = {path = "./logic"}
