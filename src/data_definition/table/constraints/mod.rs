@@ -72,7 +72,7 @@ impl AsSql for UniqueConstraint {
 #[derive(PartialEq, Eq, Debug)]
 pub struct PrimaryKeyConstraint {
     index_parameters: Option<IndexParameters>,
-    columns: Vec<TableColumn>,
+    pub columns: Vec<TableColumn>,
 }
 
 impl AsSql for PrimaryKeyConstraint {

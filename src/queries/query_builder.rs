@@ -67,15 +67,34 @@ impl<T> AsSql for Query<T> {
                 | Filter::LessThan(_lhs, _rhs)
                 | Filter::LessThanOrEqual(_lhs, _rhs)
                 | Filter::GreaterThan(_lhs, _rhs)
-                | Filter::GreaterThanOrEqual(_lhs, _rhs) => (),
+                | Filter::GreaterThanOrEqual(_lhs, _rhs) => todo!(),
                 // TODO: Think about what preprocessing needs doing here
-                Filter::In(_lhs, _rhs) => (),
+                Filter::In(_lhs, _rhs) => todo!(),
             }
             postproc_stack.push(f);
         }
 
         // TODO: Add support for joins with filters
         let mut sql = format!("SELECT * FROM {}", &self.table.table_name);
+
+        // WIP (CURRENT): Implementing  the JOIN with filters
+        {
+            // TODO: Get relationships & relationship types
+            // One-to-One (Owned) - results in a "parent_id" column on the child table
+            sql.push_str(
+                " INNER JOIN {child_table_name} ON {child_table_pk} == {my_item.child_id} ",
+            );
+            // OR, for One-to-Many (Also Owned, but in a Vec<>):
+            // TODO: Need ARRAY_AGG
+            // TODO: Also add a parent_type if crossing tables? (Future Feature)
+            sql.push_str(" INNER JOIN {child_table_name} ON {child_table_pk} == {my_table.id} ");
+            // Need to also make sure that in SELECT we use (ARRAY_AGG) or (JSON_AGG)
+            // Many-to-Many (Unowned / Shared) - results in a join_table column on the child table
+            sql.push_str(" INNER JOIN {join_table} ON {ref_id} == {table_ref_id} INNER JOIN {child_table} ON {join_table} ");
+            // TODO / Consider: Structured / custom join tables (for edge data / metadata?) via a Macro or Wrapper type
+
+            // TODO: Make sure that filters (below) accurately reference the join_table names
+        }
 
         match &self.filter {
             None => (), // No Where clause if no filters
@@ -131,4 +150,44 @@ impl<T> Query<T> {
 
 pub trait Insertable {
     fn get_insert_statement(&self) -> InsertStatement;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        data_definition::table::{DatabaseTableDefinition, TableColumn},
+        queries::{Filter, Query},
+    };
+
+    fn get_table_def() -> DatabaseTableDefinition {
+        type T = TableColumn;
+        let table = DatabaseTableDefinition::new("table_2")
+            .unwrap()
+            .column(T::string("string_nullable").unwrap())
+            .column(T::bool("bool").unwrap().non_null())
+            .column(T::int("int").unwrap().non_null())
+            .column(T::float("float").unwrap().non_null())
+            .column(T::timestamp("timestamp").unwrap().non_null())
+            .column(T::uuid("id").unwrap().non_null())
+            .into();
+        table
+    }
+    #[test]
+    fn test_queries() {
+        const EXPECTED_QUERY: &str = "SELECT * FROM item INNER JOIN sub_item ON sub_item.parent_id = item.id WHERE sub_item.name like 'BUG%';";
+
+        let table_def = get_table_def();
+        let query = Query::<String> {
+            table: table_def,
+            filter: None,
+            limit: None,
+            _t: std::marker::PhantomData,
+        }
+        .filter(Filter::Like(
+            crate::queries::FilterComparisonParam::TableColumn(todo!()),
+            crate::queries::FilterComparisonParam::String("".into()),
+        ));
+
+        todo!()
+    }
 }

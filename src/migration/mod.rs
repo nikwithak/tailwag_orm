@@ -9,14 +9,14 @@ pub use migration::*;
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use create_table::CreateTable;
 
     use crate::{
         data_definition::{
             database_definition::DatabaseDefinition,
-            table::{
-                DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
-            },
+            table::{DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn},
         },
         migration::{
             create_table, AlterColumn, AlterColumnAction, AlterTable, AlterTableAction,
@@ -198,54 +198,50 @@ mod tests {
             .into();
 
         // Act
-        let migration = Migration::compare(Some(&before), &after).unwrap();
+        let actual = Migration::compare(Some(&before), &after).unwrap();
 
         // Assert
-        assert_eq!(
-            migration,
-            Migration {
-                actions: vec![
-                    MigrationAction::AlterTable(AlterTable {
-                        table_name: Identifier::new("table_1".to_string()).unwrap(),
-                        actions: vec![
-                            AlterTableAction::AlterColumn(AlterColumn {
-                                column_name: Identifier::new("string_nullable".to_string())
-                                    .unwrap(),
-                                actions: vec![AlterColumnAction::SetNullability(false),]
-                            }),
-                            AlterTableAction::AlterColumn(AlterColumn {
-                                column_name: Identifier::new("bool".to_string()).unwrap(),
-                                actions: vec![
-                                    AlterColumnAction::SetType(DatabaseColumnType::String),
-                                    AlterColumnAction::SetNullability(true),
-                                ]
-                            }),
-                            AlterTableAction::AlterColumn(AlterColumn {
-                                column_name: Identifier::new("int".to_string()).unwrap(),
-                                actions: vec![AlterColumnAction::SetType(
-                                    DatabaseColumnType::Float
-                                ),]
-                            }),
-                            AlterTableAction::DropColumn(
-                                Identifier::new("timestamp".to_string()).unwrap()
-                            ),
-                            AlterTableAction::AddColumn(
-                                TableColumn::string("new_column").unwrap().non_null().into()
-                            ),
-                        ],
-                    }),
-                    MigrationAction::DropTable(Identifier::new("table_2").unwrap()),
-                    MigrationAction::AlterTable(AlterTable {
-                        table_name: Identifier::new("table_4".to_string()).unwrap(),
-                        actions: vec![AlterTableAction::AddColumn(
-                            TableColumn::timestamp("updated_at").unwrap().into()
-                        ),],
-                    }),
-                    MigrationAction::CreateTable(CreateTable::new(table_3())),
-                ],
-            }
-        );
+        let expected = Migration {
+            actions: vec![
+                MigrationAction::AlterTable(AlterTable {
+                    table_name: Identifier::new("table_1".to_string()).unwrap(),
+                    actions: vec![
+                        AlterTableAction::AlterColumn(AlterColumn {
+                            column_name: Identifier::new("bool".to_string()).unwrap(),
+                            actions: vec![
+                                AlterColumnAction::SetType(DatabaseColumnType::String),
+                                AlterColumnAction::SetNullability(true),
+                            ],
+                        }),
+                        AlterTableAction::AlterColumn(AlterColumn {
+                            column_name: Identifier::new("int".to_string()).unwrap(),
+                            actions: vec![AlterColumnAction::SetType(DatabaseColumnType::Float)],
+                        }),
+                        AlterTableAction::AlterColumn(AlterColumn {
+                            column_name: Identifier::new("string_nullable".to_string()).unwrap(),
+                            actions: vec![AlterColumnAction::SetNullability(false)],
+                        }),
+                        AlterTableAction::DropColumn(
+                            Identifier::new("timestamp".to_string()).unwrap(),
+                        ),
+                        AlterTableAction::AddColumn(
+                            TableColumn::string("new_column").unwrap().non_null().into(),
+                        ),
+                    ],
+                }),
+                MigrationAction::DropTable(Identifier::new("table_2").unwrap()),
+                MigrationAction::AlterTable(AlterTable {
+                    table_name: Identifier::new("table_4".to_string()).unwrap(),
+                    actions: vec![AlterTableAction::AddColumn(
+                        TableColumn::timestamp("updated_at").unwrap().into(),
+                    )],
+                }),
+                MigrationAction::CreateTable(CreateTable::new(table_3())),
+            ],
+        };
 
-        println!("{}", migration.as_sql());
+        assert_eq!(actual, expected);
+
+        println!("{}", actual.as_sql());
     }
 }

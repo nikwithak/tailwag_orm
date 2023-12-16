@@ -49,13 +49,16 @@ fn build_get_table_definition(
     // Other derives use this same function, so it creates a single place to make changes
     // if the logic on how tables are built changes.
     // Additional changes to support any syntax changes must still be added here
+
+    // [2023-12-11] TODO: I'm gonna have to rethink this piece. The current way we build table defs is making
+    // it hard to do one-to-manies in the way I want, because it relies on a child table having references.
     let input_table_definition =
         crate::util::database_table_definition::build_table_definition(input);
 
     // Build columns
-    let table_columns = input_table_definition.columns.iter().map(|column| {
+    let table_columns = input_table_definition.columns.iter().map(|(_, column)| {
         let column_name: &str = &column.column_name;
-        let column_type = match column.column_type {
+        let column_type = match &column.column_type {
             tailwag_orm::data_definition::table::DatabaseColumnType::Boolean=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Boolean),
             tailwag_orm::data_definition::table::DatabaseColumnType::Int=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Int),
             tailwag_orm::data_definition::table::DatabaseColumnType::Float=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Float),
@@ -63,6 +66,18 @@ fn build_get_table_definition(
             tailwag_orm::data_definition::table::DatabaseColumnType::Timestamp=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Timestamp),
             tailwag_orm::data_definition::table::DatabaseColumnType::Uuid=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Uuid),
             tailwag_orm::data_definition::table::DatabaseColumnType::Json=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Json),
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(child) => {
+                let child = &***child;
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(Identifier::new(#child)).unwrap())
+            }
+            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(child) => {
+                let child = &***child;
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(Identifier::new(#child)).unwrap())
+            }
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(child) => {
+                let child = &***child;
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(Identifier::new(#child)).unwrap())
+            }
         };
         let constraints = column.constraints.iter().map(|constraint| {
             match *constraint.detail {

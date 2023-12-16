@@ -1,6 +1,8 @@
 # Tailwag ORM
 
-Tailwag is the Brand Name for a suite of tools to improve productivity. It is intended as the customer-facing brand name for (an eventual) B2B PRODUCT, under the Tonguetail Studios brand.
+Tailwag is the Brand Name for a suite of tools to improve productivity. It is
+intended as the customer-facing brand name for (an eventual) B2B PRODUCT, under
+the Tonguetail Studios brand.
 
 ## Goals
 

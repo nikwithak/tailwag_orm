@@ -144,17 +144,9 @@ impl Migration {
             actions.push(AlterTableAction::Rename(after.table_name.clone()));
         }
 
-        fn build_column_map(table: &DatabaseTableDefinition) -> HashMap<&Identifier, &TableColumn> {
-            let map = table.columns.iter().fold(HashMap::new(), |mut acc, column| {
-                acc.insert(&column.column_name, column);
-                acc
-            });
-            map
-        }
-
         // Build a map for quick lookup of after_tables, then compare each
-        let mut after_columns = build_column_map(after);
-        for old_column in &before.columns {
+        let mut after_columns: HashMap<&Identifier, &TableColumn> = after.columns.iter().collect();
+        for (_, old_column) in &before.columns {
             match after_columns.remove(&old_column.column_name) {
                 Some(new_column) => {
                     let mut alter_column_actions = Vec::new();
