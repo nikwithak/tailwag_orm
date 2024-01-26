@@ -97,6 +97,7 @@ impl Into<DatabaseDefinition> for DatabaseDefinitionBuilder {
                         // 5.
                     },
                     super::table::DatabaseColumnType::ManyToMany(child_table_ident) => {
+                        // TODO: Add teh FK constraints
                         let join_table = DatabaseTableDefinition::new(&format!(
                             "{}_to_{}",
                             &table.table_name, &child_table_ident

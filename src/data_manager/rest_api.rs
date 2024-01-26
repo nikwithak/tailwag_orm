@@ -73,10 +73,8 @@ where
         &self,
         item: Self::CreateRequest,
     ) -> Result<T, String> {
-        futures::executor::block_on(async {
-            let _response = self.http_client.post(&self.endpoint).json(&item).send().await.unwrap();
-            Ok(item)
-        })
+        let _response = self.http_client.post(&self.endpoint).json(&item).send().await.unwrap();
+        Ok(item)
     }
 
     async fn delete(
@@ -85,10 +83,8 @@ where
     ) -> Result<(), String> {
         // let url = format!("{}/{}", &self.endpoint, &item.id());
         let url = &self.endpoint;
-        futures::executor::block_on(async {
-            let _response = self.http_client.delete(url).json(&item).send().await.unwrap();
-            Ok(())
-        })
+        let _response = self.http_client.delete(url).json(&item).send().await.unwrap();
+        Ok(())
     }
 
     async fn update(
@@ -97,9 +93,7 @@ where
     ) -> Result<(), String> {
         // let url = format!("{}/{}", &self.endpoint, &item.id());
         let url = &self.endpoint;
-        futures::executor::block_on(async {
-            let _response = self.http_client.patch(url).json(item).send().await.unwrap();
-            Ok(())
-        })
+        let _response = self.http_client.patch(url).json(item).send().await.unwrap();
+        Ok(())
     }
 }

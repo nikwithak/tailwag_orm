@@ -78,23 +78,23 @@ impl<T> AsSql for Query<T> {
         let mut sql = format!("SELECT * FROM {}", &self.table.table_name);
 
         // WIP (CURRENT): Implementing  the JOIN with filters
-        {
-            // TODO: Get relationships & relationship types
-            // One-to-One (Owned) - results in a "parent_id" column on the child table
-            sql.push_str(
-                " INNER JOIN {child_table_name} ON {child_table_pk} == {my_item.child_id} ",
-            );
-            // OR, for One-to-Many (Also Owned, but in a Vec<>):
-            // TODO: Need ARRAY_AGG
-            // TODO: Also add a parent_type if crossing tables? (Future Feature)
-            sql.push_str(" INNER JOIN {child_table_name} ON {child_table_pk} == {my_table.id} ");
-            // Need to also make sure that in SELECT we use (ARRAY_AGG) or (JSON_AGG)
-            // Many-to-Many (Unowned / Shared) - results in a join_table column on the child table
-            sql.push_str(" INNER JOIN {join_table} ON {ref_id} == {table_ref_id} INNER JOIN {child_table} ON {join_table} ");
-            // TODO / Consider: Structured / custom join tables (for edge data / metadata?) via a Macro or Wrapper type
+        // {
+        //     // TODO: Get relationships & relationship types
+        //     // One-to-One (Owned) - results in a "parent_id" column on the child table
+        //     sql.push_str(
+        //         " INNER JOIN {child_table_name} ON {child_table_pk} == {my_item.child_id} ",
+        //     );
+        //     // OR, for One-to-Many (Also Owned, but in a Vec<>):
+        //     // TODO: Need ARRAY_AGG
+        //     // TODO: Also add a parent_type if crossing tables? (Future Feature)
+        //     sql.push_str(" INNER JOIN {child_table_name} ON {child_table_pk} == {my_table.id} ");
+        //     // Need to also make sure that in SELECT we use (ARRAY_AGG) or (JSON_AGG)
+        //     // Many-to-Many (Unowned / Shared) - results in a join_table column on the child table
+        //     sql.push_str(" INNER JOIN {join_table} ON {ref_id} == {table_ref_id} INNER JOIN {child_table} ON {join_table} ");
+        //     // TODO / Consider: Structured / custom join tables (for edge data / metadata?) via a Macro or Wrapper type
 
-            // TODO: Make sure that filters (below) accurately reference the join_table names
-        }
+        //     // TODO: Make sure that filters (below) accurately reference the join_table names
+        // }
 
         match &self.filter {
             None => (), // No Where clause if no filters
