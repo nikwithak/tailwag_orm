@@ -19,9 +19,9 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::Json =>  quote!(
                 "'{}'"
             ),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!(),
-            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!(),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!(),
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
+            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 
         let insert_statement = if column.is_nullable() {
@@ -71,7 +71,9 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     } = &input;
 
     // Panic with error message if we get a non-struct
-    let Data::Struct(data) = data else { panic!("Only Structs are supported") };
+    let Data::Struct(data) = data else {
+        panic!("Only Structs are supported")
+    };
 
     match &data.fields {
         syn::Fields::Named(fields) => {

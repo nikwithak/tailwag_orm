@@ -1,7 +1,7 @@
 use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
-    queries::{Deleteable, Insertable, Query, Updateable},
+    queries::{Deleteable, Filter, Insertable, Query, Updateable},
     AsSql,
 };
 use async_trait::async_trait;
@@ -11,7 +11,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use super::traits::DataResult;
+use super::{rest_api::Id, traits::DataResult};
 
 #[derive(Clone)]
 pub struct PostgresDataProvider<T: Insertable> {
@@ -111,6 +111,7 @@ where
         + Sync
         + Clone
         + Unpin
+        + Id
         + Default,
 {
     type QueryType = ExecutableQuery<T>;
@@ -120,7 +121,8 @@ where
         &self,
         _id: uuid::Uuid,
     ) -> DataResult<Option<T>> {
-        todo!()
+        let all = self.all().await.unwrap().execute().await.unwrap();
+        Ok(all.into_iter().filter(|i| i.id() == &_id).next())
     }
 
     async fn all(&self) -> DataResult<ExecutableQuery<T>> {
@@ -138,8 +140,7 @@ where
 
     async fn create(
         &self,
-        // item: Self::CreateRequest,
-        item: T,
+        item: Self::CreateRequest,
     ) -> Result<T, std::string::String> {
         let insert = item.get_insert_statement();
         println!("Creating...");

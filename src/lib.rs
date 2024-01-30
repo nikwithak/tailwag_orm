@@ -16,6 +16,3 @@ pub trait FromSql {
         todo!("FromSql is not yet implemented.")
     }
 }
-
-#[cfg(test)]
-mod test_util;

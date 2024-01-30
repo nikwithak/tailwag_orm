@@ -11,15 +11,17 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     } = &input;
 
     // Panic with error message if we get a non-struct
-    let Data::Struct(data) = data else { panic!("Only Structs are supported") };
+    let Data::Struct(data) = data else {
+        panic!("Only Structs are supported")
+    };
 
     match &data.fields {
         syn::Fields::Named(fields) => {
             let _field_names = fields.named.iter().map(|f| &f.ident);
-            let mut struct_name_screaming_case: String =
-                to_screaming_snake_case(&ident.to_string());
-            struct_name_screaming_case.push_str("_TABLE_DEFINITION");
-            let once_cell_name: TokenStream = struct_name_screaming_case.parse().unwrap();
+            let once_cell_name: TokenStream =
+                format!("{}_TABLE_DEFINITION", to_screaming_snake_case(&ident.to_string()))
+                    .parse()
+                    .unwrap();
 
             let functions: Vec<TokenStream> =
                 vec![build_get_table_definition(input, once_cell_name.clone())];
@@ -68,15 +70,15 @@ fn build_get_table_definition(
             tailwag_orm::data_definition::table::DatabaseColumnType::Json=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Json),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(child) => {
                 let child = &***child;
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(Identifier::new(#child)).unwrap())
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child)).unwrap())
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(child) => {
                 let child = &***child;
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(Identifier::new(#child)).unwrap())
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child)).unwrap())
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(child) => {
                 let child = &***child;
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(Identifier::new(#child)).unwrap())
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child)).unwrap())
             }
         };
         let constraints = column.constraints.iter().map(|constraint| {

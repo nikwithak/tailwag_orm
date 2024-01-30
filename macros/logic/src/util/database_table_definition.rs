@@ -21,8 +21,12 @@ pub(crate) fn build_table_definition(input: &DeriveInput) -> DatabaseTableDefini
     let table_name = tailwag_utils::strings::to_snake_case(&ident.to_string());
 
     // Panic with error message if we get a non-struct
-    let Data::Struct(data) = data else { panic!("Only Structs are supported.") };
-    let syn::Fields::Named(fields) = &data.fields else { panic!("Unnamed fields found in the struct.")};
+    let Data::Struct(data) = data else {
+        panic!("Only Structs are supported.")
+    };
+    let syn::Fields::Named(fields) = &data.fields else {
+        panic!("Unnamed fields found in the struct.")
+    };
 
     let columns = fields.named.iter().map(|f| {
         let field_name = f.ident.as_ref().expect("Found unnamed field in struct");
@@ -106,7 +110,8 @@ pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
                     "bool" => DatabaseColumnType::Boolean,
                     "u32" | "u64" | "i32" | "i64" | "usize" | "isize" => DatabaseColumnType::Int,
                     "f32" | "f64" | "fsize" => DatabaseColumnType::Float,
-                    "chrono::_" => DatabaseColumnType::Timestamp, // TODO
+                    // "chrono::DateTime" | "DateTime" => DatabaseColumnType::Timestamp, // TODO: This doesn't currently work (DateTime is TIMESTAMPTZ not TIMESTAMP)
+                    "chrono::NaiveDateTime" | "NaiveDateTime" => DatabaseColumnType::Timestamp,
                     "uuid::Uuid" | "Uuid" => DatabaseColumnType::Uuid,
                     // If it's a Vec, then we want to do one-to-many (does not account for Vec of primitives)
                     "alloc::Vec" | "Vec" => {
