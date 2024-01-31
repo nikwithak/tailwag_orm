@@ -81,12 +81,14 @@ pub mod filterable_types {
     impl_filter_for!(StringFilter: String, new_int, String, FilterLike like:Like);
     // impl_filter_for!(TimestampFilter: chrono::NaiveDateTime, new_timestamp, Timestamp, FilterEq eq:Equal, ne:NotEqual); // TODO: Timestamp not supported yet
 
+    #[allow(private_bounds)]
     pub struct FilterableType<T: TypeFilter> {
         // _table_name: Identifier,
         column_name: Identifier,
         _t: PhantomData<T>,
     }
 
+    #[allow(private_bounds)]
     impl<T: TypeFilter> FilterableType<T> {
         pub fn new(
             // _table_name: Identifier,
@@ -95,7 +97,7 @@ pub mod filterable_types {
             Self {
                 // _table_name,
                 column_name,
-                _t: PhantomData::default(),
+                _t: PhantomData,
             }
         }
     }
@@ -234,7 +236,7 @@ impl AsSql for Filter {
         type F = Filter;
         match self {
             F::And(children) => {
-                if children.len() == 0 {
+                if children.is_empty() {
                     return "true".to_string();
                 }
                 // TODO: This is a recursive solution, refactor to iterative one if it causes issues.
@@ -248,7 +250,7 @@ impl AsSql for Filter {
                 )
             },
             F::Or(children) => {
-                if children.len() == 0 {
+                if children.is_empty() {
                     return "".to_string();
                 }
                 // TODO: This is a recursive solution, refactor to iterative one if it causes issues.

@@ -42,11 +42,11 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a>> DataPr
         &self,
         item: Self::CreateRequest,
     ) -> Result<T, String> {
-        let item: T = item.into();
+        // let item: T = item.into();
 
-        let path = self.get_filepath(&item.id());
+        let path = self.get_filepath(item.id());
         let contents = serde_json::to_string(&item).unwrap();
-        std::fs::write(path, &contents).unwrap();
+        std::fs::write(path, contents).unwrap();
 
         Ok(item)
     }
@@ -67,7 +67,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a>> DataPr
         &self,
         item: T,
     ) -> Result<(), String> {
-        let path = self.get_filepath(&item.id());
+        let path = self.get_filepath(item.id());
         // For safety, make sure it's the right object:
         self.get(*item.id()).await.unwrap();
         match fs::remove_file(&path) {
@@ -80,9 +80,9 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a>> DataPr
         &self,
         item: &T,
     ) -> Result<(), String> {
-        let path = self.get_filepath(&item.id());
+        let path = self.get_filepath(item.id());
         let contents = serde_json::to_string(item).unwrap();
-        std::fs::write(path, &contents).unwrap();
+        std::fs::write(path, contents).unwrap();
         Ok(())
     }
 }

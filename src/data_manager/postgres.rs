@@ -43,12 +43,12 @@ impl<T: Insertable> DerefMut for ExecutableQuery<T> {
     }
 }
 
-impl<T> Into<Vec<T>> for ExecutableQuery<T>
+impl<T> From<ExecutableQuery<T>> for Vec<T>
 where
     T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin,
 {
-    fn into(self) -> Vec<T> {
-        futures::executor::block_on(self.execute()).unwrap()
+    fn from(val: ExecutableQuery<T>) -> Self {
+        futures::executor::block_on(val.execute()).unwrap()
     }
 }
 
@@ -62,7 +62,7 @@ impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<
         let result: Result<Vec<T>, Error> = sqlx::query_as(&sql).fetch_all(&self.db_pool).await;
         match result {
             // TODO:
-            Ok(results) => Ok(results.into_iter().map(|row| T::from(row)).collect()),
+            Ok(results) => Ok(results.into_iter().collect()),
             Err(e) => {
                 log::error!("Error while querying for DB: {}", e);
                 Err("error querying DB".to_string())
@@ -114,7 +114,7 @@ impl<T: Insertable> PostgresDataProvider<T> {
 }
 
 #[async_trait]
-impl<'a, T> super::traits::DataProvider<T> for PostgresDataProvider<T>
+impl<T> super::traits::DataProvider<T> for PostgresDataProvider<T>
 // impl<'a, T> PostgresDataProvider<T>
 where
     T: Insertable
@@ -136,7 +136,7 @@ where
         _id: uuid::Uuid,
     ) -> DataResult<Option<T>> {
         let all = self.all().await.unwrap().execute().await.unwrap();
-        Ok(all.into_iter().filter(|i| i.id() == &_id).next())
+        Ok(all.into_iter().find(|i| i.id() == &_id))
     }
 
     async fn all(&self) -> DataResult<ExecutableQuery<T>> {

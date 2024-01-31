@@ -47,8 +47,7 @@ impl AsSql for Migration {
             sql_statments.push(statement);
         }
 
-        let statement = sql_statments.join("\n");
-        statement
+        sql_statments.join("\n")
     }
 }
 
@@ -140,13 +139,13 @@ impl Migration {
         let mut actions = Vec::<AlterTableAction>::new();
 
         // Name changed
-        if !(before.table_name == after.table_name) {
+        if before.table_name != after.table_name {
             actions.push(AlterTableAction::Rename(after.table_name.clone()));
         }
 
         // Build a map for quick lookup of after_tables, then compare each
         let mut after_columns: HashMap<&Identifier, &TableColumn> = after.columns.iter().collect();
-        for (_, old_column) in &before.columns {
+        for old_column in before.columns.values() {
             match after_columns.remove(&old_column.column_name) {
                 Some(new_column) => {
                     let mut alter_column_actions = Vec::new();
@@ -160,15 +159,17 @@ impl Migration {
                         // Uggggh this is really hacky. Wanna clean this up later.
                         // Find the existence of a `NotNull` constraint. If it does *not* exist (`.is_none()`) then the field *is* nullable.
                         // A confusing mess of double negative magic going on here.
-                        let old_is_nullable = old_column.constraints.iter().find(|c| match *c.detail {
+                        let old_is_nullable = !old_column.constraints.iter().any(|c| match *c.detail {
                                 // Allowed null unless NOT NULL
                                 crate::data_definition::table::TableColumnConstraintDetail::NotNull => true,
                                 _ => false,
-                            }).is_none();
-                        let new_is_nullable = new_column.constraints.iter().find(|c| match *c.detail {
-                                crate::data_definition::table::TableColumnConstraintDetail::NotNull => true,
-                                _ => false,
-                            }).is_none();
+                            });
+                        let new_is_nullable = !new_column.constraints.iter().any(|c| {
+                            matches!(
+                                *c.detail,
+                                crate::data_definition::table::TableColumnConstraintDetail::NotNull
+                            )
+                        });
                         if old_is_nullable != new_is_nullable {
                             alter_column_actions
                                 .push(AlterColumnAction::SetNullability(new_is_nullable));
@@ -220,7 +221,7 @@ impl Migration {
                         };
                     }
 
-                    if alter_column_actions.len() > 0 {
+                    if !alter_column_actions.is_empty() {
                         actions.push(AlterTableAction::AlterColumn(AlterColumn {
                             column_name: new_column.column_name.clone(),
                             actions: alter_column_actions,
@@ -239,7 +240,7 @@ impl Migration {
             actions.push(AlterTableAction::AddColumn((*column).clone()));
         }
 
-        if actions.len() > 0 {
+        if !actions.is_empty() {
             Some(Self {
                 actions: vec![MigrationAction::AlterTable(AlterTable {
                     table_name: after.table_name.clone(),

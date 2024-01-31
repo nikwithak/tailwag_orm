@@ -32,7 +32,7 @@ pub(crate) fn build_table_definition(input: &DeriveInput) -> DatabaseTableDefini
         let field_name = f.ident.as_ref().expect("Found unnamed field in struct");
 
         let mut column =
-            TableColumn::new(&field_name.to_string(), get_type_from_field(&f), Vec::new())
+            TableColumn::new(&field_name.to_string(), get_type_from_field(f), Vec::new())
                 .expect("Invalid table_name");
         // TODO: Handle #[flatten], which will flatten the pieces into a single table. Will that work? Gonna be tough in a derive macro.
 
@@ -40,7 +40,7 @@ pub(crate) fn build_table_definition(input: &DeriveInput) -> DatabaseTableDefini
             column = column.pk();
         }
 
-        if !is_option(&f) {
+        if !is_option(f) {
             column = column.non_null();
         }
 
@@ -91,9 +91,9 @@ pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
             }
             .unwrap_or(qualified_path);
 
-            let db_type = if let Some(_) = field.get_attribute("string") {
+            let db_type = if field.get_attribute("string").is_some() {
                 DatabaseColumnType::String
-            } else if let Some(_) = field.get_attribute("json") {
+            } else if field.get_attribute("json").is_some() {
                 DatabaseColumnType::Json
             } else {
                 let child_table_name = field

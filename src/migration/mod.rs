@@ -1,5 +1,6 @@
 mod alter_table;
 mod create_table;
+#[allow(clippy::module_inception)]
 mod migration;
 
 pub use alter_table::*;
@@ -9,8 +10,6 @@ pub use migration::*;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use create_table::CreateTable;
 
     use crate::{
@@ -105,7 +104,7 @@ mod tests {
         // Assert
         // NOTE: This tests is a little finicky - does not account for different whitespace.
         //       This should be fine, but has room for improvement.
-        let mut queries = result_sql.split("\n").collect::<Vec<&str>>();
+        let mut queries = result_sql.split('\n').collect::<Vec<&str>>();
         let mut expected_queries: Vec<&str> = vec![
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN bool TYPE VARCHAR, ALTER COLUMN bool DROP NOT NULL;",
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN int TYPE FLOAT;",

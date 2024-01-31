@@ -53,7 +53,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 }
             );
 
-            parse_args_impl_tokens.into()
+            parse_args_impl_tokens
         },
         syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
         syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),

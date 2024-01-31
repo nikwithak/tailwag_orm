@@ -17,11 +17,11 @@ pub struct Query<T> {
     pub _t: PhantomData<T>,
 }
 
-impl<T> Into<Vec<T>> for Query<T> {
-    fn into(self) -> Vec<T> {
-        todo!()
-    }
-}
+// impl<T> From<Query<T>> for Into<Vec<T>> {
+//     fn from(value: Query<T>) -> Self {
+//         todo!()
+//     }
+// }
 
 pub trait Saveable {
     // TODO: customize error type
@@ -52,7 +52,7 @@ impl<T> AsSql for Query<T> {
         while let Some(f) = preproc_stack.pop() {
             match f {
                 Filter::And(children) | Filter::Or(children) => {
-                    if children.len() == 0 {
+                    if children.is_empty() {
                         // Skip any empty filters - they'll mess up the SQL
                         log::warn!("Empty filter found");
                         continue;
@@ -107,9 +107,8 @@ impl<T> AsSql for Query<T> {
 
         // TODO: Make prepped statements work
         // let prepared_stmt = format!("PREPARE {} AS {};", query_name, select_query,);
-        let prepared_stmt = sql;
 
-        prepared_stmt
+        sql
     }
 }
 
@@ -154,14 +153,12 @@ pub trait Insertable {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        data_definition::table::{DatabaseTableDefinition, TableColumn},
-        queries::{Filter, Query},
-    };
+    use crate::data_definition::table::{DatabaseTableDefinition, TableColumn};
 
     fn get_table_def() -> DatabaseTableDefinition {
         type T = TableColumn;
-        let table = DatabaseTableDefinition::new("table_2")
+
+        DatabaseTableDefinition::new("table_2")
             .unwrap()
             .column(T::string("string_nullable").unwrap())
             .column(T::bool("bool").unwrap().non_null())
@@ -169,24 +166,13 @@ mod tests {
             .column(T::float("float").unwrap().non_null())
             .column(T::timestamp("timestamp").unwrap().non_null())
             .column(T::uuid("id").unwrap().non_null())
-            .into();
-        table
+            .into()
     }
     #[test]
     fn test_queries() {
-        const EXPECTED_QUERY: &str = "SELECT * FROM item INNER JOIN sub_item ON sub_item.parent_id = item.id WHERE sub_item.name like 'BUG%';";
+        const _EXPECTED_QUERY: &str = "SELECT * FROM item INNER JOIN sub_item ON sub_item.parent_id = item.id WHERE sub_item.name like 'BUG%';";
 
-        let table_def = get_table_def();
-        let query = Query::<String> {
-            table: table_def,
-            filter: None,
-            limit: None,
-            _t: std::marker::PhantomData,
-        }
-        .filter(Filter::Like(
-            crate::queries::FilterComparisonParam::TableColumn(todo!()),
-            crate::queries::FilterComparisonParam::String("".into()),
-        ));
+        let _table_def = get_table_def();
 
         todo!()
     }

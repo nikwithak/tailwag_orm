@@ -22,8 +22,8 @@ impl AsSql for CreateTable {
         let columns_sql = self
             .table_definition
             .columns
-            .iter()
-            .map(|(_, col)| col.as_sql())
+            .values()
+            .map(|col| col.as_sql())
             .collect::<Vec<String>>()
             .join(",\n");
 
@@ -75,16 +75,14 @@ mod test {
         // let mut queries = result_sql.split("\n").collect::<Vec<&str>>();
 
         #[rustfmt::skip]
-        let expected_query = vec![
-            "CREATE TABLE IF NOT EXISTS new_table (",
+        let expected_query = ["CREATE TABLE IF NOT EXISTS new_table (",
                 "uuid_pk_nonnull UUID NOT NULL PRIMARY KEY,",
                 "string VARCHAR,",
                 "bool_nonnull BOOL NOT NULL,",
                 "float_nonnull FLOAT NOT NULL,",
                 "int INT,",
                 "create_timestamp TIMESTAMP",
-            ");"
-        ].join("\n");
+            ");"].join("\n");
 
         assert_eq!(queries, expected_query);
         Ok(())
