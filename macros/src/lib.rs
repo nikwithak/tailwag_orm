@@ -28,3 +28,10 @@ pub fn derive_insertable(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     let impl_trait_tokens = logic::derive::insertable::derive_struct(&input);
     impl_trait_tokens.into()
 }
+
+#[proc_macro_derive(Id)]
+pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input);
+    let impl_trait_tokens = logic::derive::id::derive_struct(&input);
+    impl_trait_tokens.into()
+}
