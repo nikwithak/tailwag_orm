@@ -4,7 +4,7 @@ use sqlx::{postgres::PgRow, FromRow, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::{
-    queries::{Insertable, Query},
+    queries::{Filter, Insertable, Query},
     AsSql,
 };
 

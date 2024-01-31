@@ -71,6 +71,20 @@ impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<
     }
 }
 
+impl<T> ExecutableQuery<T> {
+    pub fn with_filter<K, F>(
+        mut self,
+        derive_filter: F,
+    ) -> Self
+    where
+        F: Fn(K) -> Filter,
+        K: Default,
+    {
+        let filter = derive_filter(K::default());
+        self.query = self.query.filter(filter);
+        self
+    }
+}
 // Migration Handling
 impl<T: Insertable> PostgresDataProvider<T> {
     fn build_migration(&self) -> Option<Migration> {

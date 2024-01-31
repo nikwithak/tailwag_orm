@@ -61,15 +61,16 @@ impl<T> AsSql for Query<T> {
                         preproc_stack.push(child);
                     }
                 },
-                Filter::Equal(_lhs, _rhs)
-                | Filter::NotEqual(_lhs, _rhs)
-                | Filter::Like(_lhs, _rhs)
-                | Filter::LessThan(_lhs, _rhs)
-                | Filter::LessThanOrEqual(_lhs, _rhs)
-                | Filter::GreaterThan(_lhs, _rhs)
-                | Filter::GreaterThanOrEqual(_lhs, _rhs) => todo!(),
-                // TODO: Think about what preprocessing needs doing here
-                Filter::In(_lhs, _rhs) => todo!(),
+                _ => {},
+                // Filter::Equal(_lhs, _rhs)
+                // | Filter::NotEqual(_lhs, _rhs)
+                // | Filter::Like(_lhs, _rhs)
+                // | Filter::LessThan(_lhs, _rhs)
+                // | Filter::LessThanOrEqual(_lhs, _rhs)
+                // | Filter::GreaterThan(_lhs, _rhs)
+                // | Filter::GreaterThanOrEqual(_lhs, _rhs) => todo!(),
+                // // TODO: Think about what preprocessing needs doing here
+                // Filter::In(_lhs, _rhs) => todo!(),
             }
             postproc_stack.push(f);
         }
@@ -130,7 +131,6 @@ impl<T> Query<T> {
     //     // TODO: get by ID
     //     todo!()
     // }
-
     pub fn filter(
         mut self,
         filter: Filter,
