@@ -61,7 +61,7 @@ impl AsSql for UniqueConstraint {
             .map(|col| col.column_name.as_str())
             .collect::<Vec<&str>>()
             .join(", ");
-        statement.push_str(" ");
+        statement.push(' ');
         statement.push_str(&columns);
 
         // TODO: index_parameters impl

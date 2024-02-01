@@ -14,7 +14,7 @@ impl Deref for Identifier {
     fn deref(&self) -> &Self::Target {
         // TODO: Once I'm confident that this is impossible (it should b), remove the validate() call  - it adds a string pass on every deref.
         self.validate()
-            .expect(&format!("Identifier {} is invalid - this should have been caught on create. If you are seeing this mesage then you have found a bug - please file a bug report", self.value()));
+            .unwrap_or_else(|_| panic!("Identifier {} is invalid - this should have been caught on create. If you are seeing this mesage then you have found a bug - please file a bug report", self.value()));
         &self.value
     }
 }
@@ -24,7 +24,7 @@ impl std::fmt::Display for Identifier {
         &self,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
-        return self.value.fmt(f);
+        self.value.fmt(f)
     }
 }
 

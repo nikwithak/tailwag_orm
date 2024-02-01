@@ -1,10 +1,10 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap},
     ops::Deref,
     sync::Arc,
 };
 
-use super::{Identifier, TableColumn, TableConstraint, TableConstraintDetail};
+use super::{Identifier, TableColumn, TableConstraint};
 
 // The details of the Database table. Used to generate the queries for setting up and iteracting with the database.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -44,10 +44,10 @@ pub struct DatabaseTableDefinitionData {
     pub constraints: Vec<TableConstraint>,
 }
 
-impl Into<DatabaseTableDefinition> for DatabaseTableDefinitionData {
-    fn into(self) -> DatabaseTableDefinition {
+impl From<DatabaseTableDefinitionData> for DatabaseTableDefinition {
+    fn from(val: DatabaseTableDefinitionData) -> Self {
         DatabaseTableDefinition {
-            data: Arc::new(self),
+            data: Arc::new(val),
         }
     }
 }

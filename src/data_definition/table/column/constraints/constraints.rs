@@ -6,6 +6,7 @@ use crate::{
 };
 
 #[derive(PartialEq, Eq, Debug)]
+#[derive(Default)]
 pub struct PrimaryKeyColumnConstraint {
     index_parameters: Option<IndexParameters>,
 }
@@ -14,20 +15,14 @@ impl AsSql for PrimaryKeyColumnConstraint {
     fn as_sql(&self) -> String {
         let mut statement = "PRIMARY KEY".to_string();
         if let Some(params) = &self.index_parameters {
-            statement.push_str(" ");
+            statement.push(' ');
             statement.push_str(&params.as_sql());
         }
         statement.to_string()
     }
 }
 
-impl Default for PrimaryKeyColumnConstraint {
-    fn default() -> Self {
-        PrimaryKeyColumnConstraint {
-            index_parameters: None,
-        }
-    }
-}
+
 
 struct CheckExpressionConstraint {}
 
@@ -47,18 +42,12 @@ impl AsSql for IndexParameters {
 }
 
 #[derive(PartialEq, Eq, Debug)]
+#[derive(Default)]
 pub struct UniqueColumnConstraint {
     is_null_distinct: bool,
     index_parameters: Option<IndexParameters>,
 }
-impl Default for UniqueColumnConstraint {
-    fn default() -> Self {
-        Self {
-            is_null_distinct: false,
-            index_parameters: None,
-        }
-    }
-}
+
 
 impl AsSql for UniqueColumnConstraint {
     fn as_sql(&self) -> String {
@@ -170,11 +159,11 @@ impl AsSql for ReferencesConstraint {
     fn as_sql(&self) -> String {
         let mut statement = format!("REFERENCES {}", &self.ref_table);
         if let Some(column) = &self.ref_column {
-            statement.push_str(" ");
+            statement.push(' ');
             statement.push_str(column.as_str());
         }
         if let Some(match_type) = &self.match_type {
-            statement.push_str(" ");
+            statement.push(' ');
             statement.push_str(&match_type.as_sql());
         }
         if let Some(ref_action) = &self.on_delete_action {
@@ -199,7 +188,7 @@ pub struct TableColumnConstraint {
 impl Deref for TableColumnConstraint {
     type Target = TableColumnConstraintDetail;
     fn deref(&self) -> &Self::Target {
-        return &self.detail;
+        &self.detail
     }
 }
 

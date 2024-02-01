@@ -57,7 +57,7 @@ impl Deref for TableColumn {
     type Target = TableColumnData;
 
     fn deref(&self) -> &Self::Target {
-        &*self.data
+        &self.data
     }
 }
 
@@ -72,10 +72,10 @@ pub struct TableColumnData {
     pub constraints: Vec<TableColumnConstraint>,
 }
 
-impl Into<TableColumn> for TableColumnData {
-    fn into(self) -> TableColumn {
+impl From<TableColumnData> for TableColumn {
+    fn from(val: TableColumnData) -> Self {
         TableColumn {
-            data: Arc::new(self),
+            data: Arc::new(val),
         }
     }
 }
@@ -229,9 +229,9 @@ impl AsSql for TableColumn {
     fn as_sql(&self) -> String {
         let mut statement = format!("{} {}", &self.column_name, &self.column_type.as_str());
 
-        let mut constraints_iter = self.constraints.iter();
-        while let Some(constraint) = constraints_iter.next() {
-            statement.push_str(" ");
+        let constraints_iter = self.constraints.iter();
+        for constraint in constraints_iter {
+            statement.push(' ');
             statement.push_str(&constraint.as_sql());
         }
         statement
