@@ -46,6 +46,7 @@ impl DatabaseDefinition {
     ///         .expect("Something went wrong")
     ///         .into();
     /// ```
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(name: &str) -> Result<DatabaseDefinitionBuilder, String> {
         DatabaseDefinitionBuilder::new(name)
     }
@@ -71,22 +72,22 @@ pub struct DatabaseDefinitionBuilder {
     pub tables: Vec<DatabaseTableDefinition>,
 }
 
-impl Into<DatabaseDefinition> for DatabaseDefinitionBuilder {
-    fn into(mut self) -> DatabaseDefinition {
+impl From<DatabaseDefinitionBuilder> for DatabaseDefinition {
+    fn from(mut val: DatabaseDefinitionBuilder) -> Self {
         // This is where we need to preprocess the stuff and make sure the tables are okay / consistent.
         // TODO: ^^^^^ That
 
         // First, gather all tables into a map:
         // QUESTION: Should this be stored as a map ANYWAY for quick access?
-        let map = self
+        let map = val
             .tables
             .iter()
             .map(|table| (&table.table_name, table))
             .collect::<HashMap<_, _>>();
 
         let mut new_tables = Vec::new();
-        for (_, table) in &map {
-            for (_, column) in &table.columns {
+        for table in map.values() {
+            for column in table.columns.values() {
                 match &column.column_type {
                     super::table::DatabaseColumnType::OneToMany(_child_table_ident) => {
                         // One to Many means / assumes the following things:
@@ -129,10 +130,10 @@ impl Into<DatabaseDefinition> for DatabaseDefinitionBuilder {
                 }
             }
         }
-        self.tables.append(&mut new_tables);
+        val.tables.append(&mut new_tables);
 
         DatabaseDefinition {
-            data: Arc::new(self),
+            data: Arc::new(val),
         }
     }
 }

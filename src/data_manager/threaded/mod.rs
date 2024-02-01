@@ -11,6 +11,6 @@ pub struct ThreadedDataManager<T>
 where
     T: Insertable,
 {
-    _items: Arc<Mutex<Box<Vec<T>>>>,
+    _items: Arc<Mutex<Vec<T>>>,
     _data_provider: PostgresDataProvider<T>,
 }

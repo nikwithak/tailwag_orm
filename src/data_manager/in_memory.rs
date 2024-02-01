@@ -25,7 +25,7 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
 
     async fn all(&self) -> DataResult<Self::QueryType> {
         let items = self.items.lock().unwrap();
-        Ok(items.values().map(|item| item.clone()).collect())
+        Ok(items.values().cloned().collect())
     }
 
     async fn get(
@@ -33,7 +33,7 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
         id: Uuid,
     ) -> DataResult<Option<T>> {
         let items = self.items.lock().unwrap();
-        let item = items.get(&id).map(|item| item.clone());
+        let item = items.get(&id).cloned();
         Ok(item)
     }
 
@@ -46,7 +46,7 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
         if items.contains_key(id) {
             Err(format!("Already contains object with id ({})", id))
         } else {
-            items.insert(item.id().clone(), item.clone());
+            items.insert(*item.id(), item.clone());
             Ok(item)
         }
     }
@@ -69,7 +69,7 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
         let mut items = self.items.lock().unwrap();
         let id = item.id();
         if items.contains_key(id) {
-            items.insert(item.id().clone(), item.clone());
+            items.insert(*item.id(), item.clone());
             Ok(())
         } else {
             Err(format!("no object with id ({})", id))

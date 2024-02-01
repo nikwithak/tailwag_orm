@@ -4,7 +4,7 @@ use sqlx::{postgres::PgRow, FromRow, Pool, Postgres};
 use uuid::Uuid;
 
 use crate::{
-    queries::{Filter, Insertable, Query},
+    queries::{Insertable, Query},
     AsSql,
 };
 
@@ -56,7 +56,7 @@ impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<
             sqlx::query_as(&sql).fetch_all(&self.db_pool).await;
         match result {
             // TODO:
-            Ok(results) => Ok(results.into_iter().map(|row| T::from(row)).collect()),
+            Ok(results) => Ok(results.into_iter().collect()),
             Err(e) => {
                 log::error!("Error while querying for DB: {}", e);
                 Err("error querying DB".to_string())

@@ -79,7 +79,7 @@ impl<T> AsSql for Query<T> {
         let mut sql = format!("SELECT * FROM {}", &self.table.table_name);
 
         // WIP (CURRENT): Implementing  the JOIN with filters
-        // {
+        // {j
         //     // TODO: Get relationships & relationship types
         //     // One-to-One (Owned) - results in a "parent_id" column on the child table
         //     sql.push_str(
@@ -94,7 +94,7 @@ impl<T> AsSql for Query<T> {
         //     sql.push_str(" INNER JOIN {join_table} ON {ref_id} == {table_ref_id} INNER JOIN {child_table} ON {join_table} ");
         //     // TODO / Consider: Structured / custom join tables (for edge data / metadata?) via a Macro or Wrapper type
 
-        //     // TODO: Make sure that filters (below) accurately reference the join_table names
+        //     // TODO: Make sure that filters (below) accurately reference the oin_table names
         // }
 
         match &self.filter {
@@ -173,6 +173,7 @@ mod tests {
         const _EXPECTED_QUERY: &str = "SELECT * FROM item INNER JOIN sub_item ON sub_item.parent_id = item.id WHERE sub_item.name like 'BUG%';";
 
         let _table_def = get_table_def();
+        // let _query = Query::<String
 
         todo!()
     }
