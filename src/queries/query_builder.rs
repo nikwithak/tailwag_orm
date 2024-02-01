@@ -17,12 +17,6 @@ pub struct Query<T> {
     pub _t: PhantomData<T>,
 }
 
-// impl<T> From<Query<T>> for Into<Vec<T>> {
-//     fn from(value: Query<T>) -> Self {
-//         todo!()
-//     }
-// }
-
 pub trait Saveable {
     // TODO: customize error type
     fn save(&self) -> Result<(), String>;
@@ -45,7 +39,7 @@ impl<T> AsSql for Query<T> {
 
         // TODO: Go through filters, build list of inputs ($1) -> values (literals)
         let mut preproc_stack = Vec::new();
-        let mut postproc_stack = Vec::new();
+        let mut parameters = Vec::new();
         if let Some(f) = &self.filter {
             preproc_stack.push(f);
         }
@@ -54,14 +48,13 @@ impl<T> AsSql for Query<T> {
                 Filter::And(children) | Filter::Or(children) => {
                     if children.is_empty() {
                         // Skip any empty filters - they'll mess up the SQL
-                        log::warn!("Empty filter found");
+                        log::warn!("Empty filter found - this could be a bug.");
                         continue;
                     }
                     for child in children {
                         preproc_stack.push(child);
                     }
                 },
-                _ => {},
                 // Filter::Equal(_lhs, _rhs)
                 // | Filter::NotEqual(_lhs, _rhs)
                 // | Filter::Like(_lhs, _rhs)
@@ -71,15 +64,18 @@ impl<T> AsSql for Query<T> {
                 // | Filter::GreaterThanOrEqual(_lhs, _rhs) => todo!(),
                 // // TODO: Think about what preprocessing needs doing here
                 // Filter::In(_lhs, _rhs) => todo!(),
+                _ => {
+                    log::info!("Unknown filter skipped: {}", &f.as_sql())
+                },
             }
-            postproc_stack.push(f);
+            parameters.push(f);
         }
 
         // TODO: Add support for joins with filters
         let mut sql = format!("SELECT * FROM {}", &self.table.table_name);
 
         // WIP (CURRENT): Implementing  the JOIN with filters
-        // {j
+        // {
         //     // TODO: Get relationships & relationship types
         //     // One-to-One (Owned) - results in a "parent_id" column on the child table
         //     sql.push_str(
