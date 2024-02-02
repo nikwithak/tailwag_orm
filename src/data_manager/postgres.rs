@@ -5,7 +5,7 @@ use crate::{
     AsSql,
 };
 use async_trait::async_trait;
-use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
+use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres, QueryBuilder};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -55,7 +55,20 @@ where
 // This is a fun mess of requirements inherited for T
 // TODO: Simplify this as much as possible
 impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
-    pub async fn execute(self) -> Result<Vec<T>, String> {
+    pub async fn execute(self) -> Result<Vec<T>, Error> {
+        let mut query_builder = sqlx::QueryBuilder::new(r"SELECT * FROM ");
+        query_builder.push(self.query.table.table_name.to_string());
+        if let Some(filter) = &self.filter {
+            query_builder.push(" WHERE ");
+            filter.build_query(&mut query_builder);
+        }
+        // stream.push()
+
+        let result = query_builder.build_query_as::<T>().fetch_all(&self.db_pool).await?;
+        Ok(result)
+    }
+
+    pub async fn _execute(self) -> Result<Vec<T>, String> {
         let sql = self.query.as_sql();
         log::debug!("Executing Query: {}", &sql);
         // let result = sqlx::query(&sql).fetch_all(&self.db_pool).await;

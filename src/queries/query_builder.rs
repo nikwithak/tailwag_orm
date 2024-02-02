@@ -60,7 +60,7 @@ impl<T> AsSql for Query<T> {
                 // | Filter::Like(_lhs, _rhs)
                 // | Filter::LessThan(_lhs, _rhs)
                 // | Filter::LessThanOrEqual(_lhs, _rhs)
-                // | Filter::GreaterThan(_lhs, _rhs)
+                // | Filter::GreaterThan(_lhs, _rhsUncaught TypeError: window.opener is null)
                 // | Filter::GreaterThanOrEqual(_lhs, _rhs) => todo!(),
                 // // TODO: Think about what preprocessing needs doing here
                 // Filter::In(_lhs, _rhs) => todo!(),
@@ -100,9 +100,6 @@ impl<T> AsSql for Query<T> {
                 sql.push_str(&filter.as_sql())
             },
         }
-
-        // TODO: Make prepped statements work
-        // let prepared_stmt = format!("PREPARE {} AS {};", query_name, select_query,);
 
         sql
     }

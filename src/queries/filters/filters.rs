@@ -1,4 +1,5 @@
 use crate::{data_definition::table::TableColumn, AsSql};
+use sqlx::{query_builder, Postgres, QueryBuilder};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 use uuid::Uuid;
 
@@ -10,6 +11,22 @@ pub enum FilterComparisonParam {
     Integer(i64),
     Float(f64),
     Bool(bool),
+}
+
+impl FilterComparisonParam {
+    pub fn build_query(
+        &self,
+        builder: &mut QueryBuilder<Postgres>,
+    ) {
+        match self {
+            FilterComparisonParam::TableColumn(col) => builder.push(&col.column_name),
+            FilterComparisonParam::String(val) => builder.push_bind(val.to_string()),
+            FilterComparisonParam::Uuid(val) => builder.push_bind(*val),
+            FilterComparisonParam::Integer(val) => builder.push_bind(*val),
+            FilterComparisonParam::Float(val) => builder.push_bind(*val),
+            FilterComparisonParam::Bool(val) => builder.push_bind(*val),
+        };
+    }
 }
 
 impl AsSql for FilterComparisonParam {
@@ -47,6 +64,23 @@ pub enum Filter {
     GreaterThan(FilterComparisonParam, FilterComparisonParam),     // Non-String types
     GreaterThanOrEqual(FilterComparisonParam, FilterComparisonParam), // Non-String types
     In(FilterComparisonParam, Vec<FilterComparisonParam>),         // All types
+}
+
+impl Filter {
+    fn get_operator(&self) -> &str {
+        match self {
+            Filter::And(_) => "AND",
+            Filter::Or(_) => "OR",
+            Filter::Equal(_, _) => "=",
+            Filter::NotEqual(_, _) => "!=",
+            Filter::Like(_, _) => "LIKE",
+            Filter::LessThan(_, _) => "<",
+            Filter::LessThanOrEqual(_, _) => "<=",
+            Filter::GreaterThan(_, _) => ">",
+            Filter::GreaterThanOrEqual(_, _) => ">=",
+            Filter::In(_, _) => "IN",
+        }
+    }
 }
 
 // trait Likeable {
@@ -108,6 +142,41 @@ impl BitAnd for Filter {
                 Filter::And(existing_ors)
             },
             _ => Filter::And(vec![self, rhs]),
+        }
+    }
+}
+
+impl Filter {
+    pub fn build_query(
+        &self,
+        builder: &mut QueryBuilder<Postgres>,
+    ) {
+        match self {
+            Filter::And(children) | Filter::Or(children) => {
+                let mut iter = children.iter().peekable();
+                while let Some(child) = iter.next() {
+                    child.build_query(builder);
+                    if iter.peek().is_some() {
+                        builder.push(" AND ");
+                    }
+                }
+            },
+            Filter::Equal(l, r)
+            | Filter::NotEqual(l, r)
+            | Filter::Like(l, r)
+            | Filter::LessThan(l, r)
+            | Filter::LessThanOrEqual(l, r)
+            | Filter::GreaterThan(l, r)
+            | Filter::GreaterThanOrEqual(l, r) => {
+                l.build_query(builder);
+                builder.push(" ");
+                builder.push(self.get_operator());
+                builder.push(" ");
+                r.build_query(builder);
+            },
+            Filter::In(_val, _list) => {
+                todo!()
+            },
         }
     }
 }
