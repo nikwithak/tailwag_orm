@@ -1,11 +1,11 @@
 use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
-    queries::{Deleteable, Filter, Insertable, Query, Updateable},
+    queries::{filterable_types::Filterable, Deleteable, Filter, Insertable, Query, Updateable},
     AsSql,
 };
 use async_trait::async_trait;
-use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres, QueryBuilder};
+use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -67,33 +67,17 @@ impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<
         let result = query_builder.build_query_as::<T>().fetch_all(&self.db_pool).await?;
         Ok(result)
     }
-
-    pub async fn _execute(self) -> Result<Vec<T>, String> {
-        let sql = self.query.as_sql();
-        log::debug!("Executing Query: {}", &sql);
-        // let result = sqlx::query(&sql).fetch_all(&self.db_pool).await;
-        let result: Result<Vec<T>, Error> = sqlx::query_as(&sql).fetch_all(&self.db_pool).await;
-        match result {
-            // TODO:
-            Ok(results) => Ok(results.into_iter().collect()),
-            Err(e) => {
-                log::error!("Error while querying for DB: {}", e);
-                Err("error querying DB".to_string())
-            },
-        }
-    }
 }
 
-impl<T> ExecutableQuery<T> {
-    pub fn with_filter<K, F>(
+impl<T: Filterable> ExecutableQuery<T> {
+    pub fn with_filter<F>(
         mut self,
         derive_filter: F,
     ) -> Self
     where
-        F: Fn(K) -> Filter,
-        K: Default,
+        F: Fn(T::FilterType) -> Filter,
     {
-        let filter = derive_filter(K::default());
+        let filter = derive_filter(T::FilterType::default());
         self.query = self.query.filter(filter);
         self
     }

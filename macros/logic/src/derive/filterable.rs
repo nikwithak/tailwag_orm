@@ -1,0 +1,55 @@
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+use syn::{Data, DeriveInput};
+
+use crate::util::database_table_definition::get_type_from_field;
+
+pub fn derive_struct(input: &DeriveInput) -> TokenStream {
+    let &DeriveInput {
+        ident,
+        data,
+        ..
+    } = &input;
+
+    // Panic with error message if we get a non-struct
+    let Data::Struct(data) = data else {
+        panic!("Only Structs are supported")
+    };
+    let filter_type_struct_ident = format_ident!("{}Filters", &ident);
+
+    match &data.fields {
+        syn::Fields::Named(fields) => {
+            type T = tailwag_orm::data_definition::table::DatabaseColumnType;
+            let new_fields = fields.named.iter().map(|field| {
+                let ident = field.ident.clone().expect("Should only have named fields.");
+                let orig_type = field.ty.clone();
+                quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>)
+            });
+            let default_fields = fields.named.iter().map(|field| {
+                let ident = field.ident.clone().expect("Should only have named fields.");
+                let ident_str = ident.to_string();
+                let orig_type = field.ty.clone();
+                quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#ident_str)))
+            });
+
+            quote!(
+                pub struct #filter_type_struct_ident {
+                    #(#new_fields,)*
+                }
+                impl Default for #filter_type_struct_ident {
+                    fn default() -> Self {
+                        Self {
+                            #(#default_fields,)*
+                        }
+                    }
+                }
+                impl tailwag::orm::queries::filterable_types::Filterable for #ident
+                {
+                    type FilterType = #filter_type_struct_ident;
+                }
+            )
+        },
+        syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
+        syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),
+    }
+}

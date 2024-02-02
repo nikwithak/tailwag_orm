@@ -36,7 +36,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
             );
 
-            tokens.into()
+            tokens
         },
         syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
         syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),
@@ -58,7 +58,7 @@ fn build_get_table_definition(
         crate::util::database_table_definition::build_table_definition(input);
 
     // Build columns
-    let table_columns = input_table_definition.columns.iter().map(|(_, column)| {
+    let table_columns = input_table_definition.columns.values().map(|column| {
         let column_name: &str = &column.column_name;
         let column_type = match &column.column_type {
             tailwag_orm::data_definition::table::DatabaseColumnType::Boolean=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Boolean),

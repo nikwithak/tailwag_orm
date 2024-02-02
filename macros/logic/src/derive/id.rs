@@ -15,17 +15,15 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     };
 
     match &data.fields {
-        syn::Fields::Named(fields) => {
-            let parse_args_impl_tokens = quote!(
+        syn::Fields::Named(_) => {
+            quote!(
                 impl tailwag::orm::data_manager::rest_api::Id for #ident
                 {
                     fn id(&self) -> &uuid::Uuid {
                         &self.id
                     }
                 }
-            );
-
-            parse_args_impl_tokens.into()
+            )
         },
         syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
         syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),

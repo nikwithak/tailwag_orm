@@ -35,3 +35,10 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let impl_trait_tokens = logic::derive::id::derive_struct(&input);
     impl_trait_tokens.into()
 }
+
+#[proc_macro_derive(Filterable)]
+pub fn derive_filterable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input = parse_macro_input!(input);
+    let impl_trait_tokens = logic::derive::filterable::derive_struct(&input);
+    impl_trait_tokens.into()
+}

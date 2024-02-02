@@ -1,19 +1,25 @@
 use std::marker::PhantomData;
 
+use chrono::NaiveDateTime;
+use uuid::Uuid;
+
 use crate::data_definition::table::{Identifier, TableColumn};
 
 use super::Filter;
 
+pub trait Filterable {
+    type FilterType: Default;
+}
 // Trying out the type-state pattern here.
 trait TypeFilter {}
 macro_rules! typetype {
-    ($item:ident) => {
-        pub enum $item {}
+    ($item:ty) => {
+        // pub enum $item {}
         impl TypeFilter for $item {}
     };
 }
 macro_rules! impl_filter_for {
-        ($item:ident: $base_type:ty, $table_column_fn_name:ident, $param_type_enum:ident, $trait_name:ident $($func_name:ident:$comparison_type:ident),*) => {
+        ($item:ty: $base_type:ty, $table_column_fn_name:ident, $param_type_enum:ident, $trait_name:ident $($func_name:ident:$comparison_type:ident),*) => {
             impl $trait_name for FilterableType<$item> {
                 type Type = $base_type;
                 $(fn $func_name(
@@ -32,23 +38,40 @@ macro_rules! impl_filter_for {
         };
     }
 
+macro_rules! impl_numeric_type {
+    ($type:ty: $db_type:ident) => {
+        typetype! {$type}
+        impl_filter_for!($type: $type, new_int, $db_type, FilterEq eq:Equal, ne:NotEqual);
+        impl_filter_for!($type: $type, new_int, $db_type, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
+    }
+}
+
 // Here we define the filterabilities of each type
-typetype! {UuidFilter}
-impl_filter_for!(UuidFilter: uuid::Uuid, new_uuid, Uuid, FilterEq eq:Equal, ne:NotEqual);
-impl_filter_for!(UuidFilter: uuid::Uuid, new_uuid, Uuid, FilterLike like:Like);
-typetype! {BooleanFilter}
-impl_filter_for!(BooleanFilter: bool, new_bool, Bool, FilterEq eq:Equal, ne:NotEqual);
-typetype! {IntFilter}
-impl_filter_for!(IntFilter: i64, new_int, Integer, FilterEq eq:Equal, ne:NotEqual);
-impl_filter_for!(IntFilter: i64, new_int, Integer, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
-typetype! {FloatFilter}
-impl_filter_for!(FloatFilter: f64, new_int, Float, FilterEq eq:Equal, ne:NotEqual);
-impl_filter_for!(FloatFilter: f64, new_int, Float, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
-typetype! {StringFilter}
-impl_filter_for!(StringFilter: String, new_int, String, FilterEq eq:Equal, ne:NotEqual);
-impl_filter_for!(StringFilter: String, new_int, String, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
-impl_filter_for!(StringFilter: String, new_int, String, FilterLike like:Like);
-// impl_filter_for!(TimestampFilter: chrono::NaiveDateTime, new_timestamp, Timestamp, FilterEq eq:Equal, ne:NotEqual); // TODO: Timestamp not supported yet
+typetype! {Uuid}
+impl_filter_for!(Uuid: uuid::Uuid, new_uuid, Uuid, FilterEq eq:Equal, ne:NotEqual);
+impl_filter_for!(Uuid: uuid::Uuid, new_uuid, Uuid, FilterLike like:Like);
+typetype! {bool}
+impl_filter_for!(bool: bool, new_bool, Bool, FilterEq eq:Equal, ne:NotEqual);
+typetype! {String}
+impl_filter_for!(String: String, new_int, String, FilterEq eq:Equal, ne:NotEqual);
+impl_filter_for!(String: String, new_int, String, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
+impl_filter_for!(String: String, new_int, String, FilterLike like:Like);
+impl_numeric_type!(i64: Integer);
+impl_numeric_type!(f64: Float);
+// TODO: Implement this for stronger dynamic typing with numerics
+// impl_numeric_type!(usize: Integer);
+// impl_numeric_type!(u64: Integer);
+// impl_numeric_type!(u32: Integer);
+// impl_numeric_type!(u16: Integer);
+// impl_numeric_type!(u8: Integer);
+// impl_numeric_type!(isize: Integer);
+// impl_numeric_type!(i32: Integer);
+// impl_numeric_type!(i16: Integer);
+// impl_numeric_type!(i8: Integer);
+// impl_numeric_type!(f32: Float);
+// TODO: Timestamp not supported yet
+typetype! {chrono::NaiveDateTime}
+impl_filter_for!(chrono::NaiveDateTime: chrono::NaiveDateTime, new_timestamp, Timestamp, FilterEq eq:Equal, ne:NotEqual);
 
 #[allow(private_bounds)]
 pub struct FilterableType<T: TypeFilter> {

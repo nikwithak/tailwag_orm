@@ -11,6 +11,7 @@ pub enum FilterComparisonParam {
     Integer(i64),
     Float(f64),
     Bool(bool),
+    Timestamp(chrono::NaiveDateTime),
 }
 
 impl FilterComparisonParam {
@@ -25,27 +26,30 @@ impl FilterComparisonParam {
             FilterComparisonParam::Integer(val) => builder.push_bind(*val),
             FilterComparisonParam::Float(val) => builder.push_bind(*val),
             FilterComparisonParam::Bool(val) => builder.push_bind(*val),
+            FilterComparisonParam::Timestamp(val) => builder.push_bind(*val),
         };
     }
 }
 
 impl AsSql for FilterComparisonParam {
     fn as_sql(&self) -> String {
-        match self {
-            FilterComparisonParam::TableColumn(col) => {
-                // TODO: Need to bring in table_name for longer queries
-                format!("{}", &col.column_name)
-            },
-            // Currently this is the only necessary sanitation - rust typechcking sensures we are getting valid types for others.
-            // To prevent SQL injection attacks, we replace all single quotes with doubled single-quotes.
-            // This should be plenty safe, but in the future consider migrating to prepared statements as an added precaution.
-            // Also TODO: TESTS TESTS TESTS
-            FilterComparisonParam::String(s) => format!("'{}'", s.replace('\'', "''")), // Escape ' characters. This *should* prevent SQL injection attacks across the board, but needs to be tested and vetted.
-            FilterComparisonParam::Uuid(uuid) => format!("'{}'", uuid),
-            FilterComparisonParam::Integer(i) => i.to_string(), // TODO: This'll change when we do prepped statmeents anyway
-            FilterComparisonParam::Float(f) => f.to_string(),
-            FilterComparisonParam::Bool(b) => b.to_string(),
-        }
+        panic!("This method is deprecated");
+        // match self {
+        //     FilterComparisonParam::TableColumn(col) => {
+        //         // TODO: Need to bring in table_name for longer queries
+        //         format!("{}", &col.column_name)
+        //     },
+        //     // Currently this is the only necessary sanitation - rust typechcking sensures we are getting valid types for others.
+        //     // To prevent SQL injection attacks, we replace all single quotes with doubled single-quotes.
+        //     // This should be plenty safe, but in the future consider migrating to prepared statements as an added precaution.
+        //     // Also TODO: TESTS TESTS TESTS
+        //     FilterComparisonParam::String(s) => format!("'{}'", s.replace('\'', "''")), // Escape ' characters. This *should* prevent SQL injection attacks across the board, but needs to be tested and vetted.
+        //     FilterComparisonParam::Uuid(uuid) => format!("'{}'", uuid),
+        //     FilterComparisonParam::Integer(i) => i.to_string(), // TODO: This'll change when we do prepped statmeents anyway
+        //     FilterComparisonParam::Float(f) => f.to_string(),
+        //     FilterComparisonParam::Bool(b) => b.to_string(),
+        //     FilterComparisonParam::Naive(b) => b.to_string(),
+        // }
     }
 }
 

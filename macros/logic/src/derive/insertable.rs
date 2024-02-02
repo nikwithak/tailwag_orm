@@ -6,7 +6,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
     let input_table_definition =
         crate::util::database_table_definition::build_table_definition(input);
 
-    let insert_maps = input_table_definition.columns.iter().map(|(_, column)| {
+    let insert_maps = input_table_definition.columns.values().map(|column| {
         let column_name = format_ident!("{}", column.column_name.as_str());
         let column_name_as_string = column.column_name.as_str();
 
