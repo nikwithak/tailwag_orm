@@ -2,7 +2,7 @@ use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
     queries::{filterable_types::Filterable, Deleteable, Filter, Insertable, Query, Updateable},
-    AsSql,
+    AsSql, BuildSql,
 };
 use async_trait::async_trait;
 use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
@@ -60,7 +60,7 @@ impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<
         query_builder.push(self.query.table.table_name.to_string());
         if let Some(filter) = &self.filter {
             query_builder.push(" WHERE ");
-            filter.build_query(&mut query_builder);
+            filter.build_sql(&mut query_builder);
         }
         // stream.push()
 
@@ -171,13 +171,21 @@ where
         item: T,
     ) -> Result<(), String> {
         let delete = item.get_delete_statement();
-        match sqlx::query(&delete.as_sql()).execute(&self.db_pool).await {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                log::error!("Failed to delete item");
-                Err(e.to_string())
-            },
-        }
+        let mut builder = sqlx::QueryBuilder::new("");
+        delete.build_sql(&mut builder);
+        // match sqlx::query(&delete.()).execute(&self.db_pool).await {
+        //     Ok(_) => Ok(()),
+        //     Err(e) => {
+        //         log::error!("Failed to delete item");
+        //         Err(e.to_string())
+        //     },
+        // }
+        let result = builder
+            .build_query_as::<T>()
+            .fetch_all(&self.db_pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
     }
 
     async fn update(

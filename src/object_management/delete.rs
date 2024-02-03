@@ -1,4 +1,4 @@
-use crate::AsSql;
+use crate::{AsSql, BuildSql};
 
 use crate::data_definition::table::DatabaseTableDefinition;
 use crate::queries::Filter;
@@ -9,10 +9,13 @@ pub struct DeleteStatement {
     filter: Filter,
 }
 
-impl AsSql for DeleteStatement {
-    fn as_sql(&self) -> String {
-        // TODO: Clean  this up a bit?
-        format!("DELETE FROM {} WHERE {};", &self.table_def.table_name, &self.filter.as_sql())
+impl BuildSql for DeleteStatement {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        builder.push(format!("DELETE FROM {} WHERE ", &self.table_def.table_name));
+        self.filter.build_sql(builder);
     }
 }
 

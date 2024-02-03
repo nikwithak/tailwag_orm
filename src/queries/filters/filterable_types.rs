@@ -53,9 +53,9 @@ impl_filter_for!(Uuid: uuid::Uuid, new_uuid, Uuid, FilterLike like:Like);
 typetype! {bool}
 impl_filter_for!(bool: bool, new_bool, Bool, FilterEq eq:Equal, ne:NotEqual);
 typetype! {String}
-impl_filter_for!(String: String, new_int, String, FilterEq eq:Equal, ne:NotEqual);
-impl_filter_for!(String: String, new_int, String, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
-impl_filter_for!(String: String, new_int, String, FilterLike like:Like);
+impl_filter_for!(String: String, new_string, String, FilterEq eq:Equal, ne:NotEqual);
+impl_filter_for!(String: String, new_string, String, FilterPartialEq lt:LessThan, lte:LessThanOrEqual, gt:GreaterThan, gte:GreaterThanOrEqual);
+impl_filter_for!(String: String, new_string, String, FilterLike like:Like);
 impl_numeric_type!(i64: Integer);
 impl_numeric_type!(f64: Float);
 // TODO: Implement this for stronger dynamic typing with numerics
@@ -69,7 +69,6 @@ impl_numeric_type!(f64: Float);
 // impl_numeric_type!(i16: Integer);
 // impl_numeric_type!(i8: Integer);
 // impl_numeric_type!(f32: Float);
-// TODO: Timestamp not supported yet
 typetype! {chrono::NaiveDateTime}
 impl_filter_for!(chrono::NaiveDateTime: chrono::NaiveDateTime, new_timestamp, Timestamp, FilterEq eq:Equal, ne:NotEqual);
 

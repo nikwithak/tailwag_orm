@@ -1,5 +1,5 @@
-use crate::{data_definition::table::TableColumn, AsSql};
-use sqlx::{query_builder, Postgres, QueryBuilder};
+use crate::{data_definition::table::TableColumn, AsSql, BuildSql};
+use sqlx::{Postgres, QueryBuilder};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ pub enum FilterComparisonParam {
 }
 
 impl FilterComparisonParam {
-    pub fn build_query(
+    pub fn build_sql(
         &self,
         builder: &mut QueryBuilder<Postgres>,
     ) {
@@ -28,28 +28,6 @@ impl FilterComparisonParam {
             FilterComparisonParam::Bool(val) => builder.push_bind(*val),
             FilterComparisonParam::Timestamp(val) => builder.push_bind(*val),
         };
-    }
-}
-
-impl AsSql for FilterComparisonParam {
-    fn as_sql(&self) -> String {
-        panic!("This method is deprecated");
-        // match self {
-        //     FilterComparisonParam::TableColumn(col) => {
-        //         // TODO: Need to bring in table_name for longer queries
-        //         format!("{}", &col.column_name)
-        //     },
-        //     // Currently this is the only necessary sanitation - rust typechcking sensures we are getting valid types for others.
-        //     // To prevent SQL injection attacks, we replace all single quotes with doubled single-quotes.
-        //     // This should be plenty safe, but in the future consider migrating to prepared statements as an added precaution.
-        //     // Also TODO: TESTS TESTS TESTS
-        //     FilterComparisonParam::String(s) => format!("'{}'", s.replace('\'', "''")), // Escape ' characters. This *should* prevent SQL injection attacks across the board, but needs to be tested and vetted.
-        //     FilterComparisonParam::Uuid(uuid) => format!("'{}'", uuid),
-        //     FilterComparisonParam::Integer(i) => i.to_string(), // TODO: This'll change when we do prepped statmeents anyway
-        //     FilterComparisonParam::Float(f) => f.to_string(),
-        //     FilterComparisonParam::Bool(b) => b.to_string(),
-        //     FilterComparisonParam::Naive(b) => b.to_string(),
-        // }
     }
 }
 
@@ -150,8 +128,8 @@ impl BitAnd for Filter {
     }
 }
 
-impl Filter {
-    pub fn build_query(
+impl BuildSql for Filter {
+    fn build_sql(
         &self,
         builder: &mut QueryBuilder<Postgres>,
     ) {
@@ -159,7 +137,7 @@ impl Filter {
             Filter::And(children) | Filter::Or(children) => {
                 let mut iter = children.iter().peekable();
                 while let Some(child) = iter.next() {
-                    child.build_query(builder);
+                    child.build_sql(builder);
                     if iter.peek().is_some() {
                         builder.push(" AND ");
                     }
@@ -172,77 +150,14 @@ impl Filter {
             | Filter::LessThanOrEqual(l, r)
             | Filter::GreaterThan(l, r)
             | Filter::GreaterThanOrEqual(l, r) => {
-                l.build_query(builder);
+                l.build_sql(builder);
                 builder.push(" ");
                 builder.push(self.get_operator());
                 builder.push(" ");
-                r.build_query(builder);
+                r.build_sql(builder);
             },
             Filter::In(_val, _list) => {
                 todo!()
-            },
-        }
-    }
-}
-
-impl AsSql for Filter {
-    fn as_sql(&self) -> String {
-        type F = Filter;
-        match self {
-            F::And(children) => {
-                if children.is_empty() {
-                    return "true".to_string();
-                }
-                format!(
-                    "({})",
-                    children
-                        .iter()
-                        .map(|child| child.as_sql())
-                        .collect::<Vec<String>>()
-                        .join(" AND "),
-                )
-            },
-            F::Or(children) => {
-                if children.is_empty() {
-                    return "".to_string();
-                }
-                format!(
-                    "({})",
-                    children
-                        .iter()
-                        .map(|child| child.as_sql())
-                        .collect::<Vec<String>>()
-                        .join(" OR "),
-                )
-            },
-            F::Equal(lhs, rhs) => {
-                // TODO: This is UNSAFE for production, open to injection attacks. Need to do pre-processing, might have to rework how filter as_sql works
-                format!("({} = {})", lhs.as_sql(), rhs.as_sql(),)
-            },
-            F::NotEqual(lhs, rhs) => {
-                format!("({} != {})", lhs.as_sql(), rhs.as_sql())
-            },
-            F::Like(lhs, rhs) => {
-                format!("({} LIKE {})", lhs.as_sql(), rhs.as_sql())
-            },
-            F::LessThan(lhs, rhs) => {
-                format!("({} < {})", lhs.as_sql(), rhs.as_sql())
-            },
-            F::LessThanOrEqual(lhs, rhs) => {
-                format!("({} <= {})", lhs.as_sql(), rhs.as_sql())
-            },
-            F::GreaterThan(lhs, rhs) => {
-                format!("({} > {})", lhs.as_sql(), rhs.as_sql())
-            },
-            F::GreaterThanOrEqual(lhs, rhs) => {
-                format!("({} >= {})", lhs.as_sql(), rhs.as_sql())
-            },
-            F::In(lhs, rhs) => {
-                format!(
-                    "({} IN ({}))",
-                    lhs.as_sql(),
-                    rhs.iter().map(|f| f.as_sql()).collect::<Vec<String>>().join(",")
-                )
             },
         }
     }

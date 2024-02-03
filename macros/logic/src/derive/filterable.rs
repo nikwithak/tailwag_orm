@@ -1,8 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Data, DeriveInput};
-
-use crate::util::database_table_definition::get_type_from_field;
+use tailwag_utils::macro_utils::attribute_parsing::GetAttribute;
 
 pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     let &DeriveInput {
@@ -19,21 +18,24 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
     match &data.fields {
         syn::Fields::Named(fields) => {
-            type T = tailwag_orm::data_definition::table::DatabaseColumnType;
-            let new_fields = fields.named.iter().map(|field| {
+            // type T = tailwag_orm::data_definition::table::DatabaseColumnType;
+            let filterable_fields =
+                fields.named.iter().filter(|field| field.get_attribute("no_filter").is_none());
+            let new_fields = filterable_fields.clone().map(|field| {
                 let ident = field.ident.clone().expect("Should only have named fields.");
                 let orig_type = field.ty.clone();
-                quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>)
+                dbg!(quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>))
             });
-            let default_fields = fields.named.iter().map(|field| {
+            let default_fields = filterable_fields.clone().map(|field| {
                 let ident = field.ident.clone().expect("Should only have named fields.");
                 let ident_str = ident.to_string();
                 let orig_type = field.ty.clone();
-                quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#ident_str)))
+                dbg!(quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#ident_str))))
             });
 
             quote!(
                 pub struct #filter_type_struct_ident {
+                    // email_address: tailwag::orm::queries::filterable_types::FilterableType<String>,
                     #(#new_fields,)*
                 }
                 impl Default for #filter_type_struct_ident {

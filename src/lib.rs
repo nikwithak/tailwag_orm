@@ -1,3 +1,5 @@
+use sqlx::Postgres;
+
 pub mod data_definition;
 pub mod data_manager;
 pub mod executor;
@@ -15,4 +17,11 @@ pub trait FromSql {
     fn from_sql<T: AsSql>(_sql: &str) -> T {
         todo!("FromSql is not yet implemented.")
     }
+}
+
+pub trait BuildSql {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, Postgres>,
+    );
 }

@@ -33,7 +33,6 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 impl tailwag::orm::data_manager::GetTableDefinition for #ident {
                     #(#functions)*
                 }
-
             );
 
             tokens
