@@ -6,7 +6,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
     let input_table_definition =
         crate::util::database_table_definition::build_table_definition(input);
 
-    let update_maps = input_table_definition.columns.iter().map(|(_, column)| {
+    let update_maps = input_table_definition.columns.values().map(|column| {
         let column_name = format_ident!("{}", column.column_name.as_str());
         let column_name_as_string = column.column_name.as_str();
 
@@ -24,7 +24,8 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!(),
         };
 
-        let update_statement = if column.is_nullable() {
+        
+        if column.is_nullable() {
             quote!(
                 if let Some(#column_name) = &self.#column_name {
                     update_map.insert(
@@ -48,8 +49,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
                     format!(#format_string, &self.#column_name.to_string()),
                 );
             )
-        };
-        update_statement
+        }
     });
 
     let tokens = quote!(
@@ -78,7 +78,9 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     } = &input;
 
     // Panic with error message if we get a non-struct
-    let Data::Struct(data) = data else { panic!("Only Structs are supported") };
+    let Data::Struct(data) = data else {
+        panic!("Only Structs are supported")
+    };
 
     match &data.fields {
         syn::Fields::Named(fields) => {

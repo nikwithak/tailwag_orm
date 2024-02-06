@@ -18,13 +18,12 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
     match &data.fields {
         syn::Fields::Named(fields) => {
-            // type T = tailwag_orm::data_definition::table::DatabaseColumnType;
             let filterable_fields =
                 fields.named.iter().filter(|field| field.get_attribute("no_filter").is_none());
             let new_fields = filterable_fields.clone().map(|field| {
                 let ident = field.ident.clone().expect("Should only have named fields.");
                 let orig_type = field.ty.clone();
-                dbg!(quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>))
+                dbg!(quote!(pub #ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>))
             });
             let default_fields = filterable_fields.clone().map(|field| {
                 let ident = field.ident.clone().expect("Should only have named fields.");
@@ -35,7 +34,6 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
             quote!(
                 pub struct #filter_type_struct_ident {
-                    // email_address: tailwag::orm::queries::filterable_types::FilterableType<String>,
                     #(#new_fields,)*
                 }
                 impl Default for #filter_type_struct_ident {

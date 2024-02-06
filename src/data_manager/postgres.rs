@@ -96,7 +96,7 @@ impl<T: Insertable> PostgresDataProvider<T> {
         log::info!("[DATABASE] Running Migrations");
         let migration = self.build_migration();
         if let Some(migration) = migration {
-            match sqlx::query::<Postgres>(&migration.as_sql()).execute(&self.db_pool).await {
+            match sqlx::query::<Postgres>(dbg!(&migration.as_sql())).execute(&self.db_pool).await {
                 Ok(_) => {},
                 Err(e) => {
                     log::error!("Failed to run migrations");
