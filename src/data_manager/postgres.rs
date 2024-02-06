@@ -180,7 +180,7 @@ where
         //         Err(e.to_string())
         //     },
         // }
-        let result = builder
+        builder
             .build_query_as::<T>()
             .fetch_all(&self.db_pool)
             .await
