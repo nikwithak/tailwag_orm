@@ -1,9 +1,11 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::Debug,
+    ops::{Deref, DerefMut},
+};
 
-use async_trait::async_trait;
 use uuid::Uuid;
 
-pub type DataResult<T> = Result<T, String>;
+use crate::queries::filterable_types::Filterable;
 
 /// Provides basic CRUD operations for a type's data source
 ///
@@ -21,29 +23,43 @@ pub type DataResult<T> = Result<T, String>;
 ///  - [ ] TODO: CachedDataProvider<P: DataProvider>
 ///  - { } TODO: PolicyEnforcedDataProvider
 ///  - [ ] TODO: MultiSourceDataProvider
-#[async_trait]
-pub trait DataProvider<T> {
+// #[async_trait]
+pub trait DataProvider<T>
+where
+    Self: Sized,
+{
+    type Error: std::fmt::Debug;
     type CreateRequest: Default;
-    type QueryType: Into<Vec<T>>;
 
     // fn all(&self) -> Vec<T>;
-    async fn all(&self) -> DataResult<Self::QueryType>;
+    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error>;
     async fn get(
         &self,
         id: Uuid,
-    ) -> DataResult<Option<T>>;
+    ) -> Result<Option<T>, Self::Error>;
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> DataResult<T>; // TODO: Create real error type when needed
+    ) -> Result<T, Self::Error>; // TODO: Create real error type when needed
     async fn delete(
         &self,
         item: T, // You give it up when you ask to delete it!
-    ) -> DataResult<()>;
+    ) -> Result<(), Self::Error>;
     async fn update(
         &self,
         item: &T,
-    ) -> DataResult<()>;
+    ) -> Result<(), Self::Error>;
+}
+
+pub trait WithFilter<T>
+where
+    T: Filterable,
+{
+    type R;
+    fn with_filter(
+        &self,
+        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
+    ) -> Self::R;
 }
 
 pub struct Provided<'a, T, P>
@@ -79,11 +95,11 @@ impl<'a, T, P> Provided<'a, T, P>
 where
     P: DataProvider<T>,
 {
-    async fn save(&self) -> Result<(), String> {
+    async fn save(&self) -> Result<(), <P as DataProvider<T>>::Error> {
         self.provider.update(&self.data).await
     }
 
-    async fn delete(self) -> Result<(), String> {
+    async fn delete(self) -> Result<(), <P as DataProvider<T>>::Error> {
         self.provider.delete(self.data).await
     }
 }

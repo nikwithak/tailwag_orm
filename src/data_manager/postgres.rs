@@ -9,9 +9,10 @@ use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    vec::IntoIter,
 };
 
-use super::{rest_api::Id, traits::DataResult};
+use super::{rest_api::Id, traits::WithFilter};
 
 #[derive(Clone)]
 pub struct PostgresDataProvider<T: Insertable> {
@@ -110,7 +111,7 @@ impl<T: Insertable> PostgresDataProvider<T> {
     }
 }
 
-#[async_trait]
+// #[async_trait]
 impl<T> super::traits::DataProvider<T> for PostgresDataProvider<T>
 // impl<'a, T> PostgresDataProvider<T>
 where
@@ -125,80 +126,92 @@ where
         + Id
         + Default,
 {
-    type QueryType = ExecutableQuery<T>;
     type CreateRequest = T; // TODO: Implement this based ont he implementaiton of Insertable?
+    type Error = crate::Error;
 
     async fn get(
         &self,
-        _id: uuid::Uuid,
-    ) -> DataResult<Option<T>> {
-        let all = self.all().await.unwrap().execute().await.unwrap();
-        Ok(all.into_iter().find(|i| i.id() == &_id))
+        id: uuid::Uuid,
+    ) -> Result<Option<T>, Self::Error> {
+        let query = Query::<T> {
+            table: self.table_definition.clone(),
+            filter: None,
+            limit: Some(2),
+            _t: Default::default(),
+        };
+        let query = ExecutableQuery {
+            query,
+            db_pool: self.db_pool.clone(),
+        };
+        let mut results = query.execute().await?;
+        if results.len() > 1 {
+            return Err(Self::Error::DataIntegrity("Multiple items found for ID {}".to_string()));
+        }
+        Ok(results.pop())
     }
 
-    async fn all(&self) -> DataResult<ExecutableQuery<T>> {
+    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
             filter: None,
             limit: None,
             _t: Default::default(),
         };
-        Ok(ExecutableQuery {
+        let query = ExecutableQuery {
             query,
             db_pool: self.db_pool.clone(),
-        })
+        };
+        Ok(query.execute().await?.into_iter())
     }
 
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, std::string::String> {
+    ) -> Result<T, Self::Error> {
         let insert = item.get_insert_statement();
-        println!("Creating...");
-        let ret = match sqlx::query(&insert.as_sql()).execute(&self.db_pool).await {
-            Ok(_) => Ok(item),
-            Err(e) => {
-                log::error!("Failed to create item");
-                Err(e.to_string())
-            },
-        };
-        println!("Created");
-        ret
+        // TODO/DEBUG: Is the query returning the result? Can I simply run it as a query_as instead?
+        sqlx::query(&insert.as_sql()).execute(&self.db_pool).await?;
+        Ok(item)
     }
 
     async fn delete(
         &self,
         item: T,
-    ) -> Result<(), String> {
-        let delete = item.get_delete_statement();
+    ) -> Result<(), Self::Error> {
         let mut builder = sqlx::QueryBuilder::new("");
-        delete.build_sql(&mut builder);
-        // match sqlx::query(&delete.()).execute(&self.db_pool).await {
-        //     Ok(_) => Ok(()),
-        //     Err(e) => {
-        //         log::error!("Failed to delete item");
-        //         Err(e.to_string())
-        //     },
-        // }
-        builder
-            .build_query_as::<T>()
-            .fetch_all(&self.db_pool)
-            .await
-            .map_err(|e| e.to_string())?;
+        item.get_delete_statement().build_sql(&mut builder);
+        sqlx::query(&builder.into_sql()).execute(&self.db_pool).await?;
         Ok(())
     }
 
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), String> {
+    ) -> Result<(), Self::Error> {
         let update = item.get_update_statement();
-        match sqlx::query(&update.as_sql()).execute(&self.db_pool).await {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                log::error!("Failed to create item");
-                Err(e.to_string())
-            },
+        sqlx::query(&update.as_sql()).execute(&self.db_pool).await?;
+        Ok(())
+    }
+}
+
+impl<T> WithFilter<T> for PostgresDataProvider<T>
+where
+    T: Filterable + Insertable,
+{
+    type R = ExecutableQuery<T>;
+    fn with_filter(
+        &self,
+        predicate: impl Fn(<T as Filterable>::FilterType) -> crate::queries::Filter,
+    ) -> Self::R {
+        let query = Query::<T> {
+            table: self.table_definition.clone(),
+            filter: Some(predicate(T::FilterType::default())),
+            limit: None,
+            _t: Default::default(),
+        };
+        ExecutableQuery {
+            query,
+            db_pool: self.db_pool.clone(),
         }
     }
 }

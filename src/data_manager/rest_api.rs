@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use uuid::Uuid;
 
-use super::traits::{DataProvider, DataResult};
+use super::traits::DataProvider;
 
 /// Creates a DataProvider that will fetch the given type from the provided REST endpoint.
 /// Makes specific assumptions about the way the REST endpoint works, and implements this for the base-case
@@ -35,16 +35,15 @@ pub trait Id {
     fn id(&self) -> &Uuid;
 }
 
-#[async_trait::async_trait]
 impl<T> DataProvider<T> for RestApiDataProvider<T>
 where
     T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send + Sync,
 {
     // TODO: Figure out how to map CreateRequest
     type CreateRequest = T;
-    type QueryType = Vec<T>;
+    type Error = crate::Error;
 
-    async fn all(&self) -> super::traits::DataResult<Self::QueryType> {
+    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
         Ok(self
             .http_client
             .get(&self.endpoint)
@@ -53,34 +52,35 @@ where
             .unwrap()
             .json::<Vec<T>>()
             .await
-            .unwrap())
+            .unwrap()
+            .into_iter())
     }
 
     async fn get(
         &self,
         id: uuid::Uuid,
-    ) -> DataResult<Option<T>> {
+    ) -> Result<Option<T>, Self::Error> {
         let url = format!("{}/{}", &self.endpoint, &id);
         let response = self.http_client.get(&url).send().await.unwrap();
         // if response.status() == StatusCode::NOT_FOUND {
         //     None
         // } else {
         // }
-        Ok(response.json::<Option<T>>().await.unwrap())
+        Ok(response.json::<Option<T>>().await?)
     }
 
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, String> {
-        let _response = self.http_client.post(&self.endpoint).json(&item).send().await.unwrap();
+    ) -> Result<T, Self::Error> {
+        let _response = self.http_client.post(&self.endpoint).json(&item).send().await?;
         Ok(item)
     }
 
     async fn delete(
         &self,
         item: T,
-    ) -> Result<(), String> {
+    ) -> Result<(), Self::Error> {
         // let url = format!("{}/{}", &self.endpoint, &item.id());
         let url = &self.endpoint;
         let _response = self.http_client.delete(url).json(&item).send().await.unwrap();
@@ -90,7 +90,7 @@ where
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), String> {
+    ) -> Result<(), Self::Error> {
         // let url = format!("{}/{}", &self.endpoint, &item.id());
         let url = &self.endpoint;
         let _response = self.http_client.patch(url).json(item).send().await.unwrap();

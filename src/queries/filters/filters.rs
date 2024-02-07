@@ -1,4 +1,4 @@
-use crate::{data_definition::table::TableColumn, AsSql, BuildSql};
+use crate::{data_definition::table::TableColumn, BuildSql};
 use sqlx::{Postgres, QueryBuilder};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 use uuid::Uuid;
