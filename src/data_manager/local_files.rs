@@ -2,7 +2,11 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{data_definition::table::DatabaseTableDefinition, data_manager::traits::DataProvider};
+use crate::{
+    data_definition::table::DatabaseTableDefinition,
+    data_manager::traits::DataProvider,
+    queries::{filterable_types::Filterable, Filter},
+};
 use std::{fs, marker::PhantomData, path::PathBuf};
 
 use super::rest_api::Id;
@@ -10,7 +14,7 @@ use super::rest_api::Id;
 /// UNTESTED - USE AT YOUR OWN RISK
 #[derive(Clone)]
 pub struct LocalFileDataProvider<T> {
-    pub table_definition: DatabaseTableDefinition,
+    pub table_definition: DatabaseTableDefinition<T>,
     pub root_folder_path: PathBuf,
     pub _t: PhantomData<T>,
 }
@@ -27,8 +31,8 @@ impl<T: Id> LocalFileDataProvider<T> {
     }
 }
 
-impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a>> DataProvider<T>
-    for LocalFileDataProvider<T>
+impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filterable>
+    DataProvider<T> for LocalFileDataProvider<T>
 {
     type CreateRequest = T;
     type Error = crate::Error;
@@ -53,14 +57,15 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a>> DataPr
 
     async fn get(
         &self,
-        id: Uuid,
+        predicate: impl FnOnce(<T as Filterable>::FilterType) -> Filter,
     ) -> Result<Option<T>, Self::Error> {
-        let path = self.get_filepath(&id);
-        let contents = std::fs::read_to_string(path).unwrap();
-        match serde_json::from_str::<T>(&contents) {
-            Ok(a) => Ok(Some(a)),
-            Err(e) => Err(format!("{:?}", &e))?,
-        }
+        todo!()
+        // let path = self.get_filepath(&id);
+        // let contents = std::fs::read_to_string(path).unwrap();
+        // match serde_json::from_str::<T>(&contents) {
+        //     Ok(a) => Ok(Some(a)),
+        //     Err(e) => Err(format!("{:?}", &e))?,
+        // }
     }
 
     async fn delete(
@@ -68,12 +73,10 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a>> DataPr
         item: T,
     ) -> Result<(), Self::Error> {
         let path = self.get_filepath(item.id());
-        // For safety, make sure it's the right object:
-        self.get(*item.id()).await?;
-        match fs::remove_file(&path) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("{:?}", &e))?,
-        }
+        // // For safety, make sure it's the right object:
+        // self.get(*item.id()).await?;
+        fs::remove_file(&path);
+        Ok(())
     }
 
     async fn update(

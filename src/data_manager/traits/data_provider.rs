@@ -26,6 +26,7 @@ use crate::queries::filterable_types::Filterable;
 // #[async_trait]
 pub trait DataProvider<T>
 where
+    T: Filterable,
     Self: Sized,
 {
     type Error: std::fmt::Debug;
@@ -35,7 +36,7 @@ where
     async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error>;
     async fn get(
         &self,
-        id: Uuid,
+        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, Self::Error>;
     async fn create(
         &self,
@@ -65,6 +66,7 @@ where
 pub struct Provided<'a, T, P>
 where
     P: DataProvider<T>,
+    T: Filterable,
 {
     provider: &'a P,
     data: T,
@@ -73,6 +75,7 @@ where
 impl<'a, T, P> DerefMut for Provided<'a, T, P>
 where
     P: DataProvider<T>,
+    T: Filterable,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
@@ -82,6 +85,7 @@ where
 impl<'a, T, P> Deref for Provided<'a, T, P>
 where
     P: DataProvider<T>,
+    T: Filterable,
 {
     type Target = T;
 
@@ -94,6 +98,7 @@ where
 impl<'a, T, P> Provided<'a, T, P>
 where
     P: DataProvider<T>,
+    T: Filterable,
 {
     async fn save(&self) -> Result<(), <P as DataProvider<T>>::Error> {
         self.provider.update(&self.data).await

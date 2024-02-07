@@ -4,15 +4,15 @@ use crate::AsSql;
 
 use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
 
-pub struct UpdateStatement {
-    table_def: DatabaseTableDefinition,
+pub struct UpdateStatement<T> {
+    table_def: DatabaseTableDefinition<T>,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
     object_repr: HashMap<Identifier, String>,
 }
 
-impl UpdateStatement {
+impl<T> UpdateStatement<T> {
     pub fn new(
-        table_def: DatabaseTableDefinition,
+        table_def: DatabaseTableDefinition<T>,
         object_map: HashMap<Identifier, String>,
     ) -> Self {
         Self {
@@ -22,7 +22,7 @@ impl UpdateStatement {
     }
 }
 
-impl AsSql for UpdateStatement {
+impl<T> AsSql for UpdateStatement<T> {
     fn as_sql(&self) -> String {
         let mut updates = Vec::new();
         let mut id = None;

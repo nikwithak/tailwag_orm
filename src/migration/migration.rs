@@ -15,13 +15,13 @@ use crate::{
 use super::{AlterTable, CreateTable};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum MigrationAction {
+pub enum MigrationAction<T> {
     AlterTable(AlterTable),
-    CreateTable(CreateTable),
+    CreateTable(CreateTable<T>),
     DropTable(Identifier),
 }
 
-impl AsSql for MigrationAction {
+impl<T> AsSql for MigrationAction<T> {
     fn as_sql(&self) -> String {
         match self {
             MigrationAction::AlterTable(alter_table) => alter_table.as_sql(),
@@ -34,11 +34,11 @@ impl AsSql for MigrationAction {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Migration {
-    pub actions: Vec<MigrationAction>,
+pub struct Migration<T> {
+    pub actions: Vec<MigrationAction<T>>,
 }
 
-impl AsSql for Migration {
+impl<T> AsSql for Migration<T> {
     fn as_sql(&self) -> String {
         let mut sql_statments = Vec::new();
         for alter_table in &self.actions {
@@ -51,16 +51,19 @@ impl AsSql for Migration {
     }
 }
 
-impl Migration {
+impl<T> Migration<T>
+where
+    T: std::fmt::Debug + Clone,
+{
     pub fn compare(
-        before: Option<&DatabaseDefinition>,
-        after: &DatabaseDefinition,
+        before: Option<&DatabaseDefinition<T>>,
+        after: &DatabaseDefinition<T>,
     ) -> Option<Self> {
-        let mut actions: Vec<MigrationAction> = Vec::new();
+        let mut actions: Vec<MigrationAction<T>> = Vec::new();
 
-        fn build_table_map(
-            db_def: &DatabaseDefinition
-        ) -> HashMap<&Identifier, &DatabaseTableDefinition> {
+        fn build_table_map<T>(
+            db_def: &DatabaseDefinition<T>
+        ) -> HashMap<&Identifier, &DatabaseTableDefinition<T>> {
             let map = db_def.tables.iter().fold(HashMap::new(), |mut acc, table| {
                 acc.insert(&table.table_name, table);
                 acc
@@ -133,8 +136,8 @@ impl Migration {
     /// # Returns
     ///
     fn compare_tables(
-        before: &DatabaseTableDefinition,
-        after: &DatabaseTableDefinition,
+        before: &DatabaseTableDefinition<T>,
+        after: &DatabaseTableDefinition<T>,
     ) -> Option<Self> {
         let mut actions = Vec::<AlterTableAction>::new();
 

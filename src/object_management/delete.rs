@@ -3,13 +3,13 @@ use crate::{AsSql, BuildSql};
 use crate::data_definition::table::DatabaseTableDefinition;
 use crate::queries::Filter;
 
-pub struct DeleteStatement {
-    table_def: DatabaseTableDefinition,
+pub struct DeleteStatement<T> {
+    table_def: DatabaseTableDefinition<T>,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
     filter: Filter,
 }
 
-impl BuildSql for DeleteStatement {
+impl<T> BuildSql for DeleteStatement<T> {
     fn build_sql(
         &self,
         builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
@@ -19,9 +19,9 @@ impl BuildSql for DeleteStatement {
     }
 }
 
-impl DeleteStatement {
+impl<T> DeleteStatement<T> {
     pub fn new(
-        table_def: DatabaseTableDefinition,
+        table_def: DatabaseTableDefinition<T>,
         filter: Filter,
     ) -> Self {
         Self {

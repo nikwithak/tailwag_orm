@@ -1,4 +1,7 @@
-use crate::data_manager::{rest_api::Id, traits::DataProvider};
+use crate::{
+    data_manager::{rest_api::Id, traits::DataProvider},
+    queries::filterable_types::Filterable,
+};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -14,7 +17,9 @@ pub struct InMemoryDataProvider<T> {
     items: Arc<Mutex<HashMap<Uuid, T>>>,
 }
 
-impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProvider<T> {
+impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
+    for InMemoryDataProvider<T>
+{
     type CreateRequest = T;
     type Error = crate::Error;
 
@@ -27,11 +32,12 @@ impl<T: Clone + Id + Send + Default + Sync> DataProvider<T> for InMemoryDataProv
 
     async fn get(
         &self,
-        id: Uuid,
+        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, Self::Error> {
         let items = self.items.lock().unwrap();
-        let item = items.get(&id).cloned();
-        Ok(item)
+        // let item = items.get(&id).cloned();
+        // Ok(item)
+        todo!()
     }
 
     async fn create(

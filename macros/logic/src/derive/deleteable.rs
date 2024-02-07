@@ -4,11 +4,13 @@ use syn::{Data, DeriveInput};
 
 fn build_get_delete_statement(_input: &DeriveInput) -> TokenStream {
     let tokens = quote!(
-        fn get_delete_statement(&self) -> tailwag::orm::object_management::delete::DeleteStatement {
+        fn get_delete_statement(
+            &self
+        ) -> tailwag::orm::object_management::delete::DeleteStatement<Self> {
             let id_column =
                 tailwag::orm::data_definition::table::TableColumn::uuid("id").unwrap().into();
             let id_column = tailwag::orm::queries::FilterComparisonParam::TableColumn(id_column);
-            let delete = tailwag::orm::object_management::delete::DeleteStatement::new(
+            let delete = tailwag::orm::object_management::delete::DeleteStatement::<Self>::new(
                 <Self as tailwag::orm::data_manager::GetTableDefinition>::get_table_definition()
                     .clone(),
                 tailwag::orm::queries::Filter::Equal(

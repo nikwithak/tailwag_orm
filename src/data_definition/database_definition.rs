@@ -3,12 +3,12 @@ use std::{collections::HashMap, ops::Deref, sync::Arc};
 use super::table::{DatabaseTableDefinition, Identifier};
 
 #[derive(Debug)]
-pub struct DatabaseDefinition {
-    data: Arc<DatabaseDefinitionBuilder>,
+pub struct DatabaseDefinition<T> {
+    data: Arc<DatabaseDefinitionBuilder<T>>,
 }
 
-impl Deref for DatabaseDefinition {
-    type Target = DatabaseDefinitionBuilder;
+impl<T> Deref for DatabaseDefinition<T> {
+    type Target = DatabaseDefinitionBuilder<T>;
 
     fn deref(&self) -> &Self::Target {
         &self.data
@@ -31,7 +31,7 @@ impl Deref for DatabaseDefinition {
 //     }
 // }
 
-impl DatabaseDefinition {
+impl<T> DatabaseDefinition<T> {
     /// Creates an empty DatabaseDefinitionData object.
     ///
     /// DatabaseDefinitionData uses the builder pattern to build the object,
@@ -47,8 +47,8 @@ impl DatabaseDefinition {
     ///         .into();
     /// ```
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(name: &str) -> Result<DatabaseDefinitionBuilder, String> {
-        DatabaseDefinitionBuilder::new(name)
+    pub fn new(name: &str) -> Result<DatabaseDefinitionBuilder<T>, String> {
+        DatabaseDefinitionBuilder::<T>::new(name)
     }
 
     /// Creates an empty DatabaseDefinitionData object.  Does not wrap the result in a Result,
@@ -58,8 +58,8 @@ impl DatabaseDefinition {
     /// let database_definition: DatabaseDefinition
     ///     = DatabaseDefinition::new("new_database").into();
     /// ```
-    pub fn new_unchecked(name: &str) -> DatabaseDefinitionBuilder {
-        match DatabaseDefinitionBuilder::new(name) {
+    pub fn new_unchecked(name: &str) -> DatabaseDefinitionBuilder<T> {
+        match DatabaseDefinitionBuilder::<T>::new(name) {
             Ok(def) => def,
             Err(e) => panic!("DatabaseDefinition::new_unchecked() failed: {}", e),
         }
@@ -67,13 +67,13 @@ impl DatabaseDefinition {
 }
 
 #[derive(Debug, Clone)]
-pub struct DatabaseDefinitionBuilder {
+pub struct DatabaseDefinitionBuilder<T> {
     pub name: Identifier,
-    pub tables: Vec<DatabaseTableDefinition>,
+    pub tables: Vec<DatabaseTableDefinition<T>>,
 }
 
-impl From<DatabaseDefinitionBuilder> for DatabaseDefinition {
-    fn from(mut val: DatabaseDefinitionBuilder) -> Self {
+impl<T> From<DatabaseDefinitionBuilder<T>> for DatabaseDefinition<T> {
+    fn from(mut val: DatabaseDefinitionBuilder<T>) -> Self {
         // This is where we need to preprocess the stuff and make sure the tables are okay / consistent.
         // TODO: ^^^^^ That
 
@@ -138,7 +138,7 @@ impl From<DatabaseDefinitionBuilder> for DatabaseDefinition {
     }
 }
 
-impl DatabaseDefinitionBuilder {
+impl<T> DatabaseDefinitionBuilder<T> {
     pub fn new(name: &str) -> Result<Self, String> {
         Ok(Self {
             name: Identifier::new(name)?,
@@ -148,15 +148,15 @@ impl DatabaseDefinitionBuilder {
 
     pub fn add_table(
         mut self,
-        table: DatabaseTableDefinition,
+        table: DatabaseTableDefinition<T>,
     ) -> Self {
         self.tables.push(table);
         self
     }
 
-    pub fn table<T: Into<DatabaseTableDefinition>>(
+    pub fn table<D: Into<DatabaseTableDefinition<T>>>(
         self,
-        table: T,
+        table: D,
     ) -> Self {
         self.add_table(table.into())
     }

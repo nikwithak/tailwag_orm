@@ -4,7 +4,7 @@ use syn::{Data, DeriveInput};
 
 fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
     let input_table_definition =
-        crate::util::database_table_definition::build_table_definition(input);
+        crate::util::database_table_definition::build_table_definition::<()>(input);
 
     let insert_maps = input_table_definition.columns.values().map(|column| {
         let column_name = format_ident!("{}", column.column_name.as_str());
@@ -47,7 +47,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
     });
 
     let tokens = quote!(
-        fn get_insert_statement(&self) -> tailwag::orm::object_management::insert::InsertStatement {
+        fn get_insert_statement(&self) -> tailwag::orm::object_management::insert::InsertStatement<Self> {
             let mut insert_map = std::collections::HashMap::new();
 
             #(#insert_maps)*

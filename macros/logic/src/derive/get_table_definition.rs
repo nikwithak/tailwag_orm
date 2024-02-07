@@ -28,7 +28,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
             let tokens = quote!(
                 static #once_cell_name: std::sync::OnceLock<
-                    tailwag::orm::data_definition::table::DatabaseTableDefinition
+                    tailwag::orm::data_definition::table::DatabaseTableDefinition<#ident>
                 > = std::sync::OnceLock::new();
                 impl tailwag::orm::data_manager::GetTableDefinition for #ident {
                     #(#functions)*
@@ -54,7 +54,7 @@ fn build_get_table_definition(
     // [2023-12-11] TODO: I'm gonna have to rethink this piece. The current way we build table defs is making
     // it hard to do one-to-manies in the way I want, because it relies on a child table having references.
     let input_table_definition =
-        crate::util::database_table_definition::build_table_definition(input);
+        crate::util::database_table_definition::build_table_definition::<()>(input);
 
     // Build columns
     let table_columns = input_table_definition.columns.values().map(|column| {
@@ -100,9 +100,9 @@ fn build_get_table_definition(
 
     // !! START OF QUOTE
     let tokens = quote!(
-        fn get_table_definition() -> tailwag::orm::data_definition::table::DatabaseTableDefinition {
-            let table_def:  &tailwag::orm::data_definition::table::DatabaseTableDefinition = #once_cell_name.get_or_init(|| {
-                tailwag::orm::data_definition::table::DatabaseTableDefinition::new(&#table_name)
+        fn get_table_definition() -> tailwag::orm::data_definition::table::DatabaseTableDefinition<Self> {
+            let table_def:  &tailwag::orm::data_definition::table::DatabaseTableDefinition<Self> = #once_cell_name.get_or_init(|| {
+                tailwag::orm::data_definition::table::DatabaseTableDefinition::<Self>::new(&#table_name)
                     .expect("Table name is invalid")
                     #(.column(#table_columns))*
                     // #(.constraint(#table_constraints)*) // TODO - weak constriants support currently

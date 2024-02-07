@@ -5,8 +5,7 @@ use crate::{
     AsSql,
 };
 
-#[derive(PartialEq, Eq, Debug)]
-#[derive(Default)]
+#[derive(PartialEq, Eq, Debug, Default)]
 pub struct PrimaryKeyColumnConstraint {
     index_parameters: Option<IndexParameters>,
 }
@@ -21,8 +20,6 @@ impl AsSql for PrimaryKeyColumnConstraint {
         statement.to_string()
     }
 }
-
-
 
 struct CheckExpressionConstraint {}
 
@@ -41,13 +38,11 @@ impl AsSql for IndexParameters {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
-#[derive(Default)]
+#[derive(PartialEq, Eq, Debug, Default)]
 pub struct UniqueColumnConstraint {
     is_null_distinct: bool,
     index_parameters: Option<IndexParameters>,
 }
-
 
 impl AsSql for UniqueColumnConstraint {
     fn as_sql(&self) -> String {
@@ -211,8 +206,8 @@ impl TableColumnConstraint {
     }
 
     /// Builds a basic foreign key restraint for a column
-    pub fn foreign_key(
-        ref_table: DatabaseTableDefinition,
+    pub fn foreign_key<T>(
+        ref_table: DatabaseTableDefinition<T>,
         ref_column: TableColumn,
     ) -> Self {
         Self {

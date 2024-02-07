@@ -16,13 +16,15 @@ use super::{rest_api::Id, traits::WithFilter};
 
 #[derive(Clone)]
 pub struct PostgresDataProvider<T: Insertable> {
-    pub table_definition: DatabaseTableDefinition,
+    pub table_definition: DatabaseTableDefinition<T>,
     pub db_pool: Pool<Postgres>,
     pub _t: PhantomData<T>,
 }
 
 pub trait GetTableDefinition {
-    fn get_table_definition() -> DatabaseTableDefinition;
+    fn get_table_definition() -> DatabaseTableDefinition<Self>
+    where
+        Self: std::marker::Sized;
 }
 
 /// Wraps a `Query<T>` alongside a DB Pool (using sqlx), to enable ergonomic querying.
@@ -84,9 +86,12 @@ impl<T: Filterable> ExecutableQuery<T> {
     }
 }
 // Migration Handling
-impl<T: Insertable> PostgresDataProvider<T> {
-    fn build_migration(&self) -> Option<Migration> {
-        Migration::compare(
+impl<T: Insertable> PostgresDataProvider<T>
+where
+    T: Clone + std::fmt::Debug,
+{
+    fn build_migration(&self) -> Option<Migration<T>> {
+        Migration::<T>::compare(
             None, // TODO: Need to get the old migration
             &DatabaseDefinition::new_unchecked("postgres")
                 .table(self.table_definition.clone())
@@ -124,6 +129,7 @@ where
         + Clone
         + Unpin
         + Id
+        + Filterable
         + Default,
 {
     type CreateRequest = T; // TODO: Implement this based ont he implementaiton of Insertable?
@@ -131,11 +137,11 @@ where
 
     async fn get(
         &self,
-        id: uuid::Uuid,
+        predicate: impl Fn(<T as Filterable>::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, Self::Error> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
-            filter: None,
+            filter: Some(predicate(<T as Filterable>::FilterType::default())),
             limit: Some(2),
             _t: Default::default(),
         };
@@ -196,7 +202,7 @@ where
 
 impl<T> WithFilter<T> for PostgresDataProvider<T>
 where
-    T: Filterable + Insertable,
+    T: Filterable + Insertable + Clone,
 {
     type R = ExecutableQuery<T>;
     fn with_filter(

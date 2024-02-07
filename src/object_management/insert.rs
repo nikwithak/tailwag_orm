@@ -5,15 +5,15 @@ use crate::{
     AsSql,
 };
 
-pub struct InsertStatement {
-    table_def: DatabaseTableDefinition,
+pub struct InsertStatement<T> {
+    table_def: DatabaseTableDefinition<T>,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
     object_repr: HashMap<Identifier, String>,
 }
 
-impl InsertStatement {
+impl<T> InsertStatement<T> {
     pub fn new(
-        table_def: DatabaseTableDefinition,
+        table_def: DatabaseTableDefinition<T>,
         object_map: HashMap<Identifier, String>,
     ) -> Self {
         Self {
@@ -23,7 +23,7 @@ impl InsertStatement {
     }
 }
 
-impl AsSql for InsertStatement {
+impl<T> AsSql for InsertStatement<T> {
     fn as_sql(&self) -> String {
         let mut columns: Vec<&str> = Vec::new();
         let mut values = Vec::new();

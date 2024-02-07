@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use uuid::Uuid;
 
+use crate::queries::filterable_types::Filterable;
+
 use super::traits::DataProvider;
 
 /// Creates a DataProvider that will fetch the given type from the provided REST endpoint.
@@ -37,7 +39,7 @@ pub trait Id {
 
 impl<T> DataProvider<T> for RestApiDataProvider<T>
 where
-    T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send + Sync,
+    T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send + Sync + Filterable,
 {
     // TODO: Figure out how to map CreateRequest
     type CreateRequest = T;
@@ -58,15 +60,16 @@ where
 
     async fn get(
         &self,
-        id: uuid::Uuid,
+        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, Self::Error> {
-        let url = format!("{}/{}", &self.endpoint, &id);
-        let response = self.http_client.get(&url).send().await.unwrap();
-        // if response.status() == StatusCode::NOT_FOUND {
-        //     None
-        // } else {
-        // }
-        Ok(response.json::<Option<T>>().await?)
+        // let url = format!("{}/{}", &self.endpoint, &id);
+        // let response = self.http_client.get(&url).send().await.unwrap();
+        // // if response.status() == StatusCode::NOT_FOUND {
+        // //     None
+        // // } else {
+        // // }
+        // Ok(response.json::<Option<T>>().await?)
+        todo!()
     }
 
     async fn create(

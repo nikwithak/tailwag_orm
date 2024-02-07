@@ -121,17 +121,17 @@ impl TableColumnData {
         self.primary_key()
     }
 
-    pub fn fk_to(
+    pub fn fk_to<T>(
         self,
-        ref_table: DatabaseTableDefinition,
+        ref_table: DatabaseTableDefinition<T>,
         ref_column: TableColumn,
     ) -> Self {
         self.foreign_key_to(ref_table, ref_column)
     }
 
-    pub fn foreign_key_to(
+    pub fn foreign_key_to<T>(
         mut self,
-        ref_table: DatabaseTableDefinition,
+        ref_table: DatabaseTableDefinition<T>,
         ref_column: TableColumn,
     ) -> Self {
         self.constraints.push(TableColumnConstraint::foreign_key(ref_table, ref_column));

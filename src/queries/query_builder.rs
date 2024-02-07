@@ -11,7 +11,7 @@ use crate::{
 use super::Filter;
 
 pub struct Query<T> {
-    pub table: DatabaseTableDefinition,
+    pub table: DatabaseTableDefinition<T>,
     pub filter: Option<Filter>,
     pub limit: Option<usize>,
     pub _t: PhantomData<T>,
@@ -24,11 +24,15 @@ pub trait Saveable {
 
 pub trait Deleteable {
     // TODO: rework this to actually Delete, not get_delete_statement
-    fn get_delete_statement(&self) -> DeleteStatement;
+    fn get_delete_statement(&self) -> DeleteStatement<Self>
+    where
+        Self: std::marker::Sized;
 }
 
 pub trait Updateable {
-    fn get_update_statement(&self) -> UpdateStatement;
+    fn get_update_statement(&self) -> UpdateStatement<Self>
+    where
+        Self: std::marker::Sized;
 }
 
 impl<T> Query<T> {
@@ -64,17 +68,20 @@ impl<T> Query<T> {
 
 /// DEPRECATED - left in for backwards compatibility.
 /// TODO: Remove when old types are updated.
-// pub trait Queryable {}
+// pub trait Qeryable {}
 
-pub trait Insertable {
-    fn get_insert_statement(&self) -> InsertStatement;
+pub trait Insertable
+where
+    Self: Sized,
+{
+    fn get_insert_statement(&self) -> InsertStatement<Self>;
 }
 
 #[cfg(test)]
 mod tests {
     use crate::data_definition::table::{DatabaseTableDefinition, TableColumn};
 
-    fn get_table_def() -> DatabaseTableDefinition {
+    fn get_table_def<T>() -> DatabaseTableDefinition<T> {
         type T = TableColumn;
 
         DatabaseTableDefinition::new("table_2")
@@ -91,7 +98,7 @@ mod tests {
     fn test_queries() {
         const _EXPECTED_QUERY: &str = "SELECT * FROM item INNER JOIN sub_item ON sub_item.parent_id = item.id WHERE sub_item.name like 'BUG%';";
 
-        let _table_def = get_table_def();
+        let _table_def: DatabaseTableDefinition<()> = get_table_def();
         // let _query = Query::<String
 
         todo!()

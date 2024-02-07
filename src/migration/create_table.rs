@@ -1,23 +1,23 @@
 use crate::{data_definition::table::DatabaseTableDefinition, AsSql};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct CreateTable {
-    table_definition: DatabaseTableDefinition,
+pub struct CreateTable<T> {
+    table_definition: DatabaseTableDefinition<T>,
 }
 
-impl CreateTable {
-    pub fn new(table: DatabaseTableDefinition) -> Self {
+impl<T> CreateTable<T> {
+    pub fn new(table: DatabaseTableDefinition<T>) -> Self {
         Self {
             table_definition: table,
         }
     }
 
-    pub fn table_definition(&self) -> &DatabaseTableDefinition {
+    pub fn table_definition(&self) -> &DatabaseTableDefinition<T> {
         &self.table_definition
     }
 }
 
-impl AsSql for CreateTable {
+impl<T> AsSql for CreateTable<T> {
     fn as_sql(&self) -> String {
         let columns_sql = self
             .table_definition
@@ -56,7 +56,7 @@ mod test {
     #[test]
     fn as_sql_works() -> Result<(), String> {
         let table_name = Identifier::new("new_table".to_string()).unwrap();
-        let table_definition = DatabaseTableDefinition::new(&table_name)
+        let table_definition = DatabaseTableDefinition::<()>::new(&table_name)
             .unwrap()
             .column(TableColumn::new_uuid("uuid_pk_nonnull")?.non_null().pk())
             .column(TableColumn::new_string("string")?)
