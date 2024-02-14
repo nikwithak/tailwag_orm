@@ -21,6 +21,22 @@ pub struct PostgresDataProvider<T: Insertable> {
     pub _t: PhantomData<T>,
 }
 
+impl<T> PostgresDataProvider<T>
+where
+    T: Insertable,
+{
+    pub fn new(
+        table_definition: DatabaseTableDefinition<T>,
+        db_pool: Pool<Postgres>,
+    ) -> Self {
+        Self {
+            table_definition,
+            db_pool,
+            _t: PhantomData,
+        }
+    }
+}
+
 pub trait GetTableDefinition {
     fn get_table_definition() -> DatabaseTableDefinition<Self>
     where
