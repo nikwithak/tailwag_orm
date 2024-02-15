@@ -11,14 +11,14 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
         let column_name_as_string = column.column_name.as_str();
 
         type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-        let format_string = match &column.column_type {
-            E::Boolean | E::Int | E::Float => quote!("{}"), // No surrounding quotes - I need to refactor how this works *ANYWAY* (i.e. prep statements)
-            E::String | E::Timestamp | E::Uuid => quote!(
-                "'{}'"
-            ),
-            E::Json =>  quote!(
-                "'{}'"
-            ),
+        let wrapped_type = match &column.column_type {
+            E::Boolean => quote!(tailwag::orm::data_definition::table::ColumnValue::Boolean(#column_name.clone())),
+            E::Int => quote!(tailwag::orm::data_definition::table::ColumnValue::Int(#column_name.clone())),
+            E::Float => quote!(tailwag::orm::data_definition::table::ColumnValue::Float(#column_name.clone())),
+            E::String => quote!(tailwag::orm::data_definition::table::ColumnValue::String(#column_name.to_string())),
+            E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
+            E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
+            E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
@@ -29,18 +29,22 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                 if let Some(#column_name) = &self.#column_name {
                     insert_map.insert(
                         tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string).expect("Invalid column identifier found - this should not happen. Panicking."),
-                        format!(#format_string, &#column_name.to_string()),
+                        #wrapped_type,
                     );
                 }
+                // TODO - else insert null, explicitly?
             )
         } else {
             quote!(
-                insert_map.insert(
-                    tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string.to_string()).expect("Invalid column identifier found - this should not happen. Panicking."),
-                    // TODO: Can't support differently named column/struct_attr names right now
-                    // TODO: Only supports string-like types, apparetly?
-                    format!(#format_string, &self.#column_name.to_string()),
-                );
+                {
+                    let #column_name = &self.#column_name;
+                    insert_map.insert(
+                        tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string.to_string()).expect("Invalid column identifier found - this should not happen. Panicking."),
+                        // TODO: Can't support differently named column/struct_attr names right now
+                        // TODO: Only supports string-like types, apparetly?
+                        #wrapped_type,
+                    );
+                }
             )
         };
         insert_statement

@@ -7,6 +7,16 @@ use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
 
 use super::{TableColumnConstraint, TableColumnConstraintDetail};
 
+pub enum ColumnValue {
+    Boolean(bool),                    // BOOL or BOOLEAN
+    Int(i64),                         // INT
+    Float(f64),                       // FLOAT
+    String(String),                   // VARCHAR or TEXT
+    Timestamp(chrono::NaiveDateTime), // TIMESTAMP
+    Uuid(uuid::Uuid),                 // UUID
+    Json(String),                     // JSONB
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DatabaseColumnType {
     Boolean,   // BOOL or BOOLEAN

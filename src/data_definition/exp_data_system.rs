@@ -15,14 +15,15 @@ use super::table::DatabaseTableDefinition;
 
 #[derive(Default)]
 pub struct DataSystemBuilder {
-    resources: HashMap<TypeId, Box<dyn Any>>,
+    resources: HashMap<TypeId, Arc<Box<dyn Any + Send + Sync>>>,
 }
 
 impl DataSystemBuilder {
-    pub fn add_resource<T: GetTableDefinition + 'static>(&mut self) {
-        self.resources.insert(TypeId::of::<T>(), Box::new(T::get_table_definition()));
+    pub fn add_resource<T: GetTableDefinition + Send + Sync + 'static>(&mut self) {
+        self.resources
+            .insert(TypeId::of::<T>(), Arc::new(Box::new(T::get_table_definition())));
     }
-    pub fn with_resource<T: GetTableDefinition + 'static>(mut self) -> Self {
+    pub fn with_resource<T: GetTableDefinition + Send + Sync + 'static>(mut self) -> Self {
         self.add_resource::<T>();
         self
     }
@@ -35,7 +36,7 @@ impl DataSystemBuilder {
 }
 
 pub struct UnconnectedDataSystem {
-    resources: Arc<HashMap<TypeId, Box<dyn Any>>>,
+    resources: Arc<HashMap<TypeId, Arc<Box<dyn Any + Send + Sync>>>>,
 }
 impl UnconnectedDataSystem {
     pub async fn connect(
@@ -51,7 +52,7 @@ impl UnconnectedDataSystem {
 
 #[derive(Clone)]
 pub struct DataSystem {
-    resources: Arc<HashMap<TypeId, Box<dyn Any>>>,
+    resources: Arc<HashMap<TypeId, Arc<Box<dyn Any + Send + Sync>>>>,
     pool: sqlx::Pool<Postgres>,
 }
 

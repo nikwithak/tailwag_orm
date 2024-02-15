@@ -5,7 +5,7 @@ use crate::{
     AsSql, BuildSql,
 };
 use async_trait::async_trait;
-use sqlx::{postgres::PgRow, Error, FromRow, Pool, Postgres};
+use sqlx::{postgres::PgRow, Error, Execute, FromRow, Pool, Postgres, QueryBuilder};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -192,7 +192,10 @@ where
     ) -> Result<T, Self::Error> {
         let insert = item.get_insert_statement();
         // TODO/DEBUG: Is the query returning the result? Can I simply run it as a query_as instead?
-        sqlx::query(&insert.as_sql()).execute(&self.db_pool).await?;
+        let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
+        insert.build_sql(&mut builder);
+        builder.build().execute(&self.db_pool).await?;
+
         Ok(item)
     }
 
@@ -200,9 +203,14 @@ where
         &self,
         item: T,
     ) -> Result<(), Self::Error> {
-        let mut builder = sqlx::QueryBuilder::new("");
+        let mut builder: QueryBuilder<'_, Postgres> = sqlx::QueryBuilder::new("");
         item.get_delete_statement().build_sql(&mut builder);
-        sqlx::query(&builder.into_sql()).execute(&self.db_pool).await?;
+        let query = builder.build();
+        dbg!(&query.sql());
+        if query.execute(&self.db_pool).await?.rows_affected() > 1 {
+            panic!("Deleted more than one row in a Delete operation. This should not happen.");
+        }
+
         Ok(())
     }
 
@@ -210,8 +218,12 @@ where
         &self,
         item: &T,
     ) -> Result<(), Self::Error> {
-        let update = item.get_update_statement();
-        sqlx::query(&update.as_sql()).execute(&self.db_pool).await?;
+        let mut update = item.get_update_statement();
+        // TODO: YHank AsSql for the (safe) BuildSql here
+        let mut builder: QueryBuilder<'_, Postgres> = sqlx::QueryBuilder::new("");
+        update.build_sql(&mut builder);
+        let _ = builder.build().execute(&self.db_pool).await?;
+
         Ok(())
     }
 }
