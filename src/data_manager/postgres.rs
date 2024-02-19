@@ -4,12 +4,10 @@ use crate::{
     queries::{filterable_types::Filterable, Deleteable, Filter, Insertable, Query, Updateable},
     AsSql, BuildSql,
 };
-use async_trait::async_trait;
 use sqlx::{postgres::PgRow, Error, Execute, FromRow, Pool, Postgres, QueryBuilder};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
-    vec::IntoIter,
 };
 
 use super::{rest_api::Id, traits::WithFilter};
