@@ -5,7 +5,6 @@ use crate::{
     object_management::{
         delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
     },
-    AsSql,
 };
 
 use super::Filter;
@@ -36,10 +35,6 @@ pub trait Updateable {
 }
 
 impl<T> Query<T> {
-    // fn execute() -> Vec<T> {
-    //     todo!()
-    // }
-
     #[allow(unused)]
     fn limit(
         mut self,
@@ -49,10 +44,6 @@ impl<T> Query<T> {
         self
     }
 
-    // fn get(filter: Filter) -> Option<T> {
-    //     // TODO: get by ID
-    //     todo!()
-    // }
     pub fn filter(
         mut self,
         filter: Filter,
@@ -65,10 +56,6 @@ impl<T> Query<T> {
         self
     }
 }
-
-/// DEPRECATED - left in for backwards compatibility.
-/// TODO: Remove when old types are updated.
-// pub trait Qeryable {}
 
 pub trait Insertable
 where

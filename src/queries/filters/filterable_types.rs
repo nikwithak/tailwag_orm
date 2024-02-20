@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use chrono::NaiveDateTime;
 use uuid::Uuid;
 
 use crate::data_definition::table::{Identifier, TableColumn};

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use sqlx::Postgres;
 
-use crate::{AsSql, BuildSql};
+use crate::BuildSql;
 
 use crate::data_definition::table::{ColumnValue, DatabaseTableDefinition, Identifier};
 
@@ -38,7 +38,7 @@ impl<T> BuildSql for UpdateStatement<T> {
         for (i, (column, value)) in self
             .object_repr
             .iter()
-            .filter(|(k, v)| &k as &str != &Identifier::new_unchecked("id") as &str)
+            .filter(|(k, _v)| &k as &str != &Identifier::new_unchecked("id") as &str)
             .enumerate()
         {
             match value {

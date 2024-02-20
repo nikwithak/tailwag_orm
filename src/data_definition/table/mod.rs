@@ -1,5 +1,6 @@
 mod column;
 mod identifier;
+#[allow(clippy::module_inception)]
 mod table;
 mod constraints;
 

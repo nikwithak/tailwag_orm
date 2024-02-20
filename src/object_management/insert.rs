@@ -4,7 +4,7 @@ use sqlx::Postgres;
 
 use crate::{
     data_definition::table::{ColumnValue, DatabaseTableDefinition, Identifier},
-    AsSql, BuildSql,
+    BuildSql,
 };
 
 pub struct InsertStatement<T> {

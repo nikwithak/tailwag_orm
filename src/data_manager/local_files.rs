@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -37,6 +36,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
     type CreateRequest = T;
     type Error = crate::Error;
 
+    #[allow(unreachable_code)]
     async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
         todo!();
         Ok(Vec::new().into_iter())
@@ -57,7 +57,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
 
     async fn get(
         &self,
-        predicate: impl FnOnce(<T as Filterable>::FilterType) -> Filter,
+        _predicate: impl FnOnce(<T as Filterable>::FilterType) -> Filter,
     ) -> Result<Option<T>, Self::Error> {
         todo!()
         // let path = self.get_filepath(&id);
@@ -75,7 +75,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
         let path = self.get_filepath(item.id());
         // // For safety, make sure it's the right object:
         // self.get(*item.id()).await?;
-        fs::remove_file(&path);
+        fs::remove_file(path)?;
         Ok(())
     }
 

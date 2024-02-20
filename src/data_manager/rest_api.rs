@@ -60,7 +60,7 @@ where
 
     async fn get(
         &self,
-        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
+        _predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, Self::Error> {
         // let url = format!("{}/{}", &self.endpoint, &id);
         // let response = self.http_client.get(&url).send().await.unwrap();

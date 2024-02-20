@@ -94,26 +94,12 @@ impl TableColumnData {
     pub fn is_nullable(&self) -> bool {
         self.constraints
             .iter()
-            .find(|constraint| {
-                if let TableColumnConstraintDetail::NotNull = &*constraint.detail {
-                    true
-                } else {
-                    false
-                }
-            })
-            .is_none()
+            .all(|constraint| TableColumnConstraintDetail::NotNull != *constraint.detail)
     }
     pub fn is_pk(&self) -> bool {
-        self.constraints
-            .iter()
-            .find(|constraint| {
-                if let TableColumnConstraintDetail::PrimaryKey(_) = &*constraint.detail {
-                    true
-                } else {
-                    false
-                }
-            })
-            .is_some()
+        self.constraints.iter().any(|constraint| {
+            matches!(&*constraint.detail, TableColumnConstraintDetail::PrimaryKey(_))
+        })
     }
 }
 
@@ -154,6 +140,7 @@ impl TableColumn {
     ///
     /// Before using TableColumn::new, see if any of the provided helper
     /// `TableColumn::new_*` functions fit your use case.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         column_name: &str,
         column_type: DatabaseColumnType,

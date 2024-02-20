@@ -41,10 +41,7 @@ impl Identifier {
     }
 
     fn is_valid(value: &str) -> bool {
-        value.chars().all(|c| match c {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => true,
-            _ => false,
-        })
+        value.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))
     }
 
     pub fn new<S: Into<String>>(value: S) -> Result<Self, String> {

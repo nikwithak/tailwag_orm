@@ -17,6 +17,7 @@ impl<T> Deref for DatabaseTableDefinition<T> {
 }
 
 impl<T> DatabaseTableDefinition<T> {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(table_name: &str) -> Result<DatabaseTableDefinitionData<T>, String> {
         DatabaseTableDefinitionData::<T>::new(table_name)
     }

@@ -32,9 +32,9 @@ impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
 
     async fn get(
         &self,
-        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
+        _predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, Self::Error> {
-        let items = self.items.lock().unwrap();
+        let _items = self.items.lock().unwrap();
         // let item = items.get(&id).cloned();
         // Ok(item)
         todo!()

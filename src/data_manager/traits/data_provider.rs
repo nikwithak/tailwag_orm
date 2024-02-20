@@ -1,9 +1,4 @@
-use std::{
-    fmt::Debug,
-    ops::{Deref, DerefMut},
-};
-
-use uuid::Uuid;
+use std::ops::{Deref, DerefMut};
 
 use crate::queries::filterable_types::Filterable;
 
@@ -24,6 +19,7 @@ use crate::queries::filterable_types::Filterable;
 ///  - { } TODO: PolicyEnforcedDataProvider
 ///  - [ ] TODO: MultiSourceDataProvider
 // #[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait DataProvider<T>
 where
     T: Filterable,

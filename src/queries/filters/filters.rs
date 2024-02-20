@@ -4,6 +4,7 @@ use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 use uuid::Uuid;
 
 #[derive(Clone)]
+// TODO: This is duplicated iwth DB types somewhere else
 pub enum FilterComparisonParam {
     TableColumn(TableColumn),
     String(String),

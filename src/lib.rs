@@ -1,5 +1,3 @@
-use std::sync::{LockResult, MutexGuard};
-
 use sqlx::Postgres;
 
 pub mod data_definition;
@@ -16,6 +14,7 @@ pub enum Error {
     DataIntegrity(String),
     HttpError(reqwest::Error),
     MutexLock(String),
+    IoError(std::io::Error),
 }
 macro_rules! impl_from {
     ($enum:ident::$variant:ident($ty:ty)) => {
@@ -27,6 +26,7 @@ macro_rules! impl_from {
     };
 }
 impl_from!(Error::Sqlx(sqlx::Error));
+impl_from!(Error::IoError(std::io::Error));
 impl_from!(Error::Unknown(String));
 impl From<&str> for Error {
     fn from(val: &str) -> Self {
