@@ -47,12 +47,6 @@ pub trait AsSql {
     fn as_sql(&self) -> String;
 }
 
-pub trait FromSql {
-    fn from_sql<T: AsSql>(_sql: &str) -> T {
-        todo!("FromSql is not yet implemented.")
-    }
-}
-
 pub trait BuildSql {
     fn build_sql(
         &self,

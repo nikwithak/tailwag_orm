@@ -24,7 +24,8 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 
-        let insert_statement = if column.is_nullable() {
+        
+        if column.is_nullable() {
             quote!(
                 if let Some(#column_name) = &self.#column_name {
                     insert_map.insert(
@@ -46,8 +47,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                     );
                 }
             )
-        };
-        insert_statement
+        }
     });
 
     let tokens = quote!(
@@ -96,7 +96,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 }
             );
 
-            parse_args_impl_tokens.into()
+            parse_args_impl_tokens
         },
         syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
         syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),
