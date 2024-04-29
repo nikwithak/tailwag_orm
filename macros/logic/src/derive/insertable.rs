@@ -19,8 +19,10 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_child_type) => {
+                todo!("{:?} is a OneToOne relationship that isn't yet supported. The difficult part here is that we don't have the child type properly mapped yet.", &column.column_type)
+            },
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 

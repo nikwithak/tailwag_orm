@@ -104,7 +104,7 @@ impl BuildSql for ForeignKeyConstraint {
             .map(|col| col.column_name.clone())
             .collect::<Vec<_>>()
             .build_sql(builder);
-        builder.push_bind(") ").push("REFERENCES ").push(&**ref_table).push("(");
+        builder.push(") ").push("REFERENCES ").push(&**ref_table).push("(");
         ref_columns.build_sql(builder);
         builder.push(")");
     }

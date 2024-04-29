@@ -172,11 +172,13 @@ impl BuildSql for ReferencesConstraint {
         &self,
         sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
-        sql.push("REFERENCES");
-        sql.push_bind(self.ref_table.to_string());
+        sql.push("REFERENCES ");
+        sql.push(self.ref_table.to_string());
         sql.push(' ');
         if let Some(column) = &self.ref_column {
-            sql.push(&*column);
+            sql.push('(');
+            sql.push(column);
+            sql.push(')');
         }
         if let Some(match_type) = &self.match_type {
             match_type.build_sql(sql);

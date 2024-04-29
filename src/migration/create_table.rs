@@ -50,11 +50,15 @@ impl<T> AsSql for CreateTable<T> {
 #[cfg(test)]
 mod test {
     use create_table::CreateTable;
+    use sqlx::QueryBuilder;
 
     use crate::{
-        data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
-        migration::create_table,
-        AsSql,
+        data_definition::{
+            database_definition::{DatabaseDefinition, DatabaseDefinitionBuilder},
+            table::{DatabaseTableDefinition, Identifier, TableColumn},
+        },
+        migration::{create_table, Migration},
+        AsSql, BuildSql,
     };
 
     #[test]
@@ -63,7 +67,7 @@ mod test {
     }
 
     #[test]
-    fn as_sql_works() -> Result<(), String> {
+    fn create_table__as_sql_works() -> Result<(), String> {
         let table_name = Identifier::new("new_table".to_string()).unwrap();
         let table_definition = DatabaseTableDefinition::<()>::new(&table_name)
             .unwrap()
@@ -94,6 +98,58 @@ mod test {
             " );"].join("");
 
         assert_eq!(queries, expected_query);
+        Ok(())
+    }
+
+    #[test]
+    fn create_table__one_to_one_works() -> Result<(), String> {
+        let child_table: DatabaseTableDefinition<()> =
+            DatabaseTableDefinition::<()>::new(&Identifier::new("child_table")?)?
+                .column(TableColumn::new_uuid("id")?.non_null().pk())
+                .column(TableColumn::new_int("value")?.non_null())
+                .into();
+        let parent_table: DatabaseTableDefinition<_> =
+            DatabaseTableDefinition::<()>::new(&Identifier::new("parent_table")?)?
+                .column(TableColumn::new_uuid("id")?.non_null().pk())
+                .column(
+                    TableColumn::new_uuid("child_id")?.fk_to(
+                        child_table.clone(),
+                        child_table
+                            .columns
+                            .get(&Identifier::new("id")?)
+                            .expect("Failed to get child table column")
+                            .clone(),
+                    ),
+                )
+                .into();
+        let create_table = CreateTable {
+            table_definition: parent_table.clone(),
+        };
+
+        let queries = (
+            dbg!(CreateTable {
+                table_definition: child_table.clone()
+            }
+            .as_sql()),
+            dbg!(create_table.as_sql()),
+        );
+
+        let db: DatabaseDefinition<_> = DatabaseDefinitionBuilder::new("test_db")
+            .unwrap()
+            .add_table(child_table)
+            .add_table(parent_table)
+            .into();
+
+        let mgirations = dbg!(Migration::compare(None, &db)).unwrap();
+        let mut query_builder = QueryBuilder::new("");
+        mgirations.build_sql(&mut query_builder);
+        let sql = dbg!(query_builder.into_sql());
+        assert_eq!(
+            r#"CREATE TABLE IF NOT EXISTS child_table (id UUID NOT NULL PRIMARY KEY ,value INT NOT NULL);
+CREATE TABLE IF NOT EXISTS parent_table (child_id UUID REFERENCES child_table (id),id UUID NOT NULL PRIMARY KEY );
+"#,
+            sql
+        );
         Ok(())
     }
 }
