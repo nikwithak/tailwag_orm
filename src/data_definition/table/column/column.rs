@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::AsSql;
+use crate::{AsSql, BuildSql};
 
 use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
 
@@ -56,7 +56,6 @@ impl DatabaseColumnType {
 
 /// Represents a table column. Primarily-based on the PostgreSQL spec for table definition
 /// The goal is to get full parity with PostgreSQL.
-///
 /// [ref](https://www.postgresql.org/docs/current/sql-createtable.html)
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TableColumn {
@@ -222,15 +221,17 @@ impl TableColumn {
     }
 }
 
-impl AsSql for TableColumn {
-    fn as_sql(&self) -> String {
-        let mut statement = format!("{} {}", &self.column_name, &self.column_type.as_str());
+impl BuildSql for TableColumn {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        // sql.push_bind(self.column_name.to_string());
+        sql.push(self.column_name.to_string()).push(" ").push(self.column_type.as_str());
 
         let constraints_iter = self.constraints.iter();
         for constraint in constraints_iter {
-            statement.push(' ');
-            statement.push_str(&constraint.as_sql());
+            constraint.build_sql(sql);
         }
-        statement
     }
 }

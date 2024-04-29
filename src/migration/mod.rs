@@ -21,7 +21,7 @@ mod tests {
             create_table, AlterColumn, AlterColumnAction, AlterTable, AlterTableAction,
             MigrationAction,
         },
-        AsSql,
+        AsSql, BuildSql,
     };
 
     use super::Migration;
@@ -99,12 +99,15 @@ mod tests {
         };
 
         // Act
-        let result_sql = migration.as_sql();
+        let mut query_builder = sqlx::QueryBuilder::new("");
+        migration.build_sql(&mut query_builder);
+        let result_sql = query_builder.into_sql();
 
         // Assert
         // NOTE: This tests is a little finicky - does not account for different whitespace.
         //       This should be fine, but has room for improvement.
-        let mut queries = result_sql.split('\n').collect::<Vec<&str>>();
+        let mut queries =
+            dbg!(result_sql.split('\n').filter(|l| !l.is_empty()).collect::<Vec<&str>>());
         let mut expected_queries: Vec<&str> = vec![
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN bool TYPE VARCHAR, ALTER COLUMN bool DROP NOT NULL;",
             "ALTER TABLE IF EXISTS table_1 ALTER COLUMN int TYPE FLOAT;",
@@ -241,6 +244,8 @@ mod tests {
 
         assert_eq!(actual, expected);
 
-        println!("{}", actual.as_sql());
+        let mut builder = sqlx::QueryBuilder::new("");
+        actual.build_sql(&mut builder);
+        println!("{}", builder.into_sql());
     }
 }

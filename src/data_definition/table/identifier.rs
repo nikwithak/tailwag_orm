@@ -9,7 +9,7 @@ pub struct Identifier {
 }
 
 impl Deref for Identifier {
-    type Target = Arc<String>;
+    type Target = str;
 
     fn deref(&self) -> &Self::Target {
         // TODO: Once I'm confident that this is impossible (it should b), remove the validate() call  - it adds a string pass on every deref.

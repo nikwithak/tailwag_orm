@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use sqlx::Postgres;
 
 pub mod data_definition;
@@ -34,6 +36,14 @@ impl From<&str> for Error {
     }
 }
 impl_from!(Error::HttpError(reqwest::Error));
+impl Display for Error {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
 // impl<'a, T> From<LockResult<MutexGuard<'a, T>>> for Error {
 //     fn from(value: LockResult<MutexGuard<'a, T>>) -> Self {

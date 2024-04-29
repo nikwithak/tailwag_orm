@@ -1,6 +1,6 @@
 use crate::{
     data_definition::table::{DatabaseColumnType, Identifier, TableColumn, TableConstraint},
-    AsSql,
+    AsSql, BuildSql,
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -16,27 +16,38 @@ pub enum AlterTableAction {
     DropConstraint(TableConstraint),
 }
 
-impl AsSql for AlterTableAction {
-    fn as_sql(&self) -> String {
+impl BuildSql for AlterTableAction {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         type E = AlterTableAction;
+
         match self {
-            E::Rename(ident) => format!("RENAME TO {}", ident),
-            E::AddColumn(table_column) => {
-                format!("ADD COLUMN IF NOT EXISTS {}", table_column.as_sql())
+            E::Rename(ident) => {
+                sql.push("RENAME TO ").push(ident.to_string());
             },
-            E::DropColumn(ident) => format!("DROP COLUMN IF EXISTS {}", ident),
-            E::AlterColumn(alter_column) => alter_column.as_sql(),
-            E::AddConstraint(constraint) => format!("ADD {}", &constraint.as_sql()),
+            E::AddColumn(table_column) => {
+                sql.push("ADD COLUMN IF NOT EXISTS ");
+                table_column.build_sql(sql);
+            },
+            E::DropColumn(ident) => {
+                sql.push("DROP COLUMN IF EXISTS ").push(ident.to_string());
+            },
+            E::AlterColumn(alter_column) => alter_column.build_sql(sql),
+            E::AddConstraint(constraint) => {
+                sql.push("ADD ");
+                &constraint.build_sql(sql);
+            },
             E::AlterConstraint() => todo!(),
             E::DropConstraint(constraint) => {
-                format!(
-                    "DROP CONSTRAINT IF EXISTS {}",
-                    &constraint
+                sql.push("DROP CONSTRAINT IF EXISTS ").push(
+                    constraint
                         .name
                         .as_ref()
                         .map(|c| c.to_string())
-                        .unwrap_or("UNNAMED_CONSTRAINT".to_string())
-                )
+                        .unwrap_or("UNNAMED_CONSTRAINT".to_string()),
+                );
             },
         }
     }
@@ -48,19 +59,17 @@ pub struct AlterTable {
     pub actions: Vec<AlterTableAction>,
 }
 
-impl AsSql for AlterTable {
-    fn as_sql(&self) -> String {
-        let statements = self
-            .actions
-            .iter()
-            .map(|action| action.as_sql())
-            .collect::<Vec<String>>()
-            .iter()
-            .map(|action_sql| format!("ALTER TABLE IF EXISTS {} {};", self.table_name, &action_sql))
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        statements
+impl BuildSql for AlterTable {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        let actions = self.actions.iter().peekable();
+        for action in actions {
+            sql.push("ALTER TABLE IF EXISTS ").push(self.table_name.to_string()).push(" ");
+            action.build_sql(sql);
+            sql.push(";\n");
+        }
     }
 }
 
@@ -87,16 +96,22 @@ pub enum AlterColumnAction {
                                  // _SetCompression(_CompressionMethod), // TODO: Unsupported yet
 }
 
-impl AsSql for AlterColumnAction {
-    fn as_sql(&self) -> String {
+impl BuildSql for AlterColumnAction {
+    fn build_sql(
+        &self,
+
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         match self {
-            AlterColumnAction::SetType(t) => format!("TYPE {}", t.as_str()),
+            AlterColumnAction::SetType(t) => sql.push("TYPE ").push(t.as_str()),
             AlterColumnAction::SetNullability(nullable) => {
-                #[rustfmt::skip]
-                let verb = if *nullable { "DROP" } else { "SET" };
-                format!("{} NOT NULL", verb)
+                if *nullable {
+                    sql.push("DROP NOT NULL")
+                } else {
+                    sql.push("SET NOT NULL")
+                }
             },
-        }
+        };
     }
 }
 
@@ -106,18 +121,18 @@ pub struct AlterColumn {
     pub actions: Vec<AlterColumnAction>,
 }
 
-impl AsSql for AlterColumn {
-    fn as_sql(&self) -> String {
-        let actions_sql = self
-            .actions
-            .iter()
-            .map(|action| action.as_sql())
-            .collect::<Vec<String>>()
-            .iter()
-            .map(|action| format!("ALTER COLUMN {} {}", &self.column_name, &action))
-            .collect::<Vec<String>>()
-            .join(", ");
-
-        actions_sql
+impl BuildSql for AlterColumn {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        let mut actions = self.actions.iter().peekable();
+        while let Some(action) = actions.next() {
+            sql.push("ALTER COLUMN ").push(self.column_name.to_string()).push(" ");
+            action.build_sql(sql);
+            if actions.peek().is_some() {
+                sql.push(", ");
+            }
+        }
     }
 }

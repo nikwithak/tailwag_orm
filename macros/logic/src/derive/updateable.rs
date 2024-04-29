@@ -7,8 +7,8 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
         crate::util::database_table_definition::build_table_definition::<()>(input);
 
     let update_maps = input_table_definition.columns.values().map(|column| {
-        let column_name = format_ident!("{}", column.column_name.as_str());
-        let column_name_as_string = column.column_name.as_str();
+        let column_name = format_ident!("{}", column.column_name.to_string());
+        let column_name_as_string = column.column_name.to_string();
 
         type E = tailwag_orm::data_definition::table::DatabaseColumnType;
         let wrapped_type = match &column.column_type {

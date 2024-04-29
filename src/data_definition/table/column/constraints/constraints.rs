@@ -2,7 +2,7 @@ use std::{ops::Deref, sync::Arc};
 
 use crate::{
     data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
-    AsSql,
+    AsSql, BuildSql,
 };
 
 #[derive(PartialEq, Eq, Debug, Default)]
@@ -10,21 +10,26 @@ pub struct PrimaryKeyColumnConstraint {
     index_parameters: Option<IndexParameters>,
 }
 
-impl AsSql for PrimaryKeyColumnConstraint {
-    fn as_sql(&self) -> String {
+impl BuildSql for PrimaryKeyColumnConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         let mut statement = "PRIMARY KEY".to_string();
+        sql.push("PRIMARY KEY ");
         if let Some(params) = &self.index_parameters {
-            statement.push(' ');
-            statement.push_str(&params.as_sql());
+            params.build_sql(sql);
         }
-        statement.to_string()
     }
 }
 
 struct CheckExpressionConstraint {}
 
-impl AsSql for CheckExpressionConstraint {
-    fn as_sql(&self) -> String {
+impl BuildSql for CheckExpressionConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         todo!()
     }
 }
@@ -32,9 +37,27 @@ impl AsSql for CheckExpressionConstraint {
 #[derive(PartialEq, Eq, Debug, Default)]
 pub struct IndexParameters {}
 
-impl AsSql for IndexParameters {
-    fn as_sql(&self) -> String {
+impl BuildSql for IndexParameters {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         todo!()
+    }
+}
+
+impl BuildSql for Vec<Identifier> {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        let mut idents = self.iter().peekable();
+        while let Some(col) = idents.next() {
+            builder.push_bind(col.to_string());
+            if idents.peek().is_some() {
+                builder.push(", ");
+            }
+        }
     }
 }
 
@@ -44,14 +67,16 @@ pub struct UniqueColumnConstraint {
     index_parameters: Option<IndexParameters>,
 }
 
-impl AsSql for UniqueColumnConstraint {
-    fn as_sql(&self) -> String {
-        let mut statement = "UNIQUE".to_string();
+impl BuildSql for UniqueColumnConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push("UNIQUE");
         if self.is_null_distinct {
-            statement.push_str(" NULLS DISTINCT");
+            sql.push(" NULLS DISTINCT");
         }
         // TODO: index_parameters impl
-        statement
     }
 }
 
@@ -96,37 +121,26 @@ pub enum ReferentialAction {
     SetDefault(Vec<Identifier>),
 }
 
-impl AsSql for ReferentialAction {
-    fn as_sql(&self) -> String {
+impl BuildSql for ReferentialAction {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         match self {
-            ReferentialAction::NoAction => "NO ACTION".to_string(),
-            ReferentialAction::Restrict => "RESTRICT".to_string(),
-            ReferentialAction::Cascade => "CASCADE".to_string(),
+            ReferentialAction::NoAction => sql.push("NO ACTION"),
+            ReferentialAction::Restrict => sql.push("RESTRICT"),
+            ReferentialAction::Cascade => sql.push("CASCADE"),
             ReferentialAction::SetNull(column_names) => {
-                let mut statement = "SET NULL ( ".to_string();
-                statement.push_str(
-                    &column_names
-                        .iter()
-                        .map(|column_name| column_name.as_str())
-                        .collect::<Vec<&str>>()
-                        .join(", "),
-                );
-                statement.push_str(" )");
-                statement
+                sql.push("SET NULL ( ");
+                column_names.build_sql(sql);
+                sql.push(" )")
             },
             ReferentialAction::SetDefault(column_names) => {
-                let mut statement = "SET DEFAULT ( ".to_string();
-                statement.push_str(
-                    &column_names
-                        .iter()
-                        .map(|column_name| column_name.as_str())
-                        .collect::<Vec<&str>>()
-                        .join(", "),
-                );
-                statement.push_str(" )");
-                statement
+                sql.push(" SET DEFAULT (");
+                column_names.build_sql(sql);
+                sql.push(" )")
             },
-        }
+        };
     }
 }
 
@@ -137,40 +151,44 @@ pub enum ReferencesConstraintMatchType {
     Simple,
 }
 
-impl AsSql for ReferencesConstraintMatchType {
-    fn as_sql(&self) -> String {
-        match self {
+impl BuildSql for ReferencesConstraintMatchType {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push(match self {
             ReferencesConstraintMatchType::Full => "MATCH FULL",
             ReferencesConstraintMatchType::Partial => "MATCH PARTIAL",
             ReferencesConstraintMatchType::Simple => "MATCH SIMPLE",
-        }
-        .to_string()
+        });
     }
 }
 
 // TODO: Aside from implemetning this, I need to refactor how I handle (some?) constraints that reference other tables, to avoid referencing the table before it exists.
 
-impl AsSql for ReferencesConstraint {
-    fn as_sql(&self) -> String {
-        let mut statement = format!("REFERENCES {}", &self.ref_table);
+// sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+impl BuildSql for ReferencesConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push("REFERENCES");
+        sql.push_bind(self.ref_table.to_string());
+        sql.push(' ');
         if let Some(column) = &self.ref_column {
-            statement.push(' ');
-            statement.push_str(column.as_str());
+            sql.push(&*column);
         }
         if let Some(match_type) = &self.match_type {
-            statement.push(' ');
-            statement.push_str(&match_type.as_sql());
+            match_type.build_sql(sql);
         }
         if let Some(ref_action) = &self.on_delete_action {
-            statement.push_str(" ON DELETE ");
-            statement.push_str(&ref_action.as_sql());
+            sql.push(" ON DELETE ");
+            ref_action.build_sql(sql);
         }
         if let Some(ref_action) = &self.on_delete_action {
-            statement.push_str(" ON UPDATE ");
-            statement.push_str(&ref_action.as_sql());
+            sql.push(" ON UPDATE ");
+            ref_action.build_sql(sql);
         }
-
-        statement
     }
 }
 
@@ -236,13 +254,18 @@ impl TableColumnConstraint {
     }
 }
 
-impl AsSql for TableColumnConstraint {
-    fn as_sql(&self) -> String {
+impl BuildSql for TableColumnConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push(" ");
         if let Some(name) = &self.name {
-            format!("CONSTRAINT {} {}", name, &self.detail.as_sql())
-        } else {
-            self.detail.as_sql()
+            sql.push("CONSTRAINT ");
+            sql.push_bind(name.to_string());
+            sql.push(" ");
         }
+        self.detail.build_sql(sql)
     }
 }
 
@@ -258,17 +281,24 @@ pub enum TableColumnConstraintDetail {
     References(ReferencesConstraint),
 }
 
-impl AsSql for TableColumnConstraintDetail {
-    fn as_sql(&self) -> String {
+impl BuildSql for TableColumnConstraintDetail {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         match self {
-            TableColumnConstraintDetail::NotNull => "NOT NULL".to_owned(),
-            TableColumnConstraintDetail::Null => "NULL".to_owned(),
+            TableColumnConstraintDetail::NotNull => {
+                sql.push("NOT NULL".to_owned());
+            },
+            TableColumnConstraintDetail::Null => {
+                sql.push("NULL".to_owned());
+            },
             // TableColumnConstraint::Check(check) => check.as_sql(),
             // TableColumnConstraint::Default(_) => todo!(),
             // TableColumnConstraint::Generated(_) => todo!(),
-            TableColumnConstraintDetail::Unique(unique) => unique.as_sql(),
-            TableColumnConstraintDetail::PrimaryKey(pk) => pk.as_sql(),
-            TableColumnConstraintDetail::References(fk) => fk.as_sql(),
+            TableColumnConstraintDetail::Unique(unique) => unique.build_sql(sql),
+            TableColumnConstraintDetail::PrimaryKey(pk) => pk.build_sql(sql),
+            TableColumnConstraintDetail::References(fk) => fk.build_sql(sql),
         }
     }
 }

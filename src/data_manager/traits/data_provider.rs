@@ -18,7 +18,6 @@ use crate::queries::filterable_types::Filterable;
 ///  - [ ] TODO: CachedDataProvider<P: DataProvider>
 ///  - { } TODO: PolicyEnforcedDataProvider
 ///  - [ ] TODO: MultiSourceDataProvider
-// #[async_trait]
 #[allow(async_fn_in_trait)]
 pub trait DataProvider<T>
 where

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::AsSql;
+use crate::BuildSql;
 
 use super::{
     Identifier, IndexParameters, ReferencesConstraintMatchType, ReferentialAction, TableColumn,
@@ -12,13 +12,15 @@ pub struct TableConstraint {
     pub detail: Arc<TableConstraintDetail>,
 }
 
-impl AsSql for TableConstraint {
-    fn as_sql(&self) -> String {
+impl BuildSql for TableConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         if let Some(name) = &self.name {
-            format!("CONSTRAINT {} {}", name, self.detail.as_sql())
-        } else {
-            self.detail.as_sql()
+            sql.push("CONSTRAINT ").push_bind(name.to_string()).push(" ");
         }
+        self.detail.build_sql(sql);
     }
 }
 
@@ -29,14 +31,16 @@ pub enum TableConstraintDetail {
     ForeignKey(ForeignKeyConstraint),
 }
 
-impl AsSql for TableConstraintDetail {
-    fn as_sql(&self) -> String {
+impl BuildSql for TableConstraintDetail {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
         match self {
-            Self::ForeignKey(_fk) => "",
-            Self::Unique(_) => todo!(),
-            Self::PrimaryKey(_) => todo!(),
-        }
-        .into()
+            Self::ForeignKey(fk) => fk.build_sql(sql),
+            Self::Unique(un) => un.build_sql(sql),
+            Self::PrimaryKey(pk) => pk.build_sql(sql),
+        };
     }
 }
 
@@ -47,25 +51,17 @@ pub struct UniqueConstraint {
     columns: Vec<TableColumn>,
 }
 
-impl AsSql for UniqueConstraint {
-    fn as_sql(&self) -> String {
-        let mut statement = "UNIQUE".to_string();
+impl BuildSql for UniqueConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push("UNIQUE ");
         if self.is_null_distinct {
-            statement.push_str(" NULLS DISTINCT");
+            sql.push("NULLS DISTINCT ");
         }
-
-        // Collect the column names
-        let columns = self
-            .columns
-            .iter()
-            .map(|col| col.column_name.as_str())
-            .collect::<Vec<&str>>()
-            .join(", ");
-        statement.push(' ');
-        statement.push_str(&columns);
-
-        // TODO: index_parameters impl
-        statement
+        let columns = self.columns.iter().map(|col| col.column_name.clone()).collect::<Vec<_>>();
+        columns.build_sql(sql);
     }
 }
 
@@ -75,20 +71,42 @@ pub struct PrimaryKeyConstraint {
     pub columns: Vec<TableColumn>,
 }
 
-impl AsSql for PrimaryKeyConstraint {
-    fn as_sql(&self) -> String {
-        let mut sql = "PRIMARY KEY ".to_string();
+impl BuildSql for PrimaryKeyConstraint {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push("PRIMARY KEY ");
+        let columns = self.columns.iter().map(|col| col.column_name.clone()).collect::<Vec<_>>();
+        columns.build_sql(sql);
 
-        // Collect the column names
-        let columns = self
-            .columns
-            .iter()
-            .map(|col| col.column_name.as_str())
-            .collect::<Vec<&str>>()
-            .join(", ");
-        sql.push_str(&columns);
-        sql
         // TODO: IndexParameters impl
+    }
+}
+
+impl BuildSql for ForeignKeyConstraint {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        let Self {
+            ref_table,
+            ref_columns,
+            columns,
+            match_type,
+            on_delete_action,
+            on_update_action,
+        } = self;
+        builder.push("FOREIGN_KEY(");
+        // TODO: Loop through columns
+        columns
+            .iter()
+            .map(|col| col.column_name.clone())
+            .collect::<Vec<_>>()
+            .build_sql(builder);
+        builder.push_bind(") ").push("REFERENCES ").push(&**ref_table).push("(");
+        ref_columns.build_sql(builder);
+        builder.push(")");
     }
 }
 

@@ -1,4 +1,6 @@
-use crate::{data_definition::table::DatabaseTableDefinition, AsSql};
+use sqlx::Postgres;
+
+use crate::{data_definition::table::DatabaseTableDefinition, AsSql, BuildSql};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CreateTable<T> {
@@ -17,24 +19,31 @@ impl<T> CreateTable<T> {
     }
 }
 
+impl<T> BuildSql for CreateTable<T> {
+    fn build_sql(
+        &self,
+        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        sql.push("CREATE TABLE IF NOT EXISTS ");
+        // sql.push_bind(self.table_definition.table_name.to_string());
+        sql.push(self.table_definition.table_name.to_string());
+        sql.push(" (");
+        let mut columns = self.table_definition.columns.values().peekable();
+        while let Some(column) = columns.next() {
+            column.build_sql(sql);
+            if columns.peek().is_some() {
+                sql.push(",");
+            }
+        }
+        sql.push(");");
+    }
+}
+
 impl<T> AsSql for CreateTable<T> {
     fn as_sql(&self) -> String {
-        let columns_sql = self
-            .table_definition
-            .columns
-            .values()
-            .map(|col| col.as_sql())
-            .collect::<Vec<String>>()
-            .join(",\n");
-
-        // TODO: I'm gonna need to do this in multiple passes. First pass: Create the tables / columns, and second pass: Add the table constraints
-
-        let mut sql =
-            format!("CREATE TABLE IF NOT EXISTS {} (\n", self.table_definition.table_name);
-        sql.push_str(&columns_sql);
-        sql.push_str("\n);");
-
-        sql
+        let mut builder = sqlx::QueryBuilder::new("");
+        self.build_sql(&mut builder);
+        builder.into_sql()
     }
 }
 
@@ -71,18 +80,18 @@ mod test {
         };
 
         // Act
-        let queries = create_table.as_sql();
+        let queries = dbg!(create_table.as_sql());
         // let mut queries = result_sql.split("\n").collect::<Vec<&str>>();
 
         #[rustfmt::skip]
         let expected_query = ["CREATE TABLE IF NOT EXISTS new_table (",
-                "uuid_pk_nonnull UUID NOT NULL PRIMARY KEY,",
-                "string VARCHAR,",
                 "bool_nonnull BOOL NOT NULL,",
+                "create_timestamp TIMESTAMP,",
                 "float_nonnull FLOAT NOT NULL,",
                 "int INT,",
-                "create_timestamp TIMESTAMP",
-            ");"].join("\n");
+                "string VARCHAR,",
+                "uuid_pk_nonnull UUID NOT NULL PRIMARY KEY",
+            " );"].join("");
 
         assert_eq!(queries, expected_query);
         Ok(())

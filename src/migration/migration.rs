@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use sqlx::{Pool, Postgres};
+
 use crate::{
     data_definition::{
         database_definition::DatabaseDefinition,
@@ -9,7 +11,7 @@ use crate::{
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
-    AsSql,
+    AsSql, BuildSql,
 };
 
 use super::{AlterTable, CreateTable};
@@ -21,15 +23,18 @@ pub enum MigrationAction<T> {
     DropTable(Identifier),
 }
 
-impl<T> AsSql for MigrationAction<T> {
-    fn as_sql(&self) -> String {
+impl<T> BuildSql for MigrationAction<T> {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, Postgres>,
+    ) {
         match self {
-            MigrationAction::AlterTable(alter_table) => alter_table.as_sql(),
-            MigrationAction::CreateTable(create_table) => create_table.as_sql(),
+            MigrationAction::AlterTable(alter_table) => alter_table.build_sql(builder),
+            MigrationAction::CreateTable(create_table) => create_table.build_sql(builder),
             MigrationAction::DropTable(table_ident) => {
-                format!("DROP TABLE IF EXISTS {};", &table_ident)
+                builder.push("DROP TABLE IF EXISTS ").push(&**table_ident);
             },
-        }
+        };
     }
 }
 
@@ -38,16 +43,28 @@ pub struct Migration<T> {
     pub actions: Vec<MigrationAction<T>>,
 }
 
-impl<T> AsSql for Migration<T> {
-    fn as_sql(&self) -> String {
-        let mut sql_statments = Vec::new();
+impl<T> Migration<T> {
+    pub async fn run(
+        self,
+        db_pool: &Pool<Postgres>,
+    ) -> Result<(), crate::Error> {
+        let mut builder = sqlx::QueryBuilder::new("");
+        self.build_sql(&mut builder);
+        builder.build().execute(db_pool).await?;
+
+        Ok(())
+    }
+}
+
+impl<T> BuildSql for Migration<T> {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, Postgres>,
+    ) {
         for alter_table in &self.actions {
-            let statement = alter_table.as_sql();
-
-            sql_statments.push(statement);
+            alter_table.build_sql(builder);
+            builder.push("\n");
         }
-
-        sql_statments.join("\n")
     }
 }
 

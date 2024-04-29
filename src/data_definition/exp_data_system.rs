@@ -27,6 +27,17 @@ impl DataSystemBuilder {
         self.add_resource::<T>();
         self
     }
+    pub fn get<T: GetTableDefinition + Clone + Send + Sync + 'static>(
+        &self
+    ) -> Option<DatabaseTableDefinition<T>> {
+        self.resources.get(&TypeId::of::<T>()).map(|t| {
+            let boxed = t.downcast_ref::<DatabaseTableDefinition<T>>().expect(
+                "Invalid type stored in DataSystem.resources - this should not be possible.
+                The type exists in the map but failed to downcast.",
+            );
+            boxed.clone()
+        })
+    }
 
     pub fn build(self) -> UnconnectedDataSystem {
         UnconnectedDataSystem {
@@ -63,7 +74,9 @@ impl DataSystem {
 }
 
 impl DataSystem {
-    pub fn get<T: Clone + Insertable + 'static>(&self) -> Option<PostgresDataProvider<T>> {
+    pub fn get<T: Clone + Insertable + Send + Sync + 'static>(
+        &self
+    ) -> Option<PostgresDataProvider<T>> {
         self.resources.get(&TypeId::of::<T>()).map(|t| {
             let boxed = t.downcast_ref::<DatabaseTableDefinition<T>>().expect(
                 "Invalid type stored in DataSystem.resources - this should not be possible.
@@ -76,7 +89,7 @@ impl DataSystem {
 
 impl<T> TryFrom<&DataSystem> for PostgresDataProvider<T>
 where
-    T: Insertable + Clone + 'static,
+    T: Insertable + Clone + Send + Sync + 'static,
 {
     type Error = String;
 

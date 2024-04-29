@@ -62,7 +62,7 @@ impl<T: Insertable> DerefMut for ExecutableQuery<T> {
 
 impl<T> From<ExecutableQuery<T>> for Vec<T>
 where
-    T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin,
+    T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Sync + Unpin,
 {
     fn from(val: ExecutableQuery<T>) -> Self {
         futures::executor::block_on(val.execute()).unwrap()
@@ -71,7 +71,7 @@ where
 
 // This is a fun mess of requirements inherited for T
 // TODO: Simplify this as much as possible
-impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Unpin> ExecutableQuery<T> {
+impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Sync + Unpin> ExecutableQuery<T> {
     pub async fn execute(self) -> Result<Vec<T>, Error> {
         let mut query_builder = sqlx::QueryBuilder::new(r"SELECT * FROM ");
         query_builder.push(self.query.table.table_name.to_string());
@@ -109,7 +109,7 @@ impl<T: Insertable> PostgresDataProvider<T>
 where
     T: Clone + std::fmt::Debug,
 {
-    fn build_migration(&self) -> Option<Migration<T>> {
+    pub fn build_migration(&self) -> Option<Migration<T>> {
         Migration::<T>::compare(
             None, // TODO: Need to get the old migration
             &DatabaseDefinition::new_unchecked("postgres")
@@ -121,13 +121,19 @@ where
         log::info!("[DATABASE] Running Migrations");
         let migration = self.build_migration();
         if let Some(migration) = migration {
-            match sqlx::query::<Postgres>(dbg!(&migration.as_sql())).execute(&self.db_pool).await {
+            let mut sql = sqlx::QueryBuilder::new("");
+            migration.build_sql(&mut sql);
+
+            let sql = sql.into_sql();
+            let mut transaction = self.db_pool.begin().await.unwrap();
+            match sqlx::query(dbg!(&sql)).execute(&mut *transaction).await {
                 Ok(_) => {},
                 Err(e) => {
                     log::error!("Failed to run migrations");
                     return Err(format!("{}", e));
                 },
             }
+            transaction.commit().await.unwrap();
         } else {
             log::info!("[DATABASE] No Migrations");
         }

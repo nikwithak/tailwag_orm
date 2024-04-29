@@ -27,7 +27,7 @@ macro_rules! impl_filter_for {
                 ) -> Filter {
                     Filter::$comparison_type(
                         super::FilterComparisonParam::TableColumn(
-                            TableColumn::$table_column_fn_name(&self.column_name).unwrap().into(),
+                            TableColumn::$table_column_fn_name(&self.column_name).expect("This should always be a valid table name.").into(),
                         ),
                         super::FilterComparisonParam::$param_type_enum(value.into()),
                     )
@@ -57,6 +57,8 @@ impl_filter_for!(String: String, new_string, String, FilterPartialEq lt:LessThan
 impl_filter_for!(String: String, new_string, String, FilterLike like:Like);
 impl_numeric_type!(i64: Integer);
 impl_numeric_type!(f64: Float);
+
+// TODO: Implement this for OPTIONS too
 // TODO: Implement this for stronger dynamic typing with numerics
 // impl_numeric_type!(usize: Integer);
 // impl_numeric_type!(u64: Integer);
@@ -70,6 +72,8 @@ impl_numeric_type!(f64: Float);
 // impl_numeric_type!(f32: Float);
 typetype! {chrono::NaiveDateTime}
 impl_filter_for!(chrono::NaiveDateTime: chrono::NaiveDateTime, new_timestamp, Timestamp, FilterEq eq:Equal, ne:NotEqual);
+
+impl<T> TypeFilter for Vec<T> where T: TypeFilter {}
 
 #[allow(private_bounds)]
 pub struct FilterableType<T: TypeFilter> {
