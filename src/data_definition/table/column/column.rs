@@ -83,6 +83,17 @@ impl Deref for TableColumn {
     }
 }
 
+impl From<TableColumnData> for Identifier {
+    fn from(val: TableColumnData) -> Self {
+        val.column_name.clone()
+    }
+}
+impl From<TableColumn> for Identifier {
+    fn from(val: TableColumn) -> Self {
+        val.data.column_name.clone()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TableColumnData {
     // TODO: Is parent_table_name needed here??? Parent should track it, doesn't  need a call back (why did I add this in the first place??)

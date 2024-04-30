@@ -109,6 +109,7 @@ impl<T> From<DatabaseDefinitionBuilder<T>> for DatabaseDefinition<T> {
                         .with_uuid(&format!("{}_id", &child_table_ident))
                         .expect("Should always be valid");
                         new_tables.push(join_table.into());
+                        todo!("Many to Many not yet supported. Need to add constraints still, and impl the non mmigratory parts.");
 
                         // Many to Many means/assumes the following:
                         // 1. A join table is required.

@@ -34,14 +34,16 @@ impl Identifier {
             Ok(())
         } else {
             Err(format!(
-                "Identifier {} contains invalid characters. [a-zA-Z0-9_] are only allowed values.",
+                "Identifier {} contains invalid characters. [a-zA-Z0-9_.] are only allowed values.",
                 &self.value
             ))
         }
     }
 
     fn is_valid(value: &str) -> bool {
-        value.chars().all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))
+        value
+            .chars()
+            .all(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '.'))
     }
 
     pub fn new<S: Into<String>>(value: S) -> Result<Self, String> {

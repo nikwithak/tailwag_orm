@@ -1,4 +1,7 @@
-use crate::{data_definition::table::TableColumn, BuildSql};
+use crate::{
+    data_definition::table::{Identifier, TableColumn},
+    BuildSql,
+};
 use sqlx::{Postgres, QueryBuilder};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign};
 use uuid::Uuid;
@@ -6,7 +9,7 @@ use uuid::Uuid;
 #[derive(Clone)]
 // TODO: This is duplicated iwth DB types somewhere else
 pub enum FilterComparisonParam {
-    TableColumn(TableColumn),
+    TableColumn(Identifier),
     String(String),
     Uuid(Uuid),
     Integer(i64),
@@ -21,7 +24,7 @@ impl FilterComparisonParam {
         builder: &mut QueryBuilder<Postgres>,
     ) {
         match self {
-            FilterComparisonParam::TableColumn(col) => builder.push(&col.column_name),
+            FilterComparisonParam::TableColumn(col) => builder.push(col),
             FilterComparisonParam::String(val) => builder.push_bind(val.to_string()),
             FilterComparisonParam::Uuid(val) => builder.push_bind(*val),
             FilterComparisonParam::Integer(val) => builder.push_bind(*val),

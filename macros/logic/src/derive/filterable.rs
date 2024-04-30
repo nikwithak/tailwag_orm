@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Data, DeriveInput};
-use tailwag_utils::macro_utils::attribute_parsing::GetAttribute;
+use tailwag_utils::{macro_utils::attribute_parsing::GetAttribute, strings::ToSnakeCase};
 
 pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     let &DeriveInput {
@@ -9,6 +9,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
         data,
         ..
     } = &input;
+    let table_name = format_ident!("{}", ident.to_string().to_snake_case());
 
     // Panic with error message if we get a non-struct
     let Data::Struct(data) = data else {
@@ -20,18 +21,20 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
         syn::Fields::Named(fields) => {
             let filterable_fields =
                 fields.named.iter().filter(|field| field.get_attribute("no_filter").is_none());
+
             let new_fields = filterable_fields.clone().map(|field| {
-                let ident = field.ident.clone().expect("Should only have named fields.");
+                let field_ident = field.ident.clone().expect("Should only have named fields.");
                 let orig_type = field.ty.clone();
-                dbg!(quote!(pub #ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>))
+                dbg!(quote!(pub #field_ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>))
             });
             let default_fields = filterable_fields.clone().map(|field| {
-                let ident = field.ident.clone().expect("Should only have named fields.");
-                let ident_str = ident.to_string();
+                let field_ident = field.ident.clone().expect("Should only have named fields.");
+                let field_ident_str = format!("{table_name}.{field_ident}");
                 let orig_type = field.ty.clone();
-                dbg!(quote!(#ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#ident_str))))
+                dbg!(quote!(#field_ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#field_ident_str))))
             });
 
+            // OUTPUT STARTS HERE
             quote!(
                 pub struct #filter_type_struct_ident {
                     #(#new_fields,)*

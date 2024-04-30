@@ -71,8 +71,8 @@ impl<T> BuildSql for Query<T> {
         &self,
         query_builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
-        let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
         let table_name = self.table.table_name.clone();
+        let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
         type E = crate::data_definition::table::DatabaseColumnType;
         // STEP ONE: get all table relationships
         let mut attrs = self
@@ -98,7 +98,6 @@ impl<T> BuildSql for Query<T> {
                 }
             })
             .peekable();
-        // STEP TWO: Need to json_agg the results in the SELECT above
         query_builder.push(r"SELECT ");
         while let Some(attr) = attrs.next() {
             query_builder.push(attr);
@@ -107,7 +106,7 @@ impl<T> BuildSql for Query<T> {
             }
         }
         query_builder.push(" FROM ");
-        query_builder.push(self.table.table_name.to_string());
+        query_builder.push(&table_name);
         // TODO: Inner Joins -
         // STEP THREE: Need to impl BuildSql for INNER JOIN
         for child_tbl in self.table.columns.values() {
@@ -135,7 +134,7 @@ impl<T> BuildSql for Query<T> {
         }
 
         // TODO: Unhack (part of the "everything built on id" problem)
-        query_builder.push("GROUP BY (").push(group_by.join(", ")).push(")");
+        query_builder.push(" GROUP BY (").push(group_by.join(", ")).push(")");
 
         // STEP FOUR: Probably will need to do more with build_query_as. will find out
     }

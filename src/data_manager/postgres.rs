@@ -92,25 +92,21 @@ where
 // }
 impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Sync + Unpin> ExecutableQuery<T> {
     pub async fn execute(self) -> Result<Vec<T>, Error> {
+        // We wrap the whole thing in a `to_json` on the DB side. This makes it supes easy to deserialize.
+        // Without his, it got really messy, because it seems that SQLX doesn't support nested deserialization.
+        // A little bit more overhead, perhaps, but jeeeeez does it save on dvelopment. And postgres is probably
+        // not the limiting factor rn anyway.
         let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
         // let mut query_builder = QueryBuilder::new("");
         self.build_sql(&mut query_builder);
         query_builder.push(") r");
 
-        log::error!("SQL query: {}", query_builder.sql());
-
+        log::debug!("SQL query: {}", query_builder.sql());
         let result = query_builder.build().fetch_all(&self.db_pool).await?;
-        log::warn!("JHello");
         let results = result.into_iter().map(|row| {
-            // let s: String = row.try_into().unwrap();
-            log::warn!("JHello again");
-
-            // Need to figure out EXTRACTION, now that I pretty muchave the SQL down pat.
             let rowresult: serde_json::Value = row.get("json_result");
-            log::error!("Result: {:?}", rowresult.to_string());
-            let item = serde_json::from_value::<T>(rowresult)
-                .expect("Failed to deserialize database result");
-            item
+            log::debug!("Result: {:?}", rowresult.to_string());
+            serde_json::from_value::<T>(rowresult).unwrap()
         });
         Ok(results.collect())
     }

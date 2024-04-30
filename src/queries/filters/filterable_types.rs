@@ -27,8 +27,7 @@ macro_rules! impl_filter_for {
                 ) -> Filter {
                     Filter::$comparison_type(
                         super::FilterComparisonParam::TableColumn(
-                            TableColumn::$table_column_fn_name(&self.column_name).expect("This should always be a valid table name.").into(),
-                        ),
+                            self.column_name.clone(),                        ),
                         super::FilterComparisonParam::$param_type_enum(value.into()),
                     )
                 }
