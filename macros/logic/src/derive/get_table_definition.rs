@@ -69,15 +69,15 @@ fn build_get_table_definition(
             tailwag_orm::data_definition::table::DatabaseColumnType::Json=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Json),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(child) => {
                 let child = child.to_string();
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child)).unwrap())
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(child) => {
                 let child = child.to_string();
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child)).unwrap())
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(child) => {
-                let child = child.to_string();
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child)).unwrap())
+                let child = format!("{child}_id");
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
         };
         let constraints = column.constraints.iter().map(|constraint| {

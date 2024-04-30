@@ -11,6 +11,12 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
         let column_name_as_string = column.column_name.to_string();
 
         type E = tailwag_orm::data_definition::table::DatabaseColumnType;
+        mod brainstorm
+        {
+            // If we find a CHILD object that we need to insert, we need to pre-insert it.
+            // Do that with ""
+
+        }
         let wrapped_type = match &column.column_type {
             E::Boolean => quote!(tailwag::orm::data_definition::table::ColumnValue::Boolean(#column_name.clone())),
             E::Int => quote!(tailwag::orm::data_definition::table::ColumnValue::Int(#column_name.clone())),
@@ -19,11 +25,14 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_child_type) => {
-                todo!("{:?} is a OneToOne relationship that isn't yet supported. The difficult part here is that we don't have the child type properly mapped yet.", &column.column_type)
+            E::OneToOne(_child_type) => {
+                // TODO: This assumes ID.
+                // let column_name = format_ident!("{}_id", &column_name);
+                dbg!(quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.id.clone())))
+                // todo!()
             },
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
-            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
+            E::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
+            E::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 
         
@@ -31,7 +40,8 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             quote!(
                 if let Some(#column_name) = &self.#column_name {
                     insert_map.insert(
-                        tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string).expect("Invalid column identifier found - this should not happen. Panicking."),
+                        tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string)
+                        .expect("Invalid column identifier found - this should not happen."),
                         #wrapped_type,
                     );
                 }
@@ -53,13 +63,13 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
     });
 
     let tokens = quote!(
-        fn get_insert_statement(&self) -> tailwag::orm::object_management::insert::InsertStatement<Self> {
+        fn get_insert_statement(&self) -> tailwag::orm::object_management::insert::InsertStatement {
             let mut insert_map = std::collections::HashMap::new();
 
             #(#insert_maps)*
 
             let insert = tailwag::orm::object_management::insert::InsertStatement::new(
-                <Self as tailwag::orm::data_manager::GetTableDefinition>::get_table_definition().clone(),
+                <Self as tailwag::orm::data_manager::GetTableDefinition>::get_table_definition().table_name.clone(),
                 insert_map,
             );
             insert

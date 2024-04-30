@@ -120,7 +120,7 @@ impl<T> From<DatabaseDefinitionBuilder<T>> for DatabaseDefinition<T> {
                         // Will clustering be needed at all here?
                     },
                     super::table::DatabaseColumnType::OneToOne(_) => {
-                        todo!("One-to-one relationships aren't quite automated yet. Consider using a JSON or String field instead")
+                        // todo!("One-to-one relationships aren't quite automated yet. Consider using a JSON or String field instead")
                         // One to One means/assumes the following:
                         // 1. This table owns the resulting data.
                         // 2. This table stores a CHILD_ID relationship

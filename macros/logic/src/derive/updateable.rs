@@ -20,7 +20,12 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
+            // tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(foreign_table_name) => {
+                // let column_name = format_ident!("{}", column_name_as_string.strip_suffix("_id").expect("Currently only works for UUID foreign keys with the suffix _id"));
+                quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.id.clone()))
+
+            },
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 

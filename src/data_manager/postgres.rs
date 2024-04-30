@@ -2,8 +2,9 @@ use crate::{
     data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
     migration::Migration,
     queries::{filterable_types::Filterable, Deleteable, Filter, Insertable, Query, Updateable},
-    AsSql, BuildSql,
+    BuildSql,
 };
+use sqlx::Row;
 use sqlx::{postgres::PgRow, Error, Execute, FromRow, Pool, Postgres, QueryBuilder};
 use std::{
     marker::PhantomData,
@@ -62,31 +63,56 @@ impl<T: Insertable> DerefMut for ExecutableQuery<T> {
 
 impl<T> From<ExecutableQuery<T>> for Vec<T>
 where
-    T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Sync + Unpin,
+    T: Insertable + for<'r> serde::Deserialize<'r> + Send + Sync + Unpin,
 {
     fn from(val: ExecutableQuery<T>) -> Self {
         futures::executor::block_on(val.execute()).unwrap()
     }
 }
 
-// This is a fun mess of requirements inherited for T
-// TODO: Simplify this as much as possible
-impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Sync + Unpin> ExecutableQuery<T> {
-    pub async fn execute(self) -> Result<Vec<T>, Error> {
-        let mut query_builder = sqlx::QueryBuilder::new(r"SELECT * FROM ");
-        query_builder.push(self.query.table.table_name.to_string());
-        // TODO: Inner Joins -
-        // STEP ONE: get all table relationships
-        // STEP TWO: Need to json_agg the results in the SELECT above
-        // STEP THREE: Need to impl BuildSql for INNER JOIN
-        // STEP FOUR: Probably will need to do more with build_query_as. will find out
-        if let Some(filter) = &self.filter {
-            query_builder.push(" WHERE ");
-            filter.build_sql(&mut query_builder);
-        }
+// // This is a fun mess of requirements inherited for T
+// // TODO: Simplify this as much as possible
+// impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Sync + Unpin> ExecutableQuery<T> {
+//     pub async fn execute(self) -> Result<Vec<T>, Error> {
+//         let mut query_builder = sqlx::QueryBuilder::new(r"SELECT * FROM ");
+//         query_builder.push(self.query.table.table_name.to_string());
+//         // TODO: Inner Joins -
+//         // STEP ONE: get all table relationships
+//         // STEP TWO: Need to json_agg the results in the SELECT above
+//         // STEP THREE: Need to impl BuildSql for INNER JOIN
+//         // STEP FOUR: Probably will need to do more with build_query_as. will find out
+//         if let Some(filter) = &self.filter {
+//             query_builder.push(" WHERE ");
+//             filter.build_sql(&mut query_builder);
+//         }
 
-        let result = query_builder.build_query_as::<T>().fetch_all(&self.db_pool).await?;
-        Ok(result)
+//         let result = query_builder.build_query_as::<T>().fetch_all(&self.db_pool).await?;
+//         Ok(result)
+//     }
+// }
+impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Sync + Unpin> ExecutableQuery<T> {
+    pub async fn execute(self) -> Result<Vec<T>, Error> {
+        let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
+        // let mut query_builder = QueryBuilder::new("");
+        self.build_sql(&mut query_builder);
+        query_builder.push(") r");
+
+        log::error!("SQL query: {}", query_builder.sql());
+
+        let result = query_builder.build().fetch_all(&self.db_pool).await?;
+        log::warn!("JHello");
+        let results = result.into_iter().map(|row| {
+            // let s: String = row.try_into().unwrap();
+            log::warn!("JHello again");
+
+            // Need to figure out EXTRACTION, now that I pretty muchave the SQL down pat.
+            let rowresult: serde_json::Value = row.get("json_result");
+            log::error!("Result: {:?}", rowresult.to_string());
+            let item = serde_json::from_value::<T>(rowresult)
+                .expect("Failed to deserialize database result");
+            item
+        });
+        Ok(results.collect())
     }
 }
 
@@ -107,7 +133,7 @@ impl<T: Filterable> ExecutableQuery<T> {
 // Migration Handling
 impl<T: Insertable> PostgresDataProvider<T>
 where
-    T: Clone + std::fmt::Debug,
+    T: Clone + std::fmt::Debug + for<'d> serde::Deserialize<'d>,
 {
     pub fn build_migration(&self) -> Option<Migration<T>> {
         Migration::<T>::compare(
@@ -148,12 +174,14 @@ where
     T: Insertable
         + Deleteable
         + Updateable
-        + for<'r> FromRow<'r, PgRow>
         + Send
         + Sync
+        + serde::Serialize
+        + for<'d> serde::Deserialize<'d>
         + Clone
         + Unpin
         + Id
+        // + Serialize
         + Filterable
         + Default,
 {

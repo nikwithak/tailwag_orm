@@ -50,9 +50,10 @@ impl<T> BuildSql for UpdateStatement<T> {
                 },
                 ColumnValue::Timestamp(val) => builder.push(column).push(" = ").push_bind(*val),
                 ColumnValue::Uuid(val) => builder.push(column).push(" = ").push_bind(*val),
+                ColumnValue::Child(_) => todo!(),
             };
             if i < &self.object_repr.len() - 2 {
-                // -2 because we've stripped `id` from it above.
+                // .len()-2 because we've stripped `id` from it above.
                 builder.push(", ");
             }
         }

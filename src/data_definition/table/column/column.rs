@@ -1,11 +1,23 @@
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
+use crate::data_manager::GetTableDefinition;
+use crate::object_management::insert::InsertStatement;
+use crate::queries::Insertable;
 use crate::{AsSql, BuildSql};
 
 use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
 
 use super::{TableColumnConstraint, TableColumnConstraintDetail};
+
+trait ForeignKeyObject
+where
+    Self: GetTableDefinition + Insertable + Clone,
+{
+}
+
+pub(crate) type ObjectRepr = HashMap<Identifier, ColumnValue>;
 
 pub enum ColumnValue {
     Boolean(bool),                    // BOOL or BOOLEAN
@@ -15,6 +27,7 @@ pub enum ColumnValue {
     Timestamp(chrono::NaiveDateTime), // TIMESTAMP
     Uuid(uuid::Uuid),                 // UUID
     Json(String),                     // JSONB
+    Child(Box<ObjectRepr>),
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -49,7 +62,7 @@ impl DatabaseColumnType {
             DatabaseColumnType::ManyToMany {
                 ..
             } => todo!(),
-            DatabaseColumnType::OneToOne(_) => todo!(),
+            DatabaseColumnType::OneToOne(_) => "UUID", // TODO: These types of relationships only work with id: uuid. This is a big debt.
         }
     }
 }

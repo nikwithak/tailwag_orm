@@ -1,10 +1,12 @@
+use sqlx::Row;
 use std::marker::PhantomData;
 
 use crate::{
-    data_definition::table::DatabaseTableDefinition,
+    data_definition::table::{DatabaseTableDefinition, Identifier},
     object_management::{
         delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
     },
+    BuildSql,
 };
 
 use super::Filter;
@@ -61,7 +63,82 @@ pub trait Insertable
 where
     Self: Sized,
 {
-    fn get_insert_statement(&self) -> InsertStatement<Self>;
+    fn get_insert_statement(&self) -> InsertStatement;
+}
+
+impl<T> BuildSql for Query<T> {
+    fn build_sql(
+        &self,
+        query_builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    ) {
+        let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
+        let table_name = self.table.table_name.clone();
+        type E = crate::data_definition::table::DatabaseColumnType;
+        // STEP ONE: get all table relationships
+        let mut attrs = self
+            .table
+            .columns
+            .values()
+            .map(|col| {
+                let col_name = col.column_name.to_string();
+                match col.column_type {
+                    E::Boolean
+                    | E::Int
+                    | E::Float
+                    | E::String
+                    | E::Timestamp
+                    | E::Uuid
+                    | E::Json => format!("{table_name}.{col_name}"),
+                    E::OneToMany(_) => todo!(),
+                    E::ManyToMany(_) => todo!(),
+                    E::OneToOne(_) => {
+                        // let col_name = format!("{col_name}");
+                        col_name
+                    },
+                }
+            })
+            .peekable();
+        // STEP TWO: Need to json_agg the results in the SELECT above
+        query_builder.push(r"SELECT ");
+        while let Some(attr) = attrs.next() {
+            query_builder.push(attr);
+            if attrs.peek().is_some() {
+                query_builder.push(", ");
+            }
+        }
+        query_builder.push(" FROM ");
+        query_builder.push(self.table.table_name.to_string());
+        // TODO: Inner Joins -
+        // STEP THREE: Need to impl BuildSql for INNER JOIN
+        for child_tbl in self.table.columns.values() {
+            match &child_tbl.column_type {
+                crate::data_definition::table::DatabaseColumnType::OneToMany(name)
+                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name)
+                | crate::data_definition::table::DatabaseColumnType::OneToOne(name) => {
+                    let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
+                    group_by.push(name.to_string());
+                    query_builder
+                        .push(" LEFT OUTER JOIN ")
+                        .push(name)
+                        .push(" ON ")
+                        .push(name)
+                        .push(".id = ")
+                        .push(name)
+                        .push("_id ");
+                },
+                _ => {},
+            };
+        }
+        if let Some(filter) = &self.filter {
+            query_builder.push(" WHERE ");
+            filter.build_sql(query_builder);
+        }
+
+        // TODO: Unhack (part of the "everything built on id" problem)
+        query_builder.push("GROUP BY (").push(group_by.join(", ")).push(")");
+
+        // STEP FOUR: Probably will need to do more with build_query_as. will find out
+    }
 }
 
 #[cfg(test)]
