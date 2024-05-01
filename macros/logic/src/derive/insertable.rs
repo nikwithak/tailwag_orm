@@ -8,15 +8,10 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
 
     let insert_maps = input_table_definition.columns.values().map(|column| {
         let column_name = format_ident!("{}", column.column_name.to_string());
-        let column_name_as_string = column.column_name.to_string();
+        let mut column_name_as_string = column.column_name.to_string();
 
         type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-        mod brainstorm
-        {
-            // If we find a CHILD object that we need to insert, we need to pre-insert it.
-            // Do that with ""
 
-        }
         let wrapped_type = match &column.column_type {
             E::Boolean => quote!(tailwag::orm::data_definition::table::ColumnValue::Boolean(#column_name.clone())),
             E::Int => quote!(tailwag::orm::data_definition::table::ColumnValue::Int(#column_name.clone())),
@@ -27,7 +22,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
             E::OneToOne(_child_type) => {
                 // TODO: This assumes ID.
-                // let column_name = format_ident!("{}_id", &column_name);
+                column_name_as_string = format!("{column_name}_id");
                 dbg!(quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.id.clone())))
                 // todo!()
             },
@@ -61,9 +56,22 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             )
         }
     });
+    let insertable_children: Vec<syn::Ident> = input_table_definition.columns.values().filter_map(|column| {
+        let column_name = format_ident!("{}", column.column_name.to_string());
+
+        type E = tailwag_orm::data_definition::table::DatabaseColumnType;
+
+        
+        match &column.column_type {
+            E::OneToMany(_) => todo!(),
+            E::ManyToMany(_) => todo!(),
+            E::OneToOne(_) => Some(column_name),
+            _ => None,
+        }
+    }).collect();
 
     let tokens = quote!(
-        fn get_insert_statement(&self) -> tailwag::orm::object_management::insert::InsertStatement {
+        fn get_insert_statement(&self) -> Vec<tailwag::orm::object_management::insert::InsertStatement> {
             let mut insert_map = std::collections::HashMap::new();
 
             #(#insert_maps)*
@@ -72,7 +80,12 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                 <Self as tailwag::orm::data_manager::GetTableDefinition>::get_table_definition().table_name.clone(),
                 insert_map,
             );
-            insert
+
+            let mut transaction_statements = Vec::new();
+            #(transaction_statements.append(&mut self.#insertable_children.get_insert_statement());)*
+            transaction_statements.push(insert);
+
+            transaction_statements
         }
     );
 

@@ -5,7 +5,7 @@ use crate::{
     BuildSql,
 };
 use sqlx::Row;
-use sqlx::{postgres::PgRow, Error, Execute, FromRow, Pool, Postgres, QueryBuilder};
+use sqlx::{Error, Execute, Pool, Postgres, QueryBuilder};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -223,11 +223,15 @@ where
         &self,
         item: Self::CreateRequest,
     ) -> Result<T, Self::Error> {
-        let insert = item.get_insert_statement();
-        // TODO/DEBUG: Is the query returning the result? Can I simply run it as a query_as instead?
-        let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
-        insert.build_sql(&mut builder);
-        builder.build().execute(&self.db_pool).await?;
+        let insert_statements = item.get_insert_statement();
+
+        let mut transaction = self.db_pool.begin().await?;
+        for insert in insert_statements {
+            let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
+            insert.build_sql(&mut builder);
+            builder.build().execute(&mut *transaction).await?;
+        }
+        transaction.commit().await?;
 
         Ok(item)
     }

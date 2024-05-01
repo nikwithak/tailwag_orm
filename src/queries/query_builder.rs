@@ -63,7 +63,7 @@ pub trait Insertable
 where
     Self: Sized,
 {
-    fn get_insert_statement(&self) -> InsertStatement;
+    fn get_insert_statement(&self) -> Vec<InsertStatement>;
 }
 
 impl<T> BuildSql for Query<T> {

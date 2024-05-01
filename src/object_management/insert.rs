@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
 use sqlx::Postgres;
 
 use crate::{
-    data_definition::table::{ColumnValue, DatabaseTableDefinition, Identifier, ObjectRepr},
+    data_definition::table::{ColumnValue, Identifier, ObjectRepr},
     BuildSql,
 };
 
@@ -23,9 +21,9 @@ impl InsertStatement {
             object_repr: object_map,
         }
     }
-
-    pub fn to_sql_statement(&self) {}
 }
+
+// WITH 
 
 impl BuildSql for InsertStatement {
     fn build_sql(
