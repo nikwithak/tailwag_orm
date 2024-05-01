@@ -117,6 +117,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 where
                     Self: tailwag::orm::data_manager::GetTableDefinition, // To make sure error messages show if we can't use `get_table_definition()`
                 {
+                    type CreateRequest = Self;
                     #(#functions)*
                 }
             );

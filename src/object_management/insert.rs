@@ -23,7 +23,7 @@ impl InsertStatement {
     }
 }
 
-// WITH 
+// WITH
 
 impl BuildSql for InsertStatement {
     fn build_sql(

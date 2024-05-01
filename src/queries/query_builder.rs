@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use sqlx::Row;
 use std::marker::PhantomData;
 
@@ -63,6 +64,8 @@ pub trait Insertable
 where
     Self: Sized,
 {
+    type CreateRequest: Default + Serialize + for<'a> Deserialize<'a> + Into<Self>;
+
     fn get_insert_statement(&self) -> Vec<InsertStatement>;
 }
 

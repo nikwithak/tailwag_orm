@@ -181,7 +181,7 @@ where
         + Filterable
         + Default,
 {
-    type CreateRequest = T; // TODO: Implement this based ont he implementaiton of Insertable?
+    type CreateRequest = T::CreateRequest; // TODO: Implement this based ont he implementaiton of Insertable?
     type Error = crate::Error;
 
     async fn get(
@@ -223,6 +223,7 @@ where
         &self,
         item: Self::CreateRequest,
     ) -> Result<T, Self::Error> {
+        let item = item.into();
         let insert_statements = item.get_insert_statement();
 
         let mut transaction = self.db_pool.begin().await?;
