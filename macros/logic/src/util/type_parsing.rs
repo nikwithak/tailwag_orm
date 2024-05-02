@@ -53,7 +53,9 @@ pub fn is_option(field: &Field) -> bool {
 /// Gives you the primary type of the field. If it's an Option, then this will return the qualified path string for the Option's inner type.
 /// If not, it returns the qualified path string for the entire type.
 pub fn extract_option_type(field: &Field) -> String {
-    let syn::Type::Path(typepath) = &field.ty else {panic!("No typepath found")};
+    let syn::Type::Path(typepath) = &field.ty else {
+        panic!("No typepath found")
+    };
     let qualified_path = field.get_qualified_path();
     match qualified_path.as_str() {
         "std::option::Option" | "core::option::Option" | "option::Option" | "Option" => {
@@ -78,6 +80,19 @@ pub fn extract_option_type(field: &Field) -> String {
     }
     .unwrap_or(qualified_path)
 }
+
+//             let db_type = match qualified_path.as_str() {
+//                 "std::string::String" | "string::String" | "String" => DatabaseColumnType::String,
+//                 "bool" => DatabaseColumnType::Boolean,
+//                 "u32" | "u64" | "i32" | "i64" | "usize" | "isize" => DatabaseColumnType::Int,
+//                 "f32" | "f64" | "fsize" => DatabaseColumnType::Float,
+//                 "chrono::_" => DatabaseColumnType::Timestamp, // TODO
+//                 "uuid::Uuid" | "Uuid" => DatabaseColumnType::Uuid,
+//                 _ => {
+//                     // TODO: Impl for joinable tables
+//                     unimplemented!("{} not a supported type.", qualified_path)
+//                 },
+//             };
 
 // pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
 //     match &field.ty {

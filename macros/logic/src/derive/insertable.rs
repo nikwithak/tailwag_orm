@@ -1,6 +1,102 @@
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{Data, DeriveInput};
+use quote::{format_ident, quote, ToTokens};
+use syn::{Data, DeriveInput, Ident};
+use tailwag_utils::macro_utils::attribute_parsing::GetAttribute;
+
+use crate::util::{database_table_definition::get_type_from_field, type_parsing::GetQualifiedPath};
+
+pub fn derive_struct(input: &DeriveInput) -> TokenStream {
+    let &DeriveInput {
+        ident,
+        data,
+        ..
+    } = &input;
+
+    // Panic with error message if we get a non-struct
+    let Data::Struct(data) = data else {
+        panic!("Only Structs are supported")
+    };
+    let (create_request_ident, create_request_tokens) = build_create_request(input);
+
+    match &data.fields {
+        syn::Fields::Named(fields) => {
+            let _field_names = fields.named.iter().map(|f| &f.ident);
+            let functions: Vec<TokenStream> = vec![
+                // todo!("Add functions here")
+                build_get_insert_statement(input),
+            ];
+
+
+            let parse_args_impl_tokens = quote!(
+                #create_request_tokens
+
+                impl tailwag::orm::queries::Insertable for #ident
+                where
+                    Self: tailwag::orm::data_manager::GetTableDefinition, // To make sure error messages show if we can't use `get_table_definition()`
+                {
+                    type CreateRequest = #create_request_ident;
+                    #(#functions)*
+                }
+            );
+
+            parse_args_impl_tokens
+        },
+        syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
+        syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),
+    }
+}
+
+fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
+    let Data::Struct(data) = &input.data else {
+        panic!("Only Structs are supported")
+    };
+
+
+    // Note: This is generated for build_insert_statement already. If this is slowing down too much, then refactor it to be only called once.
+    // Here, it's needed to get the relationship type for child tables.
+    let input_table_definition =
+        crate::util::database_table_definition::build_table_definition::<()>(input);
+
+    let type_ident = &input.ident;
+    let request_ident = format_ident!("{}CreateRequest", input.ident);
+    let syn::Fields::Named(fields) = &data.fields else { panic!("Struct contains unnamed fields.")};
+    let passthrough_fields = fields.named.iter()
+        .filter(|field| field.get_attribute("ignore").is_none())
+        .filter(|field|"id" != &field.ident.as_ref().expect("Must have ident on named field").to_string());
+
+    let field_tokens = passthrough_fields.clone().map(
+        |field| {
+            let (field_name, field_type) = (&field.ident, field.ty.to_token_stream());
+            match get_type_from_field(field) {
+                tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => {
+                    quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)
+                    // todo!()
+                },
+                _ => quote!(pub #field_name: #field_type,)
+            }
+            // If field is primitive, pass it through.
+            // CURRENT TASK:
+            // If field is ONE TO ONE,  TODO
+        }
+    );
+    let field_names = passthrough_fields.clone().map(|field| &field.ident);
+    
+    (request_ident.clone(), quote!(
+        #[derive(Default, serde::Deserialize, serde::Serialize)]
+        pub struct #request_ident {
+            #(#field_tokens)*
+        }
+        impl From<#request_ident> for #type_ident {
+            fn from(val: #request_ident) -> Self {
+                #type_ident {
+                    id: uuid::Uuid::new_v4(),
+                    #(#field_names: val.#field_names.into(),)*
+                    ..Default::default()
+                }
+            }
+        }
+    ))
+}
 
 fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
     let input_table_definition =
@@ -39,7 +135,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                         .expect("Invalid column identifier found - this should not happen."),
                         #wrapped_type,
                     );
-                }
+      l          }
                 // TODO - else insert null, explicitly?
             )
         } else {
@@ -90,41 +186,4 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
     );
 
     tokens
-}
-
-pub fn derive_struct(input: &DeriveInput) -> TokenStream {
-    let &DeriveInput {
-        ident,
-        data,
-        ..
-    } = &input;
-
-    // Panic with error message if we get a non-struct
-    let Data::Struct(data) = data else {
-        panic!("Only Structs are supported")
-    };
-
-    match &data.fields {
-        syn::Fields::Named(fields) => {
-            let _field_names = fields.named.iter().map(|f| &f.ident);
-            let functions: Vec<TokenStream> = vec![
-                // todo!("Add functions here")
-                build_get_insert_statement(input),
-            ];
-
-            let parse_args_impl_tokens = quote!(
-                impl tailwag::orm::queries::Insertable for #ident
-                where
-                    Self: tailwag::orm::data_manager::GetTableDefinition, // To make sure error messages show if we can't use `get_table_definition()`
-                {
-                    type CreateRequest = Self;
-                    #(#functions)*
-                }
-            );
-
-            parse_args_impl_tokens
-        },
-        syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
-        syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),
-    }
 }
