@@ -19,8 +19,11 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
     match &data.fields {
         syn::Fields::Named(fields) => {
-            let filterable_fields =
-                fields.named.iter().filter(|field| field.get_attribute("no_filter").is_none());
+            let filterable_fields = fields
+                .named
+                .iter()
+                .filter(|field| field.get_attribute("no_filter").is_none())
+                .filter(|field| field.get_attribute("db_ignore").is_none());
 
             let new_fields = filterable_fields.clone().map(|field| {
                 let field_ident = field.ident.clone().expect("Should only have named fields.");

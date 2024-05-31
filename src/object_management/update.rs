@@ -6,30 +6,30 @@ use crate::BuildSql;
 
 use crate::data_definition::table::{ColumnValue, DatabaseTableDefinition, Identifier};
 
-pub struct UpdateStatement<T> {
-    table_def: DatabaseTableDefinition<T>,
+pub struct UpdateStatement {
+    table_name: Identifier,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
     object_repr: HashMap<Identifier, ColumnValue>,
 }
 
-impl<T> UpdateStatement<T> {
-    pub fn new(
+impl UpdateStatement {
+    pub fn new<T>(
         table_def: DatabaseTableDefinition<T>,
         object_map: HashMap<Identifier, ColumnValue>,
     ) -> Self {
         Self {
-            table_def,
+            table_name: table_def.table_name.clone(),
             object_repr: object_map,
         }
     }
 }
 
-impl<T> BuildSql for UpdateStatement<T> {
+impl BuildSql for UpdateStatement {
     fn build_sql(
         &self,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
-        builder.push(format!("UPDATE {} SET ", self.table_def.table_name,));
+        builder.push(format!("UPDATE {} SET ", self.table_name));
 
         let Some(ColumnValue::Uuid(id)) = self.object_repr.get(&Identifier::new_unchecked("id"))
         else {
@@ -57,6 +57,6 @@ impl<T> BuildSql for UpdateStatement<T> {
                 builder.push(", ");
             }
         }
-        builder.push(" WHERE id=").push_bind(*id);
+        builder.push(" WHERE id=").push_bind(dbg!(*id));
     }
 }

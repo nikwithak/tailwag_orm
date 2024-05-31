@@ -70,30 +70,10 @@ where
     }
 }
 
-// // This is a fun mess of requirements inherited for T
-// // TODO: Simplify this as much as possible
-// impl<T: Insertable + for<'r> FromRow<'r, PgRow> + Send + Sync + Unpin> ExecutableQuery<T> {
-//     pub async fn execute(self) -> Result<Vec<T>, Error> {
-//         let mut query_builder = sqlx::QueryBuilder::new(r"SELECT * FROM ");
-//         query_builder.push(self.query.table.table_name.to_string());
-//         // TODO: Inner Joins -
-//         // STEP ONE: get all table relationships
-//         // STEP TWO: Need to json_agg the results in the SELECT above
-//         // STEP THREE: Need to impl BuildSql for INNER JOIN
-//         // STEP FOUR: Probably will need to do more with build_query_as. will find out
-//         if let Some(filter) = &self.filter {
-//             query_builder.push(" WHERE ");
-//             filter.build_sql(&mut query_builder);
-//         }
-
-//         let result = query_builder.build_query_as::<T>().fetch_all(&self.db_pool).await?;
-//         Ok(result)
-//     }
-// }
 impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Sync + Unpin> ExecutableQuery<T> {
     pub async fn execute(self) -> Result<Vec<T>, Error> {
         // We wrap the whole thing in a `to_json` on the DB side. This makes it supes easy to deserialize.
-        // Without his, it got really messy, because it seems that SQLX doesn't support nested deserialization.
+        // Without his, it got really messy, because it seems that SQLX doesn't support nested deserialization on its own.
         // A little bit more overhead, perhaps, but jeeeeez does it save on dvelopment. And postgres is probably
         // not the limiting factor rn anyway.
         let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
@@ -256,10 +236,14 @@ where
         &self,
         item: &T,
     ) -> Result<(), Self::Error> {
-        let update = item.get_update_statement();
-        let mut builder: QueryBuilder<'_, Postgres> = sqlx::QueryBuilder::new("");
-        update.build_sql(&mut builder);
-        let _ = builder.build().execute(&self.db_pool).await?;
+        let mut transaction = self.db_pool.begin().await?;
+        let update_statements = item.get_update_statement();
+        for update in update_statements {
+            let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
+            update.build_sql(&mut builder);
+            builder.build().execute(&mut *transaction).await?;
+        }
+        transaction.commit().await?;
 
         Ok(())
     }

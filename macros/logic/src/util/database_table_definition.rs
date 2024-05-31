@@ -28,12 +28,16 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
         panic!("Unnamed fields found in the struct.")
     };
 
-    let columns = fields.named.iter().map(|f| {
+    let columns = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none()).map(|f| {
         let field_name = f.ident.as_ref().expect("Found unnamed field in struct");
 
+        let column_type = get_type_from_field(f);
+        let column_name = match &column_type {
+            DatabaseColumnType::OneToOne(_) => format!("{field_name}_id"),
+            _ => field_name.to_string(),
+        };
         let mut column =
-            TableColumn::new(&field_name.to_string(), get_type_from_field(f), Vec::new())
-                .expect("Invalid table_name");
+            TableColumn::new(&column_name, column_type, Vec::new()).expect("Invalid table_name");
         // TODO: Handle #[flatten], which will flatten the pieces into a single table. Will that work? Gonna be tough in a derive macro.
 
         if f.get_attribute("primary_key").is_some() || &field_name.to_string() == "id" {

@@ -32,7 +32,7 @@ pub trait Deleteable {
 }
 
 pub trait Updateable {
-    fn get_update_statement(&self) -> UpdateStatement<Self>
+    fn get_update_statement(&self) -> Vec<UpdateStatement>
     where
         Self: std::marker::Sized;
 }
@@ -95,8 +95,7 @@ impl<T> BuildSql for Query<T> {
                     E::OneToMany(_) => todo!(),
                     E::ManyToMany(_) => todo!(),
                     E::OneToOne(_) => {
-                        // let col_name = format!("{col_name}");
-                        col_name
+                        col_name.trim_end_matches("_id").to_string() // TODO: UNHACK THIS
                     },
                 }
             })

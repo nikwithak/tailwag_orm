@@ -8,6 +8,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
 
     let update_maps = input_table_definition.columns.values().map(|column| {
         let column_name = format_ident!("{}", column.column_name.to_string());
+        let mut field_name = column_name.clone();
         let column_name_as_string = column.column_name.to_string();
 
         type E = tailwag_orm::data_definition::table::DatabaseColumnType;
@@ -21,9 +22,10 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
             // tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(foreign_table_name) => {
-                // let column_name = format_ident!("{}", column_name_as_string.strip_suffix("_id").expect("Currently only works for UUID foreign keys with the suffix _id"));
-                quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.id.clone()))
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_foreign_table_name) => {
+                // column_name_as_string = format!("{column_name}_id");
+                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping // [KNOWN RESTRICTION]
+                quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#field_name.id.clone()))
 
             },
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
@@ -31,7 +33,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
 
         if column.is_nullable() {
             quote!(
-                if let Some(#column_name) = &self.#column_name {
+                if let Some(#field_name) = &self.#field_name {
                     update_map.insert(
                         tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string).expect("Invalid column identifier found - this should not happen. Panicking."),
                         #wrapped_type,
@@ -41,7 +43,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             )
         } else {
             quote!(
-                let #column_name = &self.#column_name;
+                let #field_name = &self.#field_name;
                 update_map.insert(
                     tailwag::orm::data_definition::table::Identifier::new(#column_name_as_string.to_string()).expect("Invalid column identifier found - this should not happen. Panicking."),
                     // TODO: Can't support differently named column/struct_attr names right now
@@ -52,8 +54,23 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
         }
     });
 
+    let updateable_children: Vec<syn::Ident> = input_table_definition
+        .columns
+        .values()
+        .filter_map(|column| {
+            let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
+            type E = tailwag_orm::data_definition::table::DatabaseColumnType;
+            match &column.column_type {
+                E::OneToMany(_) => todo!(),
+                E::ManyToMany(_) => todo!(),
+                E::OneToOne(_) => Some(field_name),
+                _ => None,
+            }
+        })
+        .collect();
+
     let tokens = quote!(
-        fn get_update_statement(&self) -> tailwag::orm::object_management::update::UpdateStatement<Self> {
+        fn get_update_statement(&self) -> Vec<tailwag::orm::object_management::update::UpdateStatement> {
             let mut update_map = std::collections::HashMap::new();
 
             #(#update_maps)*
@@ -63,7 +80,12 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
                 update_map,
             );
 
-            update
+            let mut transaction_statements = Vec::new();
+            #(transaction_statements.append(&mut self.#updateable_children.get_update_statement());)*
+            // TODO: Need to also INSERT any new children added.
+            transaction_statements.push(update);
+
+            transaction_statements
         }
     );
 
@@ -99,7 +121,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 }
             );
 
-            parse_args_impl_tokens.into()
+            parse_args_impl_tokens
         },
         syn::Fields::Unnamed(_) => unimplemented!("Unnamed fields not supported yet"),
         syn::Fields::Unit => unimplemented!("Unit fields not supported yet"),
