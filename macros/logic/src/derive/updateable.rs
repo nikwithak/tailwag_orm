@@ -57,6 +57,23 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
     let updateable_children: Vec<syn::Ident> = input_table_definition
         .columns
         .values()
+        .filter(|c| !c.is_nullable())
+        .filter_map(|column| {
+            let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
+            type E = tailwag_orm::data_definition::table::DatabaseColumnType;
+            match &column.column_type {
+                E::OneToMany(_) => todo!(),
+                E::ManyToMany(_) => todo!(),
+                E::OneToOne(_) => Some(field_name),
+                _ => None,
+            }
+        })
+        .collect();
+
+    let updateable_optional_children: Vec<syn::Ident> = input_table_definition
+        .columns
+        .values()
+        .filter(|c| c.is_nullable())
         .filter_map(|column| {
             let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
             type E = tailwag_orm::data_definition::table::DatabaseColumnType;
@@ -82,6 +99,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
 
             let mut transaction_statements = Vec::new();
             #(transaction_statements.append(&mut self.#updateable_children.get_update_statement());)*
+            #(&mut self.#updateable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_update_statement()));)*
             // TODO: Need to also INSERT any new children added.
             transaction_statements.push(update);
 
