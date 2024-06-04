@@ -99,7 +99,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
 
             let mut transaction_statements = Vec::new();
             #(transaction_statements.append(&mut self.#updateable_children.get_update_statement());)*
-            #(&mut self.#updateable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_update_statement()));)*
+            #(self.#updateable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_update_statement()));)*
             // TODO: Need to also INSERT any new children added.
             transaction_statements.push(update);
 

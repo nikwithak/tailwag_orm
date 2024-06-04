@@ -185,7 +185,6 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
         let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string());
 
         type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-
         
         match &column.column_type {
             E::OneToMany(_) => todo!(),
@@ -208,7 +207,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
 
             let mut transaction_statements = Vec::new();
             #(transaction_statements.append(&mut self.#insertable_children.get_insert_statement());)*
-            #(&mut self.#insertable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_insert_statement()));)*
+            #(self.#insertable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_insert_statement()));)*
             transaction_statements.push(insert);
 
             transaction_statements
