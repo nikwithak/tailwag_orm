@@ -11,7 +11,7 @@ use crate::{
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
-    AsSql, BuildSql,
+    BuildSql,
 };
 
 use super::{AlterTable, CreateTable};
