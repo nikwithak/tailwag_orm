@@ -5,6 +5,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/nikwithak/tailwag_orm"
 edition = "2021"
 readme = "README.md"
+description = "An ORM for building Postgres schemas and data access with a Manager pattern, backed by sqlx."
 
 # [workspace]
 # members = [

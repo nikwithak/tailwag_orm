@@ -2,6 +2,7 @@
 name = "tailwag_orm_macro_logic"
 version = "0.1.0"
 edition = "2021"
+description = "The logic for the macro exports, supporting the tailwag_orm crate. This crate will eventually be deprecated and merged into the tailwag_orm_macros crate."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
