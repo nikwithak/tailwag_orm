@@ -1,7 +1,10 @@
 [package]
 name = "tailwag_orm"
 version = "0.1.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nikwithak/tailwag_orm"
 edition = "2021"
+readme = "README.MD"
 
 # [workspace]
 # members = [
