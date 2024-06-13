@@ -5,6 +5,8 @@ proc_macro = true
 name = "tailwag_orm_macros"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nikwithak/tailwag_orm"
 description = "A collection of macros supporting the tailwag_orm crate."
 
 
@@ -12,4 +14,4 @@ description = "A collection of macros supporting the tailwag_orm crate."
 
 [dependencies]
 syn = { version = "2.0.39", features = ["extra-traits"] }
-tailwag_orm_macro_logic = {path = "./logic"}
+tailwag_orm_macro_logic = {version = "0.1.0", path = "./logic"}
