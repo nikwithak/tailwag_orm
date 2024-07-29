@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use uuid::Uuid;
 
-use crate::data_definition::table::{Identifier, TableColumn};
+use crate::data_definition::table::Identifier;
 
 use super::Filter;
 

@@ -30,8 +30,8 @@ impl<T: Id> LocalFileDataProvider<T> {
     }
 }
 
-impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filterable>
-    DataProvider<T> for LocalFileDataProvider<T>
+impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filterable> DataProvider<T>
+    for LocalFileDataProvider<T>
 {
     type CreateRequest = T;
     type Error = crate::Error;

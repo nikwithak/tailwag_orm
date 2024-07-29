@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 use std::marker::PhantomData;
 
 use crate::{
-    data_definition::table::{DatabaseTableDefinition, Identifier},
+    data_definition::table::DatabaseTableDefinition,
     object_management::{
         delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
     },
