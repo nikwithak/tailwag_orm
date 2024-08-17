@@ -30,14 +30,13 @@ impl<T: Id> LocalFileDataProvider<T> {
     }
 }
 
-impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filterable> DataProvider<T>
-    for LocalFileDataProvider<T>
+impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filterable>
+    DataProvider<T> for LocalFileDataProvider<T>
 {
     type CreateRequest = T;
-    type Error = crate::Error;
 
     #[allow(unreachable_code)]
-    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
+    async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error> {
         todo!();
         Ok(Vec::new().into_iter())
     }
@@ -45,7 +44,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, Self::Error> {
+    ) -> Result<T, crate::Error> {
         // let item: T = item.into();
 
         let path = self.get_filepath(item.id());
@@ -58,7 +57,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
     async fn get(
         &self,
         _predicate: impl FnOnce(<T as Filterable>::FilterType) -> Filter,
-    ) -> Result<Option<T>, Self::Error> {
+    ) -> Result<Option<T>, crate::Error> {
         todo!()
         // let path = self.get_filepath(&id);
         // let contents = std::fs::read_to_string(path).unwrap();
@@ -71,7 +70,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
     async fn delete(
         &self,
         item: T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         let path = self.get_filepath(item.id());
         // // For safety, make sure it's the right object:
         // self.get(*item.id()).await?;
@@ -82,7 +81,7 @@ impl<T: Default + Sync + Send + Id + Serialize + for<'a> Deserialize<'a> + Filte
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         let path = self.get_filepath(item.id());
         let contents = serde_json::to_string(item).unwrap();
         std::fs::write(path, contents).unwrap();

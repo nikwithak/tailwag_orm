@@ -43,9 +43,8 @@ where
 {
     // TODO: Figure out how to map CreateRequest
     type CreateRequest = T;
-    type Error = crate::Error;
 
-    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
+    async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error> {
         Ok(self
             .http_client
             .get(&self.endpoint)
@@ -61,7 +60,7 @@ where
     async fn get(
         &self,
         _predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
-    ) -> Result<Option<T>, Self::Error> {
+    ) -> Result<Option<T>, crate::Error> {
         // let url = format!("{}/{}", &self.endpoint, &id);
         // let response = self.http_client.get(&url).send().await.unwrap();
         // // if response.status() == StatusCode::NOT_FOUND {
@@ -75,7 +74,7 @@ where
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, Self::Error> {
+    ) -> Result<T, crate::Error> {
         let _response = self.http_client.post(&self.endpoint).json(&item).send().await?;
         Ok(item)
     }
@@ -83,7 +82,7 @@ where
     async fn delete(
         &self,
         item: T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         // let url = format!("{}/{}", &self.endpoint, &item.id());
         let url = &self.endpoint;
         let _response = self.http_client.delete(url).json(&item).send().await.unwrap();
@@ -93,7 +92,7 @@ where
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         // let url = format!("{}/{}", &self.endpoint, &item.id());
         let url = &self.endpoint;
         let _response = self.http_client.patch(url).json(item).send().await.unwrap();

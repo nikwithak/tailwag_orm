@@ -1,5 +1,5 @@
 mod filters;
-mod query_builder;
+pub(crate) mod query_builder;
 pub use filters::*;
 pub use query_builder::*;
 

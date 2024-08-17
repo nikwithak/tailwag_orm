@@ -162,12 +162,11 @@ where
         + Default,
 {
     type CreateRequest = T::CreateRequest; // TODO: Implement this based ont he implementaiton of Insertable?
-    type Error = crate::Error;
 
     async fn get(
         &self,
         predicate: impl Fn(<T as Filterable>::FilterType) -> crate::queries::Filter,
-    ) -> Result<Option<T>, Self::Error> {
+    ) -> Result<Option<T>, crate::Error> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
             filter: Some(predicate(<T as Filterable>::FilterType::default())),
@@ -180,12 +179,12 @@ where
         };
         let mut results = query.execute().await?;
         if results.len() > 1 {
-            return Err(Self::Error::DataIntegrity("Multiple items found for ID {}".to_string()));
+            return Err(crate::Error::DataIntegrity("Multiple items found for ID {}".to_string()));
         }
         Ok(results.pop())
     }
 
-    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
+    async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
             filter: None,
@@ -202,7 +201,7 @@ where
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, Self::Error> {
+    ) -> Result<T, crate::Error> {
         let item = item.into();
         let insert_statements = item.get_insert_statement();
 
@@ -220,7 +219,7 @@ where
     async fn delete(
         &self,
         item: T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         let mut builder: QueryBuilder<'_, Postgres> = sqlx::QueryBuilder::new("");
         item.get_delete_statement().build_sql(&mut builder);
         let query = builder.build();
@@ -235,7 +234,7 @@ where
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         let mut transaction = self.db_pool.begin().await?;
         let update_statements = item.get_update_statement();
         for update in update_statements {

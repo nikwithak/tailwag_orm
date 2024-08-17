@@ -24,27 +24,26 @@ where
     T: Filterable,
     Self: Sized,
 {
-    type Error: std::fmt::Debug;
     type CreateRequest: Default;
 
     // fn all(&self) -> Vec<T>;
-    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error>;
+    async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error>;
     async fn get(
         &self,
         predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
-    ) -> Result<Option<T>, Self::Error>;
+    ) -> Result<Option<T>, crate::Error>;
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, Self::Error>; // TODO: Create real error type when needed
+    ) -> Result<T, crate::Error>; // TODO: Create real error type when needed
     async fn delete(
         &self,
         item: T, // You give it up when you ask to delete it!
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), crate::Error>;
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), crate::Error>;
 }
 
 pub trait WithFilter<T>
@@ -95,11 +94,11 @@ where
     P: DataProvider<T>,
     T: Filterable,
 {
-    async fn save(&self) -> Result<(), <P as DataProvider<T>>::Error> {
+    async fn save(&self) -> Result<(), crate::Error> {
         self.provider.update(&self.data).await
     }
 
-    async fn delete(self) -> Result<(), <P as DataProvider<T>>::Error> {
+    async fn delete(self) -> Result<(), crate::Error> {
         self.provider.delete(self.data).await
     }
 }

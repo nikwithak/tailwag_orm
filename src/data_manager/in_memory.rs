@@ -21,9 +21,8 @@ impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
     for InMemoryDataProvider<T>
 {
     type CreateRequest = T;
-    type Error = crate::Error;
 
-    async fn all(&self) -> Result<impl Iterator<Item = T>, Self::Error> {
+    async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error> {
         // todo!();
         // Ok(vec![].into_iter())
         let items = self.items.lock().map_err(|e| crate::Error::MutexLock(e.to_string()))?;
@@ -33,7 +32,7 @@ impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
     async fn get(
         &self,
         _predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
-    ) -> Result<Option<T>, Self::Error> {
+    ) -> Result<Option<T>, crate::Error> {
         let _items = self.items.lock().unwrap();
         // let item = items.get(&id).cloned();
         // Ok(item)
@@ -43,7 +42,7 @@ impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, Self::Error> {
+    ) -> Result<T, crate::Error> {
         let mut items = self.items.lock().unwrap();
         let id = item.id();
         if items.contains_key(id) {
@@ -57,7 +56,7 @@ impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
     async fn delete(
         &self,
         item: T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         let mut items = self.items.lock().unwrap();
         match items.remove(item.id()) {
             Some(_) => Ok(()),
@@ -68,7 +67,7 @@ impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
     async fn update(
         &self,
         item: &T,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         let mut items = self.items.lock().unwrap();
         let id = item.id();
         if items.contains_key(id) {
