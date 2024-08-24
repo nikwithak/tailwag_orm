@@ -93,9 +93,7 @@ impl BuildSql for ForeignKeyConstraint {
             ref_table,
             ref_columns,
             columns,
-            match_type,
-            on_delete_action,
-            on_update_action,
+            ..
         } = self;
         builder.push("FOREIGN_KEY(");
         // TODO: Loop through columns

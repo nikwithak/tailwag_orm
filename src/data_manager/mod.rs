@@ -1,15 +1,10 @@
 mod postgres;
-use in_memory::InMemoryDataProvider;
-use local_files::LocalFileDataProvider;
 pub use postgres::*;
 use rest_api::Id;
 use serde::{Deserialize, Serialize};
 use traits::DataProvider;
 
-use crate::{
-    queries::{self, filterable_types::Filterable, Insertable},
-    Error,
-};
+use crate::queries::{self, filterable_types::Filterable, Insertable};
 pub mod rest_api;
 pub mod threaded;
 pub mod traits;
@@ -21,6 +16,7 @@ pub mod local_files;
 // struct FileLocalStorageProvider {}
 // struct MongoDBDataProvider {}
 
+#[allow(unused)]
 enum DataProviderType<T: Insertable> {
     Postgres(PostgresDataProvider<T>),
     // InMemory(InMemoryDataProvider<T>),
@@ -35,6 +31,7 @@ where
 }
 
 impl<T: Filterable + Insertable> DataManager<T> {}
+#[allow(unused)]
 enum DataManagerError {
     Error(String),
 }
@@ -65,28 +62,28 @@ where
 
     async fn get(
         &self,
-        predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
+        _predicate: impl Fn(T::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, crate::Error> {
         todo!()
     }
 
     async fn create(
         &self,
-        item: Self::CreateRequest,
+        _item: Self::CreateRequest,
     ) -> Result<T, crate::Error> {
         todo!()
     }
 
     async fn delete(
         &self,
-        item: T, // You give it up when you ask to delete it!
+        _item: T, // You give it up when you ask to delete it!
     ) -> Result<(), crate::Error> {
         todo!()
     }
 
     async fn update(
         &self,
-        item: &T,
+        _item: &T,
     ) -> Result<(), crate::Error> {
         todo!()
     }

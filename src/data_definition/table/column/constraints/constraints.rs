@@ -2,7 +2,7 @@ use std::{ops::Deref, sync::Arc};
 
 use crate::{
     data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
-    AsSql, BuildSql,
+    BuildSql,
 };
 
 #[derive(PartialEq, Eq, Debug, Default)]
@@ -15,7 +15,6 @@ impl BuildSql for PrimaryKeyColumnConstraint {
         &self,
         sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
-        let mut statement = "PRIMARY KEY".to_string();
         sql.push("PRIMARY KEY ");
         if let Some(params) = &self.index_parameters {
             params.build_sql(sql);
@@ -23,12 +22,13 @@ impl BuildSql for PrimaryKeyColumnConstraint {
     }
 }
 
+#[allow(unused)]
 struct CheckExpressionConstraint {}
 
 impl BuildSql for CheckExpressionConstraint {
     fn build_sql(
         &self,
-        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+        _sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
         todo!()
     }
@@ -40,7 +40,7 @@ pub struct IndexParameters {}
 impl BuildSql for IndexParameters {
     fn build_sql(
         &self,
-        sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+        _sql: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
         todo!()
     }

@@ -48,7 +48,7 @@ impl BuildSql for InsertStatement {
                 },
                 ColumnValue::Timestamp(val) => builder.push_bind(*val),
                 ColumnValue::Uuid(val) => builder.push_bind(*val),
-                ColumnValue::Child(values) => todo!("It's getting messy."),
+                ColumnValue::Child(_values) => todo!("It's getting messy."),
             };
             if i < values.len() - 1 {
                 builder.push(", ");

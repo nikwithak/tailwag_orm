@@ -1,6 +1,6 @@
 use crate::{
     data_definition::table::{DatabaseColumnType, Identifier, TableColumn, TableConstraint},
-    AsSql, BuildSql,
+    BuildSql,
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -37,7 +37,7 @@ impl BuildSql for AlterTableAction {
             E::AlterColumn(alter_column) => alter_column.build_sql(sql),
             E::AddConstraint(constraint) => {
                 sql.push("ADD ");
-                &constraint.build_sql(sql);
+                constraint.build_sql(sql)
             },
             E::AlterConstraint() => todo!(),
             E::DropConstraint(constraint) => {

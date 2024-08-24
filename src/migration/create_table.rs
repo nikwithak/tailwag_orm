@@ -1,5 +1,3 @@
-use sqlx::Postgres;
-
 use crate::{data_definition::table::DatabaseTableDefinition, AsSql, BuildSql};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -67,7 +65,7 @@ mod test {
     }
 
     #[test]
-    fn create_table__as_sql_works() -> Result<(), String> {
+    fn create_table_as_sql_works() -> Result<(), String> {
         let table_name = Identifier::new("new_table".to_string()).unwrap();
         let table_definition = DatabaseTableDefinition::<()>::new(&table_name)
             .unwrap()
@@ -102,7 +100,7 @@ mod test {
     }
 
     #[test]
-    fn create_table__one_to_one_works() -> Result<(), String> {
+    fn create_table_one_to_one_works() -> Result<(), String> {
         let child_table: DatabaseTableDefinition<()> =
             DatabaseTableDefinition::<()>::new(&Identifier::new("child_table")?)?
                 .column(TableColumn::new_uuid("id")?.non_null().pk())
@@ -122,17 +120,6 @@ mod test {
                     ),
                 )
                 .into();
-        let create_table = CreateTable {
-            table_definition: parent_table.clone(),
-        };
-
-        let queries = (
-            dbg!(CreateTable {
-                table_definition: child_table.clone()
-            }
-            .as_sql()),
-            dbg!(create_table.as_sql()),
-        );
 
         let db: DatabaseDefinition<_> = DatabaseDefinitionBuilder::new("test_db")
             .unwrap()

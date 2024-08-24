@@ -21,7 +21,7 @@ mod tests {
             create_table, AlterColumn, AlterColumnAction, AlterTable, AlterTableAction,
             MigrationAction,
         },
-        AsSql, BuildSql,
+        BuildSql,
     };
 
     use super::Migration;

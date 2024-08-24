@@ -3,14 +3,14 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use crate::data_manager::GetTableDefinition;
-use crate::object_management::insert::InsertStatement;
 use crate::queries::Insertable;
-use crate::{AsSql, BuildSql};
+use crate::BuildSql;
 
 use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
 
 use super::{TableColumnConstraint, TableColumnConstraintDetail};
 
+#[allow(unused)]
 trait ForeignKeyObject
 where
     Self: GetTableDefinition + Insertable + Clone,
