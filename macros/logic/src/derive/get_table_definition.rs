@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput};
-use tailwag_utils::strings::to_screaming_snake_case;
+use tailwag_utils::strings::ToScreamingSnakeCase;
 
 pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     let &DeriveInput {
@@ -18,10 +18,10 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     match &data.fields {
         syn::Fields::Named(fields) => {
             let _field_names = fields.named.iter().map(|f| &f.ident);
-            let once_cell_name: TokenStream =
-                format!("{}_TABLE_DEFINITION", to_screaming_snake_case(&ident.to_string()))
-                    .parse()
-                    .unwrap();
+            let once_cell_name: TokenStream = format!("{}_TABLE_DEFINITION", &ident.to_string())
+                .to_screaming_snake_case()
+                .parse()
+                .unwrap();
 
             let functions: Vec<TokenStream> =
                 vec![build_get_table_definition(input, once_cell_name.clone())];

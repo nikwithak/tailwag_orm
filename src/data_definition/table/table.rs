@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, marker::PhantomData, ops::Deref, sync::Arc};
 use super::{Identifier, TableColumn, TableConstraint};
 
 // The details of the Database table. Used to generate the queries for setting up and iteracting with the database.
-#[derive(Clone, PartialEq, Eq, Debug,)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DatabaseTableDefinition<T> {
     data: Arc<DatabaseTableDefinitionData<T>>,
 }
