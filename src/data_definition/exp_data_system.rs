@@ -1,5 +1,6 @@
 use std::{
     any::{Any, TypeId},
+    cell::RefCell,
     collections::HashMap,
     sync::Arc,
 };
@@ -7,47 +8,113 @@ use std::{
 use sqlx::Postgres;
 
 use crate::{
+    data_definition::table::TableColumn,
     data_manager::{GetTableDefinition, PostgresDataProvider},
     queries::Insertable,
 };
 
-use super::table::DatabaseTableDefinition;
+use super::table::{raw_data::TableDefinition, DatabaseTableDefinition, Identifier};
+
+trait GenericizedTableDefinition: std::any::Any + TableDefinition {}
+impl<T: 'static> GenericizedTableDefinition for DatabaseTableDefinition<T> {}
 
 #[derive(Default)]
 pub struct DataSystemBuilder {
-    resources: HashMap<TypeId, Arc<Box<dyn Any + Send + Sync>>>,
+    resources: HashMap<TypeId, Box<dyn GenericizedTableDefinition + Send + Sync>>,
+    table_name_to_type: HashMap<Identifier, TypeId>,
 }
 
 impl DataSystemBuilder {
     pub fn add_resource<T: GetTableDefinition + Send + Sync + 'static>(&mut self) {
-        self.resources
-            .insert(TypeId::of::<T>(), Arc::new(Box::new(T::get_table_definition())));
+        // TODO: On get_table_definition, need to include child tables too and add them here.
+        // Fixes the issue where I have to add endpoints for child resources even if I don't want them.
+        let table_def = T::get_table_definition();
+        let type_id = TypeId::of::<T>();
+        self.table_name_to_type.insert(table_def.table_name.clone(), type_id);
+        // self.resources.insert(type_id, Box::new(table_def));
     }
     pub fn with_resource<T: GetTableDefinition + Send + Sync + 'static>(mut self) -> Self {
         self.add_resource::<T>();
         self
     }
-    pub fn get<T: GetTableDefinition + Clone + Send + Sync + 'static>(
-        &self
-    ) -> Option<DatabaseTableDefinition<T>> {
-        self.resources.get(&TypeId::of::<T>()).map(|t| {
-            let boxed = t.downcast_ref::<DatabaseTableDefinition<T>>().expect(
-                "Invalid type stored in DataSystem.resources - this should not be possible.
-                The type exists in the map but failed to downcast.",
-            );
-            boxed.clone()
-        })
+    // pub fn get<T: GetTableDefinition + Clone + Send + Sync + 'static>(
+    //     &self
+    // ) -> Option<DatabaseTableDefinition<T>> {
+    //     self.resources.get(&TypeId::of::<T>()).map(|t| {
+    //         let boxed = <dyn Any>::downcast_ref::<DatabaseTableDefinition<T>>(t).expect(
+    //             "Invalid type stored in DataSystem.resources - this should not be possible.
+    //             The type exists in the map but failed to downcast.",
+    //         );
+    //         boxed.clone()
+    //     })
+    // }
+
+    pub fn migrate(&self) {
+        // * Iterate through Resources
+        // * For each Resource:
+        //  * Add parent_id column to
     }
 
-    pub fn build(self) -> UnconnectedDataSystem {
-        UnconnectedDataSystem {
-            resources: Arc::new(self.resources),
+    pub fn build(mut self) -> Result<UnconnectedDataSystem, crate::Error> {
+        let Self {
+            resources,
+            table_name_to_type,
+        } = self;
+        // Put things into a RefCell sot hat we can modify during iteration.
+        let resources = resources
+            .into_iter()
+            .map(|(k, v)| (k, RefCell::new(v)))
+            .collect::<HashMap<_, _>>();
+        // First pass: Make sure all child tables exist, and modify them where needed.
+        for (_, table_def) in &resources {
+            let table_def = table_def.borrow();
+            let table_name = table_def.table_name();
+            let table_id_col = table_def.columns().get(&Identifier::new_unchecked("id")).unwrap();
+            for child_table in table_def.child_tables() {
+                match child_table {
+                    super::table::TableRelationship::OneToMany(child_name) => {
+                        let child_table_type_id = table_name_to_type
+                            .get(&child_name)
+                            .expect(&format!(
+                                "Expected child table {child_name} does not exist in Data System. Aborting."
+                            ));
+                        let mut child_table = resources.get(&child_table_type_id)
+                            .expect(&format!(
+                                "Expected child table {child_name} does not exist in Data System. Aborting."
+                            )).borrow_mut();
+                        // TODO (UUID id requirement): Make this more dynamic when I remove the "must have UUID" requirement
+                        let parent_table_col_name = format!("{table_name}_id");
+                        child_table.add_column(
+                            TableColumn::new_uuid(&parent_table_col_name)?
+                                .non_null()
+                                .fk_to(table_name.clone(), table_id_col.clone())
+                                .into(),
+                        );
+                    },
+                    super::table::TableRelationship::ManyToMany(_child_name) => {
+                        todo!("Need to create a NEW join table connecting these")
+                    },
+                    super::table::TableRelationship::OneToOne(child_name) => {
+                        let child_table = table_name_to_type
+                            .get(&child_name)
+                            .and_then(|type_id| resources.get(type_id));
+                        // Just make sure the child table exists - migrations will handle the actual column name down the line.
+                        // TODO: Actually migrations don't do it, it happens in the macro. I should move it here for posterity's sake. Can happen later.
+                        assert!(child_table.is_some());
+                    },
+                }
+            }
         }
+        Ok(UnconnectedDataSystem {
+            resources: Arc::new(
+                resources.into_iter().map(|(k, v)| (k, Arc::new(v.into_inner()))).collect(),
+            ),
+        })
     }
 }
 
 pub struct UnconnectedDataSystem {
-    resources: Arc<HashMap<TypeId, Arc<Box<dyn Any + Send + Sync>>>>,
+    resources: Arc<HashMap<TypeId, Arc<Box<dyn GenericizedTableDefinition + Send + Sync>>>>,
 }
 impl UnconnectedDataSystem {
     pub async fn connect(
@@ -63,7 +130,7 @@ impl UnconnectedDataSystem {
 
 #[derive(Clone)]
 pub struct DataSystem {
-    resources: Arc<HashMap<TypeId, Arc<Box<dyn Any + Send + Sync>>>>,
+    resources: Arc<HashMap<TypeId, Arc<Box<dyn GenericizedTableDefinition + Send + Sync>>>>,
     pool: sqlx::Pool<Postgres>,
 }
 
@@ -78,13 +145,15 @@ impl DataSystem {
         &self
     ) -> Option<PostgresDataProvider<T>> {
         self.resources.get(&TypeId::of::<T>()).map(|t| {
-            let boxed = t.downcast_ref::<DatabaseTableDefinition<T>>().expect(
+            let boxed = <dyn Any>::downcast_ref::<DatabaseTableDefinition<T>>(t).expect(
                 "Invalid type stored in DataSystem.resources - this should not be possible.
                 The type exists in the map but failed to downcast.",
             );
             PostgresDataProvider::new(boxed.clone(), self.pool.clone())
         })
     }
+
+    pub fn run_migrations(&self) {}
 }
 
 impl<T> TryFrom<&DataSystem> for PostgresDataProvider<T>

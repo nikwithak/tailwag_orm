@@ -53,7 +53,7 @@ mod test {
     use crate::{
         data_definition::{
             database_definition::{DatabaseDefinition, DatabaseDefinitionBuilder},
-            table::{DatabaseTableDefinition, Identifier, TableColumn},
+            table::{raw_data::TableDefinition, DatabaseTableDefinition, Identifier, TableColumn},
         },
         migration::{create_table, Migration},
         AsSql, BuildSql,
@@ -111,7 +111,7 @@ mod test {
                 .column(TableColumn::new_uuid("id")?.non_null().pk())
                 .column(
                     TableColumn::new_uuid("child_id")?.fk_to(
-                        child_table.clone(),
+                        child_table.table_name.clone(),
                         child_table
                             .columns
                             .get(&Identifier::new("id")?)

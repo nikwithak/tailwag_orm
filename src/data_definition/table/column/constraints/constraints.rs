@@ -1,7 +1,7 @@
 use std::{ops::Deref, sync::Arc};
 
 use crate::{
-    data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
+    data_definition::table::{Identifier, TableColumn},
     BuildSql,
 };
 
@@ -226,14 +226,14 @@ impl TableColumnConstraint {
     }
 
     /// Builds a basic foreign key restraint for a column
-    pub fn foreign_key<T>(
-        ref_table: DatabaseTableDefinition<T>,
+    pub fn foreign_key(
+        ref_table_name: Identifier,
         ref_column: TableColumn,
     ) -> Self {
         Self {
             name: None,
             detail: Arc::new(TableColumnConstraintDetail::References(ReferencesConstraint::new(
-                ref_table.table_name.clone(),
+                ref_table_name.clone(),
                 ref_column.column_name.clone(),
             ))),
         }

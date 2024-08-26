@@ -6,7 +6,7 @@ use crate::data_manager::GetTableDefinition;
 use crate::queries::Insertable;
 use crate::BuildSql;
 
-use crate::data_definition::table::{DatabaseTableDefinition, Identifier};
+use crate::data_definition::table::Identifier;
 
 use super::{TableColumnConstraint, TableColumnConstraintDetail};
 
@@ -140,17 +140,17 @@ impl TableColumnData {
         self.primary_key()
     }
 
-    pub fn fk_to<T>(
+    pub fn fk_to(
         self,
-        ref_table: DatabaseTableDefinition<T>,
+        ref_table: Identifier,
         ref_column: TableColumn,
     ) -> Self {
         self.foreign_key_to(ref_table, ref_column)
     }
 
-    pub fn foreign_key_to<T>(
+    pub fn foreign_key_to(
         mut self,
-        ref_table: DatabaseTableDefinition<T>,
+        ref_table: Identifier,
         ref_column: TableColumn,
     ) -> Self {
         self.constraints.push(TableColumnConstraint::foreign_key(ref_table, ref_column));

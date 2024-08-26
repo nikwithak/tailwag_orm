@@ -106,7 +106,6 @@ fn build_get_table_definition(
                     .expect("Table name is invalid")
                     #(.column(#table_columns))*
                     // #(.constraint(#table_constraints)*) // TODO - weak constriants support currently
-                    .into()
             });
 
             table_def.clone()
