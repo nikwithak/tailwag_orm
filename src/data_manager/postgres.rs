@@ -9,6 +9,7 @@ use sqlx::{Error, Execute, Pool, Postgres, QueryBuilder};
 use std::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    sync::Arc,
 };
 
 use super::{rest_api::Id, traits::WithFilter};
@@ -109,15 +110,14 @@ impl<T: Filterable> ExecutableQuery<T> {
 // Migration Handling
 impl<T: Insertable> PostgresDataProvider<T>
 where
-    T: Clone + std::fmt::Debug + for<'d> serde::Deserialize<'d>,
+    T: Clone + Send + Sync + std::fmt::Debug + 'static + for<'d> serde::Deserialize<'d>,
 {
-    pub fn build_migration(&self) -> Option<Migration<T>> {
-        Migration::<T>::compare(
+    pub fn build_migration(&self) -> Option<Migration> {
+        Migration::compare(
             None, // TODO: Need to get the old migration
-            &DatabaseDefinition::new_unchecked("postgres")
-                .table(self.table_definition.clone())
-                .into(),
-        )
+            vec![Arc::new(Box::new(self.table_definition.clone()))],
+        );
+        todo!()
     }
     pub async fn run_migrations(&self) -> Result<(), String> {
         log::info!("[DATABASE] Running Migrations");

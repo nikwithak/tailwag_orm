@@ -5,8 +5,9 @@ use sqlx::{Pool, Postgres};
 use crate::{
     data_definition::{
         database_definition::DatabaseDefinition,
+        exp_data_system::{DataSystem, GenericizedTableDefinition, TableDef},
         table::{
-            DatabaseTableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
+            self, DatabaseTableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
             TableConstraint, TableConstraintDetail,
         },
     },
@@ -16,14 +17,14 @@ use crate::{
 
 use super::{AlterTable, CreateTable};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum MigrationAction<T> {
+#[derive(Clone)]
+pub enum MigrationAction {
     AlterTable(AlterTable),
-    CreateTable(CreateTable<T>),
+    CreateTable(CreateTable),
     DropTable(Identifier),
 }
 
-impl<T> BuildSql for MigrationAction<T> {
+impl BuildSql for MigrationAction {
     fn build_sql(
         &self,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
@@ -38,12 +39,12 @@ impl<T> BuildSql for MigrationAction<T> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Migration<T> {
-    pub actions: Vec<MigrationAction<T>>,
+#[derive(Clone)]
+pub struct Migration {
+    pub actions: Vec<MigrationAction>,
 }
 
-impl<T> Migration<T> {
+impl Migration {
     pub async fn run(
         self,
         db_pool: &Pool<Postgres>,
@@ -56,7 +57,7 @@ impl<T> Migration<T> {
     }
 }
 
-impl<T> BuildSql for Migration<T> {
+impl BuildSql for Migration {
     fn build_sql(
         &self,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
@@ -68,21 +69,16 @@ impl<T> BuildSql for Migration<T> {
     }
 }
 
-impl<T> Migration<T>
-where
-    T: std::fmt::Debug + Clone,
-{
-    pub fn compare(
-        before: Option<&DatabaseDefinition<T>>,
-        after: &DatabaseDefinition<T>,
+impl Migration {
+    pub(crate) fn compare(
+        before: Option<Vec<TableDef>>,
+        after: Vec<TableDef>,
     ) -> Option<Self> {
-        let mut actions: Vec<MigrationAction<T>> = Vec::new();
+        let mut actions: Vec<MigrationAction> = Vec::new();
 
-        fn build_table_map<T>(
-            db_def: &DatabaseDefinition<T>
-        ) -> HashMap<&Identifier, &DatabaseTableDefinition<T>> {
-            let map = db_def.tables.iter().fold(HashMap::new(), |mut acc, table| {
-                acc.insert(&table.table_name, table);
+        fn build_table_map(db_def: Vec<TableDef>) -> HashMap<Identifier, TableDef> {
+            let map = db_def.iter().fold(HashMap::new(), |mut acc, table| {
+                acc.insert(table.table_name(), table.clone());
                 acc
             });
             map
@@ -91,10 +87,10 @@ where
         if let Some(before) = before {
             // Build a map for quick lookup of after_tables, then compare each
             let mut after_tables = build_table_map(after);
-            for table_before in &before.tables {
+            for table_before in before {
                 match after_tables
-                    .remove(&table_before.table_name)
-                    .map(|after_table| Self::compare_tables(table_before, after_table))
+                    .remove(&table_before.table_name())
+                    .map(|after_table| Self::compare_tables(table_before.clone(), after_table))
                 {
                     Some(None) => {
                         println!("NO CHANGES");
@@ -102,16 +98,16 @@ where
                         // Do nothing
                     },
                     Some(Some(mut table_diff)) => {
-                        println!("[MODIFY TABLE]");
-                        println!("before: {:?}", table_before);
+                        println!("[MODIFY TABLE] {}", table_before.table_name());
+                        // println!("before: {:?}", table_before);
                         // Table has been modified
                         actions.append(&mut table_diff.actions);
                     },
                     None => {
-                        println!("[DELETE TABLE] {:?}", table_before);
+                        println!("[DELETE TABLE] {}", table_before.table_name());
                         // Table was not found in new tables, meaning it was deleted
                         // TODO: At the end, compare any deleted/added tables to see if there was just some renaming done.
-                        let action = MigrationAction::DropTable(table_before.table_name.clone());
+                        let action = MigrationAction::DropTable(table_before.table_name().clone());
                         actions.push(action);
                     },
                 };
@@ -121,13 +117,12 @@ where
             actions.append(
                 &mut after_tables
                     .values()
-                    .map(|table| MigrationAction::CreateTable(CreateTable::new((*table).clone())))
+                    .map(|table| MigrationAction::CreateTable(CreateTable::new(table.clone()))) //(*table).clone())))
                     .collect(),
             )
         } else {
             // New database - only creates!
             let mut create_table_actions = after
-                .tables
                 .iter()
                 .map(|t| MigrationAction::CreateTable(CreateTable::new(t.clone())))
                 .collect();
@@ -153,19 +148,20 @@ where
     /// # Returns
     ///
     fn compare_tables(
-        before: &DatabaseTableDefinition<T>,
-        after: &DatabaseTableDefinition<T>,
+        before: TableDef,
+        after: TableDef,
     ) -> Option<Self> {
         let mut actions = Vec::<AlterTableAction>::new();
 
         // Name changed
-        if before.table_name != after.table_name {
-            actions.push(AlterTableAction::Rename(after.table_name.clone()));
+        if before.table_name() != after.table_name() {
+            actions.push(AlterTableAction::Rename(after.table_name()));
         }
 
         // Build a map for quick lookup of after_tables, then compare each
-        let mut after_columns: HashMap<&Identifier, &TableColumn> = after.columns.iter().collect();
-        for old_column in before.columns.values() {
+        let mut after_columns: HashMap<&Identifier, &TableColumn> =
+            after.columns().iter().collect();
+        for old_column in before.columns().values() {
             match after_columns.remove(&old_column.column_name) {
                 Some(new_column) => {
                     let mut alter_column_actions = Vec::new();
@@ -263,7 +259,7 @@ where
         if !actions.is_empty() {
             Some(Self {
                 actions: vec![MigrationAction::AlterTable(AlterTable {
-                    table_name: after.table_name.clone(),
+                    table_name: after.table_name().clone(),
                     actions,
                 })],
             })

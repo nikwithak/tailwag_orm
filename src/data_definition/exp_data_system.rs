@@ -5,17 +5,21 @@ use std::{
     sync::Arc,
 };
 
-use sqlx::Postgres;
+use sqlx::{Postgres, QueryBuilder};
 
 use crate::{
     data_definition::table::TableColumn,
     data_manager::{GetTableDefinition, PostgresDataProvider},
+    migration::Migration,
     queries::Insertable,
+    BuildSql,
 };
 
-use super::table::{raw_data::TableDefinition, DatabaseTableDefinition, Identifier};
+use super::table::{self, raw_data::TableDefinition, DatabaseTableDefinition, Identifier};
 
-trait GenericizedTableDefinition: std::any::Any + TableDefinition {}
+pub(crate) trait GenericizedTableDefinition: std::any::Any + TableDefinition {}
+pub(crate) type TableDef = Arc<Box<dyn GenericizedTableDefinition + Send + Sync>>;
+
 impl<T: 'static> GenericizedTableDefinition for DatabaseTableDefinition<T> {}
 
 #[derive(Default)]
@@ -29,13 +33,20 @@ impl DataSystemBuilder {
         // TODO: On get_table_definition, need to include child tables too and add them here.
         // Fixes the issue where I have to add endpoints for child resources even if I don't want them.
         let table_def = T::get_table_definition();
-        let type_id = TypeId::of::<T>();
-        self.table_name_to_type.insert(table_def.table_name.clone(), type_id);
-        // self.resources.insert(type_id, Box::new(table_def));
+        self.add_table_def(table_def);
     }
     pub fn with_resource<T: GetTableDefinition + Send + Sync + 'static>(mut self) -> Self {
         self.add_resource::<T>();
         self
+    }
+
+    pub fn add_table_def<T: Send + Sync + 'static>(
+        &mut self,
+        table_def: DatabaseTableDefinition<T>,
+    ) {
+        let type_id = TypeId::of::<T>();
+        self.table_name_to_type.insert(table_def.table_name.clone(), type_id);
+        self.resources.insert(type_id, Box::new(table_def));
     }
     // pub fn get<T: GetTableDefinition + Clone + Send + Sync + 'static>(
     //     &self
@@ -48,12 +59,6 @@ impl DataSystemBuilder {
     //         boxed.clone()
     //     })
     // }
-
-    pub fn migrate(&self) {
-        // * Iterate through Resources
-        // * For each Resource:
-        //  * Add parent_id column to
-    }
 
     pub fn build(mut self) -> Result<UnconnectedDataSystem, crate::Error> {
         let Self {
@@ -153,7 +158,21 @@ impl DataSystem {
         })
     }
 
-    pub fn run_migrations(&self) {}
+    pub async fn run_migrations(&self) -> Result<(), crate::Error> {
+        if let Some(migrations) = Migration::compare(
+            None, // TODO: Get previous.
+            self.resources.values().map(|table| table.to_owned()).collect(),
+        ) {
+            let mut transaction = self.pool.begin().await?;
+            for action in migrations.actions {
+                let mut builder = QueryBuilder::new("");
+                action.build_sql(&mut builder);
+                builder.build().execute(&mut *transaction).await?;
+            }
+            transaction.commit().await?;
+        }
+        Ok(())
+    }
 }
 
 impl<T> TryFrom<&DataSystem> for PostgresDataProvider<T>
