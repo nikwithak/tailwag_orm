@@ -13,8 +13,8 @@ pub struct UpdateStatement {
 }
 
 impl UpdateStatement {
-    pub fn new<T>(
-        table_def: DatabaseTableDefinition<T>,
+    pub fn new(
+        table_def: DatabaseTableDefinition,
         object_map: HashMap<Identifier, ColumnValue>,
     ) -> Self {
         Self {

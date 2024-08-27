@@ -5,10 +5,10 @@ use sqlx::{Pool, Postgres};
 use crate::{
     data_definition::{
         database_definition::DatabaseDefinition,
-        exp_data_system::{DataSystem, GenericizedTableDefinition, TableDef},
+        exp_data_system::{DataSystem, TableDef},
         table::{
-            self, DatabaseTableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
-            TableConstraint, TableConstraintDetail,
+            self, raw_data::TableDefinition, DatabaseTableDefinition, ForeignKeyConstraint,
+            Identifier, TableColumn, TableConstraint, TableConstraintDetail,
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},

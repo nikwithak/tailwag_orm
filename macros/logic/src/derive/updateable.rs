@@ -3,6 +3,10 @@ use quote::{format_ident, quote};
 use syn::{Data, DeriveInput};
 
 fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
+    let &DeriveInput {
+        ident,
+        ..
+    } = &input;
     let input_table_definition =
         crate::util::database_table_definition::build_table_definition::<()>(input);
 

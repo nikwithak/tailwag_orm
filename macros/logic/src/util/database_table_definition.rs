@@ -11,7 +11,7 @@ use tailwag_utils::strings::ToSnakeCase;
 
 use super::attribute_parsing::GetAttribute;
 
-pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDefinition<T> {
+pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDefinition {
     let &DeriveInput {
         ident,
         data,

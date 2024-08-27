@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::Arc};
 
 use crate::{
     data_definition::table::DatabaseTableDefinition,
@@ -12,7 +12,7 @@ use crate::{
 use super::Filter;
 
 pub struct Query<T> {
-    pub table: DatabaseTableDefinition<T>,
+    pub table: Arc<DatabaseTableDefinition>,
     pub filter: Option<Filter>,
     pub limit: Option<usize>,
     pub _t: PhantomData<T>,
@@ -145,7 +145,7 @@ impl<T> BuildSql for Query<T> {
 mod tests {
     use crate::data_definition::table::{DatabaseTableDefinition, TableColumn};
 
-    fn get_table_def<T>() -> DatabaseTableDefinition<T> {
+    fn get_table_def() -> DatabaseTableDefinition {
         type T = TableColumn;
 
         DatabaseTableDefinition::new("table_2")
@@ -162,7 +162,7 @@ mod tests {
     fn test_queries() {
         const _EXPECTED_QUERY: &str = "SELECT * FROM item INNER JOIN sub_item ON sub_item.parent_id = item.id WHERE sub_item.name like 'BUG%';";
 
-        let _table_def: DatabaseTableDefinition<()> = get_table_def();
+        let _table_def: DatabaseTableDefinition = get_table_def();
         // let _query = Query::<String
 
         todo!()

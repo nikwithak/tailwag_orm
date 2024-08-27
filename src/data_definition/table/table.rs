@@ -10,7 +10,7 @@ pub enum TableRelationship {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct DatabaseTableDefinition<T> {
+pub struct DatabaseTableDefinition {
     pub table_name: Identifier,
     // TODO: Make it so that there can only be one ID column.
     // TODO: Composite keys, Constraints, etc.
@@ -18,7 +18,6 @@ pub struct DatabaseTableDefinition<T> {
     pub columns: BTreeMap<Identifier, TableColumn>, // BTreeMap for testing reasons... yes it adds inefficiency, but shoudln't be enough to matter.
     pub child_tables: Vec<TableRelationship>,       // local_name to table_name
     pub constraints: Vec<TableConstraint>,
-    pub _t: PhantomData<T>,
 }
 
 /// Experimental - we need a typeless vbersion of this data for building migrations appropriately.
@@ -33,7 +32,7 @@ pub(crate) mod raw_data {
 
     use super::{DatabaseTableDefinition, TableRelationship};
     trait LockedTrait {}
-    impl<T> LockedTrait for DatabaseTableDefinition<T> {}
+    impl LockedTrait for DatabaseTableDefinition {}
 
     #[allow(private_bounds)]
     pub trait TableDefinition
@@ -50,7 +49,7 @@ pub(crate) mod raw_data {
         );
     }
 
-    impl<T> TableDefinition for DatabaseTableDefinition<T> {
+    impl TableDefinition for DatabaseTableDefinition {
         fn table_name(&self) -> Identifier {
             self.table_name.clone()
         }
@@ -86,7 +85,7 @@ pub(crate) mod raw_data {
     }
 }
 
-impl<T> DatabaseTableDefinition<T> {
+impl DatabaseTableDefinition {
     pub fn new(table_name: &str) -> Result<Self, String> {
         Ok(Self {
             table_name: Identifier::new(table_name)?, // TODO: Clean this up ([2023-12-11] What's wrong with it / clean up in what way?)
@@ -94,7 +93,6 @@ impl<T> DatabaseTableDefinition<T> {
             child_tables: Default::default(),
             // columns: Vec::new(),
             constraints: Vec::new(),
-            _t: PhantomData,
         })
     }
 
@@ -116,14 +114,14 @@ impl<T> DatabaseTableDefinition<T> {
     }
 }
 
-impl<T> DatabaseTableDefinition<T> {
+impl DatabaseTableDefinition {
     // /// Creates a one-to-one relationship between the two objects. This will add a Foriegn Key column
     // /// for each column making up the downstream table's Primary Key.
     // TODO: Might change how this is done. Delete if not needed later.
     // pub fn with_one_to_one(
     //     self,
     //     col_name: &str,
-    //     ref_table: &DatabaseTableDefinition<T>
+    //     ref_table: &DatabaseTableDefinition
     // ) -> Result<Self, String> {
     //     let t: Vec<_> = ref_table
     //         .data

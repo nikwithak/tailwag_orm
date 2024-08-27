@@ -16,7 +16,7 @@ use super::{rest_api::Id, traits::WithFilter};
 
 #[derive(Clone)]
 pub struct PostgresDataProvider<T: Insertable> {
-    pub table_definition: DatabaseTableDefinition<T>,
+    pub table_definition: Arc<DatabaseTableDefinition>,
     pub db_pool: Pool<Postgres>,
     pub _t: PhantomData<T>,
 }
@@ -26,7 +26,7 @@ where
     T: Insertable,
 {
     pub fn new(
-        table_definition: DatabaseTableDefinition<T>,
+        table_definition: Arc<DatabaseTableDefinition>,
         db_pool: Pool<Postgres>,
     ) -> Self {
         Self {
@@ -38,7 +38,7 @@ where
 }
 
 pub trait GetTableDefinition {
-    fn get_table_definition() -> DatabaseTableDefinition<Self>
+    fn get_table_definition() -> DatabaseTableDefinition
     where
         Self: std::marker::Sized;
 }
@@ -115,7 +115,7 @@ where
     pub fn build_migration(&self) -> Option<Migration> {
         Migration::compare(
             None, // TODO: Need to get the old migration
-            vec![Arc::new(Box::new(self.table_definition.clone()))],
+            vec![self.table_definition.clone()],
         );
         todo!()
     }

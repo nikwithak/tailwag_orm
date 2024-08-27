@@ -23,7 +23,7 @@ mod tests {
 
     use super::Migration;
 
-    fn table_2() -> DatabaseTableDefinition<()> {
+    fn table_2() -> DatabaseTableDefinition {
         type T = TableColumn;
         DatabaseTableDefinition::new("table_2")
             .unwrap()
@@ -36,7 +36,7 @@ mod tests {
             .into()
     }
 
-    fn table_1() -> DatabaseTableDefinition<()> {
+    fn table_1() -> DatabaseTableDefinition {
         DatabaseTableDefinition::new("table_1")
             .unwrap()
             .column(TableColumn::string("string_nullable").unwrap())
@@ -48,7 +48,7 @@ mod tests {
             .into()
     }
 
-    fn table_3() -> DatabaseTableDefinition<()> {
+    fn table_3() -> DatabaseTableDefinition {
         type T = TableColumn;
         DatabaseTableDefinition::new("table_3")
             .unwrap()
@@ -57,7 +57,7 @@ mod tests {
             .into()
     }
 
-    fn table_4() -> DatabaseTableDefinition<()> {
+    fn table_4() -> DatabaseTableDefinition {
         DatabaseTableDefinition::new("table_4")
             .unwrap()
             .column(TableColumn::uuid("id").unwrap().pk().non_null())

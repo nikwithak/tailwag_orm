@@ -28,7 +28,7 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
             let tokens = quote!(
                 static #once_cell_name: std::sync::OnceLock<
-                    tailwag::orm::data_definition::table::DatabaseTableDefinition<#ident>
+                    tailwag::orm::data_definition::table::DatabaseTableDefinition
                 > = std::sync::OnceLock::new();
                 impl tailwag::orm::data_manager::GetTableDefinition for #ident {
                     #(#functions)*
@@ -100,9 +100,9 @@ fn build_get_table_definition(
 
     // !! START OF QUOTE
     let tokens = quote!(
-        fn get_table_definition() -> tailwag::orm::data_definition::table::DatabaseTableDefinition<Self> {
-            let table_def:  &tailwag::orm::data_definition::table::DatabaseTableDefinition<Self> = #once_cell_name.get_or_init(|| {
-                tailwag::orm::data_definition::table::DatabaseTableDefinition::<Self>::new(&#table_name)
+        fn get_table_definition() -> tailwag::orm::data_definition::table::DatabaseTableDefinition {
+            let table_def:  &tailwag::orm::data_definition::table::DatabaseTableDefinition = #once_cell_name.get_or_init(|| {
+                tailwag::orm::data_definition::table::DatabaseTableDefinition::new(&#table_name)
                     .expect("Table name is invalid")
                     #(.column(#table_columns))*
                     // #(.constraint(#table_constraints)*) // TODO - weak constriants support currently

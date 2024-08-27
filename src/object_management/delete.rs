@@ -1,12 +1,15 @@
+use std::marker::PhantomData;
+
 use crate::BuildSql;
 
 use crate::data_definition::table::DatabaseTableDefinition;
 use crate::queries::Filter;
 
 pub struct DeleteStatement<T> {
-    table_def: DatabaseTableDefinition<T>,
+    table_def: DatabaseTableDefinition,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
     filter: Filter,
+    _phantom_data: PhantomData<T>,
 }
 
 impl<T> BuildSql for DeleteStatement<T> {
@@ -21,12 +24,13 @@ impl<T> BuildSql for DeleteStatement<T> {
 
 impl<T> DeleteStatement<T> {
     pub fn new(
-        table_def: DatabaseTableDefinition<T>,
+        table_def: DatabaseTableDefinition,
         filter: Filter,
     ) -> Self {
         Self {
             table_def,
             filter,
+            _phantom_data: PhantomData::<T>,
         }
     }
 }

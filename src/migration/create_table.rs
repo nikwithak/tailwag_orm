@@ -1,5 +1,8 @@
 use crate::{
-    data_definition::{exp_data_system::TableDef, table::DatabaseTableDefinition},
+    data_definition::{
+        exp_data_system::TableDef,
+        table::{raw_data::TableDefinition, DatabaseTableDefinition},
+    },
     AsSql, BuildSql,
 };
 
@@ -68,7 +71,7 @@ mod test {
     #[test]
     fn create_table_as_sql_works() -> Result<(), String> {
         let table_name = Identifier::new("new_table".to_string()).unwrap();
-        let table_definition = DatabaseTableDefinition::<()>::new(&table_name)
+        let table_definition = DatabaseTableDefinition::new(&table_name)
             .unwrap()
             .column(TableColumn::new_uuid("uuid_pk_nonnull")?.non_null().pk())
             .column(TableColumn::new_string("string")?)
@@ -78,7 +81,7 @@ mod test {
             .column(TableColumn::new_timestamp("create_timestamp")?);
 
         let create_table = CreateTable {
-            table_definition: Arc::new(Box::new(table_definition)),
+            table_definition: Arc::new(table_definition),
         };
 
         // Act

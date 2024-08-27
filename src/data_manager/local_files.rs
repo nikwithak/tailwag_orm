@@ -13,7 +13,7 @@ use super::rest_api::Id;
 /// UNTESTED - USE AT YOUR OWN RISK
 #[derive(Clone)]
 pub struct LocalFileDataProvider<T> {
-    pub table_definition: DatabaseTableDefinition<T>,
+    pub table_definition: DatabaseTableDefinition,
     pub root_folder_path: PathBuf,
     pub _t: PhantomData<T>,
 }
