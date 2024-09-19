@@ -1,6 +1,6 @@
 [package]
 name = "tailwag_orm_macro_logic"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/nikwithak/tailwag_orm"
@@ -12,5 +12,5 @@ description = "The logic for the macro exports, supporting the tailwag_orm crate
 proc-macro2 = "1.0.70"
 quote = "1.0.33"
 syn = { version = "2.0.39", features = ["full", "extra-traits"] }
-tailwag_orm = {version = "0.1.0", path = "../.."}
-tailwag_utils = { version = "0.1.0", path = "../../../utils" }
+tailwag_orm = {version = "0.2.0", path = "../.."}
+tailwag_utils = { version = "0.1.1", path = "../../../utils" }
