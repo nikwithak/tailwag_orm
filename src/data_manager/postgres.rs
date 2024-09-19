@@ -1,5 +1,5 @@
 use crate::{
-    data_definition::{database_definition::DatabaseDefinition, table::DatabaseTableDefinition},
+    data_definition::table::DatabaseTableDefinition,
     migration::Migration,
     queries::{filterable_types::Filterable, Deleteable, Filter, Insertable, Query, Updateable},
     BuildSql,

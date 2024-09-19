@@ -28,12 +28,15 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
         panic!("Unnamed fields found in the struct.")
     };
 
+    let child_tables = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none());
+
     let columns = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none()).map(|f| {
         let field_name = f.ident.as_ref().expect("Found unnamed field in struct");
 
         let column_type = get_type_from_field(f);
         let column_name = match &column_type {
             DatabaseColumnType::OneToOne(_) => format!("{field_name}_id"),
+            DatabaseColumnType::OneToMany(_) => format!("{field_name}"),
             _ => field_name.to_string(),
         };
         let mut column =

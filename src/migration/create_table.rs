@@ -55,10 +55,7 @@ mod test {
     use sqlx::QueryBuilder;
 
     use crate::{
-        data_definition::{
-            database_definition::{DatabaseDefinition, DatabaseDefinitionBuilder},
-            table::{DatabaseTableDefinition, Identifier, TableColumn},
-        },
+        data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
         migration::{create_table, Migration},
         AsSql, BuildSql,
     };
