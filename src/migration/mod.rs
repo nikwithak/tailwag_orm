@@ -9,14 +9,14 @@ pub use create_table::*;
 pub use migration::*;
 
 #[cfg(test)]
+#[allow(unused)]
 mod tests {
     use crate::{
         data_definition::table::{
             DatabaseColumnType, DatabaseTableDefinition, Identifier, TableColumn,
         },
         migration::{
-            create_table, AlterColumn, AlterColumnAction, AlterTable, AlterTableAction,
-            MigrationAction,
+            AlterColumn, AlterColumnAction, AlterTable, AlterTableAction, MigrationAction,
         },
         BuildSql,
     };

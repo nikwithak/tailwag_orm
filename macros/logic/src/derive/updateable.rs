@@ -4,7 +4,7 @@ use syn::{Data, DeriveInput};
 
 fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
     let &DeriveInput {
-        ident,
+        ident: _ident,
         ..
     } = &input;
     let input_table_definition =

@@ -1,16 +1,15 @@
 use crate::{
-    data_definition::table::DatabaseTableDefinition,
+    data_definition::table::{DatabaseTableDefinition, Identifier},
     migration::Migration,
-    queries::{filterable_types::Filterable, Deleteable, Filter, Insertable, Query, Updateable},
+    queries::{
+        filterable_types::Filterable, Deleteable, Filter, Insertable, OrderDirection, Query,
+        Updateable,
+    },
     BuildSql,
 };
 use sqlx::Row;
 use sqlx::{Error, Execute, Pool, Postgres, QueryBuilder};
-use std::{
-    marker::PhantomData,
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::{marker::PhantomData, sync::Arc};
 
 use super::{rest_api::Id, traits::WithFilter};
 
@@ -49,18 +48,18 @@ pub struct ExecutableQuery<T> {
     db_pool: Pool<Postgres>,
 }
 
-impl<T: Insertable> Deref for ExecutableQuery<T> {
-    type Target = Query<T>;
-    fn deref(&self) -> &Self::Target {
-        &self.query
-    }
-}
+// impl<T: Insertable> Deref for ExecutableQuery<T> {
+//     type Target = Query<T>;
+//     fn deref(&self) -> &Self::Target {
+//         &self.query
+//     }
+// }
 
-impl<T: Insertable> DerefMut for ExecutableQuery<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.query
-    }
-}
+// impl<T: Insertable> DerefMut for ExecutableQuery<T> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.query
+//     }
+// }
 
 impl<T> From<ExecutableQuery<T>> for Vec<T>
 where
@@ -79,7 +78,7 @@ impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Sync + Unpin> Execu
         // not the limiting factor rn anyway.
         let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
         // let mut query_builder = QueryBuilder::new("");
-        self.build_sql(&mut query_builder);
+        self.query.build_sql(&mut query_builder);
         query_builder.push(") r");
 
         log::debug!("SQL query: {}", query_builder.sql());
@@ -103,6 +102,35 @@ impl<T: Filterable> ExecutableQuery<T> {
     {
         let filter = derive_filter(T::FilterType::default());
         self.query = self.query.filter(filter);
+        self
+    }
+
+    pub fn order_by(
+        mut self,
+        col_name: Identifier,
+        direction: OrderDirection,
+    ) -> Self {
+        self.query = self.query.order_by(col_name, direction);
+        self
+    }
+
+    pub fn order_asc(
+        self,
+        col_name: Identifier,
+    ) -> Self {
+        self.order_by(col_name, OrderDirection::Ascending)
+    }
+    pub fn order_desc(
+        self,
+        col_name: Identifier,
+    ) -> Self {
+        self.order_by(col_name, OrderDirection::Desending)
+    }
+    pub fn limit(
+        mut self,
+        limit: usize,
+    ) -> Self {
+        self.query = self.query.limit(limit);
         self
     }
 }
@@ -171,6 +199,7 @@ where
             table: self.table_definition.clone(),
             filter: Some(predicate(<T as Filterable>::FilterType::default())),
             limit: Some(2),
+            order_by: None,
             _t: Default::default(),
         };
         let query = ExecutableQuery {
@@ -189,6 +218,7 @@ where
             table: self.table_definition.clone(),
             filter: None,
             limit: None,
+            order_by: None,
             _t: Default::default(),
         };
         let query = ExecutableQuery {
@@ -261,6 +291,7 @@ where
             table: self.table_definition.clone(),
             filter: Some(predicate(T::FilterType::default())),
             limit: None,
+            order_by: None,
             _t: Default::default(),
         };
         ExecutableQuery {

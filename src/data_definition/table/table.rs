@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, marker::PhantomData, ops::Deref, sync::Arc};
+use std::collections::BTreeMap;
 
 use super::{Identifier, TableColumn, TableConstraint};
 
@@ -34,7 +34,7 @@ pub(crate) mod raw_data {
     trait LockedTrait {}
     impl LockedTrait for DatabaseTableDefinition {}
 
-    #[allow(private_bounds)]
+    #[allow(private_bounds, unused)]
     pub trait TableDefinition
     where
         Self: LockedTrait,
@@ -72,16 +72,6 @@ pub(crate) mod raw_data {
         ) {
             self.add_column(column);
         }
-    }
-
-    pub struct RawDatabaseTableDefinitionData {
-        pub table_name: Identifier,
-        // TODO: Make it so that there can only be one ID column.
-        // TODO: Composite keys, Constraints, etc.
-        // pub columns: Vec<TableColumn>,
-        pub columns: BTreeMap<Identifier, TableColumn>, // BTreeMap for testing reasons... yes it adds inefficiency, but shoudln't be enough to matter.
-        pub child_tables: Vec<TableRelationship>,       // local_name to table_name
-        pub constraints: Vec<TableConstraint>,
     }
 }
 

@@ -28,7 +28,8 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
         panic!("Unnamed fields found in the struct.")
     };
 
-    let child_tables = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none());
+    // TODO: Use this to build 1:N and N:N relationships
+    let _child_tables = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none());
 
     let columns = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none()).map(|f| {
         let field_name = f.ident.as_ref().expect("Found unnamed field in struct");

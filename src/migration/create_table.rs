@@ -1,8 +1,5 @@
 use crate::{
-    data_definition::{
-        exp_data_system::TableDef,
-        table::{raw_data::TableDefinition, DatabaseTableDefinition},
-    },
+    data_definition::{exp_data_system::TableDef, table::raw_data::TableDefinition},
     AsSql, BuildSql,
 };
 
@@ -52,12 +49,11 @@ mod test {
     use std::sync::Arc;
 
     use create_table::CreateTable;
-    use sqlx::QueryBuilder;
 
     use crate::{
         data_definition::table::{DatabaseTableDefinition, Identifier, TableColumn},
-        migration::{create_table, Migration},
-        AsSql, BuildSql,
+        migration::create_table,
+        AsSql,
     };
 
     #[test]

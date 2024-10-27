@@ -1,9 +1,4 @@
-use std::{
-    any::{Any, TypeId},
-    cell::RefCell,
-    collections::HashMap,
-    sync::Arc,
-};
+use std::{any::TypeId, cell::RefCell, collections::HashMap, sync::Arc};
 
 use sqlx::{Postgres, QueryBuilder};
 
@@ -15,7 +10,7 @@ use crate::{
     BuildSql,
 };
 
-use super::table::{self, raw_data::TableDefinition, DatabaseTableDefinition, Identifier};
+use super::table::{raw_data::TableDefinition, DatabaseTableDefinition, Identifier};
 
 // pub(crate) trait GenericizedTableDefinition: std::any::Any + TableDefinition {}
 pub(crate) type TableDef = Arc<DatabaseTableDefinition>;
@@ -60,7 +55,7 @@ impl DataSystemBuilder {
     //     })
     // }
 
-    pub fn build(mut self) -> Result<UnconnectedDataSystem, crate::Error> {
+    pub fn build(self) -> Result<UnconnectedDataSystem, crate::Error> {
         let Self {
             resources,
             table_name_to_type,

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::{marker::PhantomData, sync::Arc};
+use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use crate::{
-    data_definition::table::DatabaseTableDefinition,
+    data_definition::table::{DatabaseTableDefinition, Identifier},
     object_management::{
         delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
     },
@@ -12,10 +12,12 @@ use crate::{
 use super::Filter;
 
 pub struct Query<T> {
-    pub table: Arc<DatabaseTableDefinition>,
-    pub filter: Option<Filter>,
-    pub limit: Option<usize>,
-    pub _t: PhantomData<T>,
+    pub(crate) table: Arc<DatabaseTableDefinition>,
+    pub(crate) filter: Option<Filter>,
+
+    pub(crate) limit: Option<usize>,
+    pub(crate) _t: PhantomData<T>,
+    pub(crate) order_by: Option<OrderBy>,
 }
 
 pub trait Saveable {
@@ -36,9 +38,29 @@ pub trait Updateable {
         Self: std::marker::Sized;
 }
 
+pub struct OrderBy {
+    col_name: Identifier,
+    direction: OrderDirection,
+}
+pub enum OrderDirection {
+    Ascending,
+    Desending,
+}
+impl Display for OrderDirection {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        match self {
+            OrderDirection::Ascending => f.write_str("ASC"),
+            OrderDirection::Desending => f.write_str("DESC"),
+        }
+    }
+}
+
 impl<T> Query<T> {
     #[allow(unused)]
-    fn limit(
+    pub fn limit(
         mut self,
         limit: usize,
     ) -> Self {
@@ -55,6 +77,18 @@ impl<T> Query<T> {
         } else {
             self.filter = Some(filter)
         }
+        self
+    }
+
+    pub fn order_by(
+        mut self,
+        col_name: Identifier,
+        direction: OrderDirection,
+    ) -> Self {
+        self.order_by = Some(OrderBy {
+            col_name,
+            direction,
+        });
         self
     }
 }
@@ -133,9 +167,18 @@ impl<T> BuildSql for Query<T> {
             query_builder.push(" WHERE ");
             filter.build_sql(query_builder);
         }
-
         // TODO: Unhack (part of the "everything built on id" problem)
         query_builder.push(" GROUP BY (").push(group_by.join(", ")).push(")");
+        if let Some(OrderBy {
+            col_name,
+            direction,
+        }) = &self.order_by
+        {
+            query_builder.push(format!(" ORDER BY {col_name} {direction} "));
+        }
+        if let Some(limit) = &self.limit {
+            query_builder.push(format!(" LIMIT {limit} "));
+        }
 
         // STEP FOUR: Probably will need to do more with build_query_as. will find out
     }
