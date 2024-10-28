@@ -1,3 +1,4 @@
+pub mod local_storage_provider;
 mod postgres;
 pub use postgres::*;
 use rest_api::Id;
