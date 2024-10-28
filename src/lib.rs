@@ -17,7 +17,10 @@ pub enum Error {
     HttpError(reqwest::Error),
     MutexLock(String),
     IoError(std::io::Error),
+    InvalidPath,
 }
+pub type OrmError = Error;
+pub type OrmResult<T> = Result<T, OrmError>;
 macro_rules! impl_from {
     ($enum:ident::$variant:ident($ty:ty)) => {
         impl From<$ty> for $enum {
