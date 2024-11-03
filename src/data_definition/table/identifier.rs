@@ -66,4 +66,8 @@ impl Identifier {
     pub fn value(&self) -> &str {
         &self.value
     }
+
+    pub fn as_str(&self) -> &str {
+        &*self
+    }
 }

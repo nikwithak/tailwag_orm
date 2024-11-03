@@ -99,7 +99,7 @@ where
 {
     type CreateRequest: Default + Serialize + for<'a> Deserialize<'a> + Into<Self>;
 
-    fn get_insert_statement(&self) -> Vec<InsertStatement>;
+    fn get_insert_statement(&self) -> InsertStatement;
 }
 
 impl<T> BuildSql for Query<T> {
@@ -115,7 +115,7 @@ impl<T> BuildSql for Query<T> {
             .table
             .columns
             .values()
-            .map(|col| {
+            .filter_map(|col| {
                 let col_name = col.column_name.to_string();
                 match col.column_type {
                     E::Boolean
@@ -124,12 +124,10 @@ impl<T> BuildSql for Query<T> {
                     | E::String
                     | E::Timestamp
                     | E::Uuid
-                    | E::Json => format!("{table_name}.{col_name}"),
-                    E::OneToMany(_) => todo!(),
+                    | E::Json => Some(format!("{table_name}.{col_name}")),
+                    E::OneToMany(_) => None,
                     E::ManyToMany(_) => todo!(),
-                    E::OneToOne(_) => {
-                        col_name.trim_end_matches("_id").to_string() // TODO: UNHACK THIS
-                    },
+                    E::OneToOne(_) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
                 }
             })
             .peekable();
@@ -146,9 +144,7 @@ impl<T> BuildSql for Query<T> {
         // STEP THREE: Need to impl BuildSql for INNER JOIN
         for child_tbl in self.table.columns.values() {
             match &child_tbl.column_type {
-                crate::data_definition::table::DatabaseColumnType::OneToMany(name)
-                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name)
-                | crate::data_definition::table::DatabaseColumnType::OneToOne(name) => {
+                crate::data_definition::table::DatabaseColumnType::OneToOne(name) => {
                     let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
                     group_by.push(name.to_string());
                     query_builder
@@ -159,6 +155,16 @@ impl<T> BuildSql for Query<T> {
                         .push(".id = ")
                         .push(name)
                         .push("_id ");
+                },
+                crate::data_definition::table::DatabaseColumnType::OneToMany(name)
+                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name) => {
+                    group_by.push(name.to_string());
+                    query_builder
+                        .push(" LEFT OUTER JOIN ")
+                        .push(name)
+                        .push(" ON ")
+                        .push(name)
+                        .push(".parent_id = id"); // TODO: This requires `parent_id` and `id`
                 },
                 _ => {},
             };

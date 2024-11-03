@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::data_manager::GetTableDefinition;
 use crate::queries::Insertable;
 use crate::BuildSql;
+use crate::{data_manager::GetTableDefinition, object_management::insert::InsertStatement};
 
 use crate::data_definition::table::Identifier;
 
@@ -19,6 +19,7 @@ where
 
 pub(crate) type ObjectRepr = HashMap<Identifier, ColumnValue>;
 
+#[derive(Clone)]
 pub enum ColumnValue {
     Boolean(bool),                    // BOOL or BOOLEAN
     Int(i64),                         // INT
@@ -27,7 +28,8 @@ pub enum ColumnValue {
     Timestamp(chrono::NaiveDateTime), // TIMESTAMP
     Uuid(uuid::Uuid),                 // UUID
     Json(String),                     // JSONB
-    Child(Box<ObjectRepr>),
+    OneToMany(Box<InsertStatement>),
+    OneToOne(Box<InsertStatement>),
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]

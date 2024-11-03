@@ -130,11 +130,12 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::OneToOne(_child_type) => {
                 field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
                 // TODO: This assumes ID.
-                // column_name_as_string = format!("{column_name}_id");
-                quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#field_name.id.clone()))
+                quote!(tailwag::orm::data_definition::table::ColumnValue::OneToOne(Box::new(#field_name.get_insert_statement())))
                 // todo!()
             },
-            E::OneToMany(_child_type) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
+            E::OneToMany(_child_type) => {
+                quote!(tailwag::orm::data_definition::table::ColumnValue::OneToMany(Box::new(#field_name.get_insert_statement())))
+            },
             E::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 
@@ -164,38 +165,10 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             )
         }
     });
-    let insertable_children: Vec<syn::Ident> = input_table_definition.columns.values().filter(|c|!c.is_nullable()).filter_map(|column| {
-        // TODO: Same hack as in Updateable. Need to DRY out a lot of this logic.
-        let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string());
 
-        type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-
-        
-        match &column.column_type {
-            E::OneToMany(_) => todo!(),
-            E::ManyToMany(_) => todo!(),
-            E::OneToOne(_) => Some(field_name),
-            _ => None,
-        }
-    }).collect();
-
-    // This represents all the optional children - it is needed to wrap the generated code in optional syntax `(.as_ref().map(..))` appropriately.
-    let insertable_optional_children: Vec<syn::Ident> = input_table_definition.columns.values().filter(|c|c.is_nullable()).filter_map(|column| {
-        // TODO: Same hack as in Updateable. Need to DRY out a lot of this logic.
-        let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string());
-
-        type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-        
-        match &column.column_type {
-            E::OneToMany(_) => todo!(),
-            E::ManyToMany(_) => todo!(),
-            E::OneToOne(_) => Some(field_name),
-            _ => None,
-        }
-    }).collect();
 
     let tokens = quote!(
-        fn get_insert_statement(&self) -> Vec<tailwag::orm::object_management::insert::InsertStatement> {
+        fn get_insert_statement(&self) -> tailwag::orm::object_management::insert::InsertStatement {
             let mut insert_map = std::collections::HashMap::new();
 
             #(#insert_maps)*
@@ -205,12 +178,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                 insert_map,
             );
 
-            let mut transaction_statements = Vec::new();
-            #(transaction_statements.append(&mut self.#insertable_children.get_insert_statement());)*
-            #(self.#insertable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_insert_statement()));)*
-            transaction_statements.push(insert);
-
-            transaction_statements
+            insert
         }
     );
 

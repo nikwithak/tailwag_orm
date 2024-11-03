@@ -233,14 +233,12 @@ where
         item: Self::CreateRequest,
     ) -> Result<T, crate::Error> {
         let item = item.into();
-        let insert_statements = item.get_insert_statement();
+        let insert_statement = item.get_insert_statement();
 
         let mut transaction = self.db_pool.begin().await?;
-        for insert in insert_statements {
-            let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
-            insert.build_sql(&mut builder);
-            builder.build().execute(&mut *transaction).await?;
-        }
+        let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
+        insert_statement.build_sql(&mut builder);
+        builder.build().execute(&mut *transaction).await?;
         transaction.commit().await?;
 
         Ok(item)

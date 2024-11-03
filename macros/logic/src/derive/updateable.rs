@@ -24,7 +24,10 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => todo!("{:?} is a OneToMany relationship that isn't yet supported", &column.column_type),
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => {
+                println!("TODO: NOT SUPPORTED UPDATES YET");
+                quote!()
+            },
             // tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_foreign_table_name) => {
                 // column_name_as_string = format!("{column_name}_id");
@@ -66,7 +69,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
             type E = tailwag_orm::data_definition::table::DatabaseColumnType;
             match &column.column_type {
-                E::OneToMany(_) => todo!(),
+                E::OneToMany(_) => None, // TODO NOT SUPPORTED YET,
                 E::ManyToMany(_) => todo!(),
                 E::OneToOne(_) => Some(field_name),
                 _ => None,
@@ -82,7 +85,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
             type E = tailwag_orm::data_definition::table::DatabaseColumnType;
             match &column.column_type {
-                E::OneToMany(_) => todo!(),
+                E::OneToMany(_) => None, // TODO NOT SUPPORTED YET,
                 E::ManyToMany(_) => todo!(),
                 E::OneToOne(_) => Some(field_name),
                 _ => None,

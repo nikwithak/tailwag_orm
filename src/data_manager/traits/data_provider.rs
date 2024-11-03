@@ -35,7 +35,7 @@ where
     async fn create(
         &self,
         item: Self::CreateRequest,
-    ) -> Result<T, crate::Error>; // TODO: Create real error type when needed
+    ) -> Result<T, crate::Error>;
     async fn delete(
         &self,
         item: T, // You give it up when you ask to delete it!
