@@ -40,6 +40,7 @@ impl InsertStatement {
 impl InsertStatement {
     fn build_consecutive_inserts(
         &self,
+        prefix: &str,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
         // This block is a hacky way of propogating my ID to the OneToMany tables later - I need to update this to actually build a SQL for a FK relationship to an existing object.
@@ -74,7 +75,7 @@ impl InsertStatement {
             let ColumnValue::OneToOne(insert_stmt) = col_value else {
                 panic!("Wrong value type received when building one_to_one insert tables. This should not happen.")
             };
-            insert_stmt.build_consecutive_inserts(builder);
+            insert_stmt.build_consecutive_inserts(prefix, builder);
             raw_values.push((child_col_name, col_value));
             // if one_to_one_iter.peek().is_some() {
             builder.push(", ");
@@ -87,7 +88,7 @@ impl InsertStatement {
             let col_names_joined =
                 raw_values.iter().map(|entry| &(**(entry.0))).collect::<Vec<_>>().join(", ");
             builder.push(format!(
-                "{table_name} as (INSERT INTO {table_name} ({col_names_joined}) VALUES (",
+                "{prefix}{table_name} as (INSERT INTO {table_name} ({col_names_joined}) VALUES (",
             ));
             // Begin insert values
             let mut values_iter = raw_values.into_iter().peekable();
@@ -115,6 +116,8 @@ impl InsertStatement {
             }
             // End insert values
             builder.push(")");
+            builder.push(" RETURNING * ");
+            builder.push(")");
         }
 
         // Build ONETOMANY children)
@@ -122,16 +125,20 @@ impl InsertStatement {
         while let Some((_col_name, stmt)) = one_to_many_iter.next() {
             // TODO: [PERFORMANCE] Some ugly overhead with the clone here...
             let mut stmt = stmt.clone();
-            let ColumnValue::OneToMany(ref mut insert_stmt) = stmt else {
+            let ColumnValue::OneToMany(ref mut insert_stmts) = stmt else {
                 panic!("Wrong value type received when building one_to_many insert tables. This should not happen.");
             };
             // TODO: I'm faking it here by adding a parent_id to the insert. In future, this should be able to pull from the INSERT result, as above.
-            insert_stmt
-                .object_repr
-                .insert(Identifier::new_unchecked("parent_id"), ColumnValue::Uuid(parent_id));
 
-            builder.push(", "); // This should ALWAYS have at least one statement before it.
-            insert_stmt.build_consecutive_inserts(builder);
+            for (i, insert_stmt) in insert_stmts.into_iter().enumerate() {
+                insert_stmt
+                    .object_repr
+                    .insert(Identifier::new_unchecked("parent_id"), ColumnValue::Uuid(parent_id));
+
+                builder.push(", "); // This should ALWAYS have at least one statement before it.
+                let prefix = format!("{}_{}", &prefix, i);
+                insert_stmt.build_consecutive_inserts(&prefix, builder);
+            }
         }
     }
 
@@ -140,9 +147,10 @@ impl InsertStatement {
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
         let table_name = self.table_name.clone();
-        self.build_consecutive_inserts(builder);
+        builder.push("WITH ");
+        self.build_consecutive_inserts("", builder);
         // Need *something* after the "WITH _ as (INSERT ....) statements"
-        builder.push("SELECT * FROM {table_name};");
+        builder.push(format!("SELECT * FROM {table_name};"));
     }
 }
 

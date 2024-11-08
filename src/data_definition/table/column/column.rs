@@ -28,7 +28,7 @@ pub enum ColumnValue {
     Timestamp(chrono::NaiveDateTime), // TIMESTAMP
     Uuid(uuid::Uuid),                 // UUID
     Json(String),                     // JSONB
-    OneToMany(Box<InsertStatement>),
+    OneToMany(Vec<Box<InsertStatement>>),
     OneToOne(Box<InsertStatement>),
 }
 

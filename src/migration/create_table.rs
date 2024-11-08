@@ -25,7 +25,18 @@ impl BuildSql for CreateTable {
         // sql.push_bind(self.table_definition.table_name.to_string());
         sql.push(self.table_definition.table_name().to_string());
         sql.push(" (");
-        let mut columns = self.table_definition.columns().values().peekable();
+        let mut columns = self
+            .table_definition
+            .columns()
+            .values()
+            .filter(|col| match &col.column_type {
+                crate::data_definition::table::DatabaseColumnType::OneToMany(identifier)
+                | crate::data_definition::table::DatabaseColumnType::ManyToMany(identifier) => {
+                    false
+                },
+                _ => true,
+            })
+            .peekable();
         while let Some(column) = columns.next() {
             column.build_sql(sql);
             if columns.peek().is_some() {

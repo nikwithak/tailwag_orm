@@ -28,13 +28,13 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
             let new_fields = filterable_fields.clone().map(|field| {
                 let field_ident = field.ident.clone().expect("Should only have named fields.");
                 let orig_type = field.ty.clone();
-                dbg!(quote!(pub #field_ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>))
+                quote!(pub #field_ident: tailwag::orm::queries::filterable_types::FilterableType<#orig_type>)
             });
             let default_fields = filterable_fields.clone().map(|field| {
                 let field_ident = field.ident.clone().expect("Should only have named fields.");
                 let field_ident_str = format!("{table_name}.{field_ident}");
                 let orig_type = field.ty.clone();
-                dbg!(quote!(#field_ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#field_ident_str))))
+                quote!(#field_ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(tailwag::orm::data_definition::table::Identifier::new_unchecked(#field_ident_str)))
             });
 
             // OUTPUT STARTS HERE

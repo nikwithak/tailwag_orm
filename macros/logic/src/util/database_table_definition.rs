@@ -68,6 +68,29 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
 pub use super::type_parsing::get_qualified_path;
 pub use super::type_parsing::is_option;
 
+pub fn get_inner_type(field: &Field) -> &GenericArgument {
+    match &field.ty {
+        syn::Type::Path(typepath) => {
+            let type_params = &typepath
+                .path
+                .segments
+                .last()
+                .expect("Option should have an inner type")
+                .arguments;
+
+            match &type_params {
+                PathArguments::AngleBracketed(params) => {
+                    let arg = params.args.first().expect("No type T found for Option<T>");
+                    arg
+                },
+                _ => panic!("No type T found for Generic<T>"),
+            }
+        },
+
+        _ => todo!(),
+    }
+}
+
 pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
     match &field.ty {
         syn::Type::Path(typepath) => {
@@ -122,8 +145,22 @@ pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
                     "chrono::NaiveDateTime" | "NaiveDateTime" => DatabaseColumnType::Timestamp,
                     "uuid::Uuid" | "Uuid" => DatabaseColumnType::Uuid,
                     // If it's a Vec, then we want to do one-to-many (does not account for Vec of primitives)
-                    "alloc::Vec" | "Vec" => {
+                    "std::vec::Vec" | "vec::Vec" | "alloc::Vec" | "Vec" => {
                         // NOTE: For now, I'll plan that OneToMany requires the parent table have a `parent_id` attribute. I hope/plan to find a way around this later.
+                        // let child_table_name = field.get_attribute("table_name"")
+                        // TOOD: Need INNER type here of the Vec.
+                        let inner_type = match get_inner_type(field) {
+                            GenericArgument::Type(syn::Type::Path(t)) => get_qualified_path(t),
+                            _ => panic!("no type T found for Option<T>"),
+                        };
+
+                        let child_table_name = field
+                            .get_attribute("table_name")
+                            .map(|attr| attr.meta.require_list().unwrap())
+                            .map(|meta| meta.path.get_ident().unwrap())
+                            .map(|path| path.to_string())
+                            .unwrap_or(inner_type.split("::").last().unwrap().to_snake_case());
+
                         DatabaseColumnType::OneToMany(Identifier::new(&child_table_name).unwrap())
                     },
                     // Arc means "Not owned" / shared reference - becomes many-to-many (or maybe could be many-to-one)

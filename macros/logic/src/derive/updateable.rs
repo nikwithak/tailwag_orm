@@ -25,8 +25,8 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => {
-                println!("TODO: NOT SUPPORTED UPDATES YET");
-                quote!()
+                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping // [KNOWN RESTRICTION]
+                quote!(tailwag::orm::data_definition::table::ColumnValue::OneToMany(Default::default()))
             },
             // tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_foreign_table_name) => {
@@ -66,6 +66,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
         .values()
         .filter(|c| !c.is_nullable())
         .filter_map(|column| {
+            println!("{:?}", column);
             let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
             type E = tailwag_orm::data_definition::table::DatabaseColumnType;
             match &column.column_type {

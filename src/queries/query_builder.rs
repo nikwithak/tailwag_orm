@@ -117,7 +117,7 @@ impl<T> BuildSql for Query<T> {
             .values()
             .filter_map(|col| {
                 let col_name = col.column_name.to_string();
-                match col.column_type {
+                match &col.column_type {
                     E::Boolean
                     | E::Int
                     | E::Float
@@ -125,7 +125,9 @@ impl<T> BuildSql for Query<T> {
                     | E::Timestamp
                     | E::Uuid
                     | E::Json => Some(format!("{table_name}.{col_name}")),
-                    E::OneToMany(_) => None,
+                    E::OneToMany(child_table) => {
+                        Some(format!("json_agg({child_table}) as {child_table}"))
+                    },
                     E::ManyToMany(_) => todo!(),
                     E::OneToOne(_) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
                 }
@@ -158,13 +160,12 @@ impl<T> BuildSql for Query<T> {
                 },
                 crate::data_definition::table::DatabaseColumnType::OneToMany(name)
                 | crate::data_definition::table::DatabaseColumnType::ManyToMany(name) => {
-                    group_by.push(name.to_string());
                     query_builder
                         .push(" LEFT OUTER JOIN ")
                         .push(name)
                         .push(" ON ")
                         .push(name)
-                        .push(".parent_id = id"); // TODO: This requires `parent_id` and `id`
+                        .push(format!(".parent_id = {table_name}.id")); // TODO: This requires `parent_id` and `id`
                 },
                 _ => {},
             };
