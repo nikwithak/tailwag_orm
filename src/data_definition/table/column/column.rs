@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 use crate::queries::Insertable;
 use crate::BuildSql;
 use crate::{data_manager::GetTableDefinition, object_management::insert::InsertStatement};
@@ -32,7 +34,7 @@ pub enum ColumnValue {
     OneToOne(Box<InsertStatement>),
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum DatabaseColumnType {
     Boolean,   // BOOL or BOOLEAN
     Int,       // INT
@@ -72,7 +74,7 @@ impl DatabaseColumnType {
 /// Represents a table column. Primarily-based on the PostgreSQL spec for table definition
 /// The goal is to get full parity with PostgreSQL.
 /// [ref](https://www.postgresql.org/docs/current/sql-createtable.html)
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TableColumn {
     data: Arc<TableColumnData>,
 }
@@ -96,7 +98,7 @@ impl From<TableColumn> for Identifier {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TableColumnData {
     // TODO: Is parent_table_name needed here??? Parent should track it, doesn't  need a call back (why did I add this in the first place??)
     // pub parent_table_name: Identifier, // Identifier is just an Arc<String> (with validation) under the hood

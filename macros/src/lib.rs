@@ -15,14 +15,14 @@ pub fn derive_deleteable(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     impl_trait_tokens.into()
 }
 
-#[proc_macro_derive(Updateable, attributes(db_ignore))]
+#[proc_macro_derive(Updateable, attributes(db_ignore, string))]
 pub fn derive_updateable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input);
     let impl_trait_tokens = logic::derive::updateable::derive_struct(&input);
     impl_trait_tokens.into()
 }
 
-#[proc_macro_derive(Insertable, attributes(create_type, db_ignore, create_ignore))]
+#[proc_macro_derive(Insertable, attributes(create_type, db_ignore, string, create_ignore))]
 pub fn derive_insertable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input);
     let impl_trait_tokens = logic::derive::insertable::derive_struct(&input);
@@ -36,7 +36,7 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     impl_trait_tokens.into()
 }
 
-#[proc_macro_derive(Filterable, attributes(no_filter, db_ignore,))]
+#[proc_macro_derive(Filterable, attributes(no_filter, db_ignore, string))]
 pub fn derive_filterable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input);
     let impl_trait_tokens = logic::derive::filterable::derive_struct(&input);

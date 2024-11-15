@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 use crate::BuildSql;
 
 use super::{
     Identifier, IndexParameters, ReferencesConstraintMatchType, ReferentialAction, TableColumn,
 };
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct TableConstraint {
     pub name: Option<Identifier>,
     pub detail: Arc<TableConstraintDetail>,
@@ -24,7 +26,7 @@ impl BuildSql for TableConstraint {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum TableConstraintDetail {
     Unique(UniqueConstraint),
     PrimaryKey(PrimaryKeyConstraint),
@@ -44,7 +46,7 @@ impl BuildSql for TableConstraintDetail {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct UniqueConstraint {
     is_null_distinct: bool,
     index_parameters: Option<IndexParameters>,
@@ -65,7 +67,7 @@ impl BuildSql for UniqueConstraint {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct PrimaryKeyConstraint {
     index_parameters: Option<IndexParameters>,
     pub columns: Vec<TableColumn>,
@@ -108,7 +110,7 @@ impl BuildSql for ForeignKeyConstraint {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct ForeignKeyConstraint {
     pub ref_table: Identifier,
     pub ref_columns: Vec<Identifier>, // TODO: Yank this to a more definitive mapping from columns and ref_columns

@@ -1,15 +1,17 @@
 use std::collections::BTreeMap;
 
+use serde::{Deserialize, Serialize};
+
 use super::{Identifier, TableColumn, TableConstraint};
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum TableRelationship {
     OneToMany(Identifier),
     ManyToMany(Identifier),
     OneToOne(Identifier),
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct DatabaseTableDefinition {
     pub table_name: Identifier,
     // TODO: Make it so that there can only be one ID column.
@@ -40,7 +42,7 @@ pub(crate) mod raw_data {
         Self: LockedTrait,
     {
         fn table_name(&self) -> Identifier;
-        fn child_tables(&self) -> &Vec<TableRelationship>;
+        fn child_tables(&self) -> Vec<TableRelationship>;
         fn constraints(&self) -> &Vec<TableConstraint>;
         fn columns(&self) -> &BTreeMap<Identifier, TableColumn>;
         fn add_column(
@@ -58,8 +60,22 @@ pub(crate) mod raw_data {
             &self.constraints
         }
 
-        fn child_tables(&self) -> &Vec<TableRelationship> {
-            &self.child_tables
+        fn child_tables(&self) -> Vec<TableRelationship> {
+            self.child_tables.clone()
+            // let child_tables =
+            //     self.columns.iter().filter_map(|(col_name, column)| match &column.column_type {
+            //         crate::data_definition::table::DatabaseColumnType::OneToMany(identifier) => {
+            //             Some(TableRelationship::OneToMany(identifier.clone()))
+            //         },
+            //         crate::data_definition::table::DatabaseColumnType::ManyToMany(identifier) => {
+            //             Some(TableRelationship::ManyToMany(identifier.clone()))
+            //         },
+            //         crate::data_definition::table::DatabaseColumnType::OneToOne(identifier) => {
+            //             Some(TableRelationship::OneToOne(identifier.clone()))
+            //         },
+            //         _ => None,
+            //     });
+            // child_tables.collect()
         }
 
         fn columns(&self) -> &BTreeMap<Identifier, TableColumn> {

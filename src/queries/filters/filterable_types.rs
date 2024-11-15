@@ -9,6 +9,7 @@ use super::Filter;
 pub trait Filterable {
     type FilterType: Default;
 }
+
 // Trying out the type-state pattern here.
 trait TypeFilter {}
 macro_rules! typetype {
@@ -33,8 +34,35 @@ macro_rules! impl_filter_for {
                 }
                 )*
             }
+
         };
     }
+
+impl<T: TypeFilter> TypeFilter for Option<T> {}
+impl<T: TypeFilter> TypeFilter for Vec<T> {}
+// ^^^^ Allows for base types only
+// vvvv Allows for custom types (only - breaks basic types)
+// impl<T: Filterable> TypeFilter for Option<T> {}
+// impl<T: Filterable> TypeFilter for Vec<T> {}
+
+/// vv Need to impl for all types, but should follow this pattern.
+// impl<T: FilterEq + TypeFilter> FilterEq for FilterableType<Option<T>> {
+//     type Type = Option<T>;
+
+//     fn eq(
+//         &self,
+//         t: impl Into<<Self as crate::queries::filters::filterable_types::FilterEq>::Type>,
+//     ) -> Filter {
+//         todo!()
+//     }
+
+//     fn ne(
+//         &self,
+//         t: impl Into<<Self as crate::queries::filters::filterable_types::FilterEq>::Type>,
+//     ) -> Filter {
+//         todo!()
+//     }
+// }
 
 macro_rules! impl_numeric_type {
     ($type:ty: $db_type:ident) => {
@@ -72,7 +100,8 @@ impl_numeric_type!(f64: Float);
 typetype! {chrono::NaiveDateTime}
 impl_filter_for!(chrono::NaiveDateTime: chrono::NaiveDateTime, new_timestamp, Timestamp, FilterEq eq:Equal, ne:NotEqual);
 
-impl<T> TypeFilter for Vec<T> where T: TypeFilter {}
+// impl<T> TypeFilter for Vec<T> where T: TypeFilter {}
+// impl<T> TypeFilter for Option<T> where T: TypeFilter {}
 
 #[allow(private_bounds)]
 pub struct FilterableType<T: TypeFilter> {
@@ -142,3 +171,7 @@ pub trait FilterIn {
         t: impl Into<<Self as crate::queries::filters::filterable_types::FilterIn>::Type>,
     ) -> Filter;
 }
+
+// #[cfg(features = "experimental")]
+// FilterableTypes for OneToOne / OneToMany
+// pub trait Filter

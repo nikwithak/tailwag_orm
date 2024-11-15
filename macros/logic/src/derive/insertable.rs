@@ -101,7 +101,6 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
             _ => false,
         }
     );
-    let vec_field_types = vec_fields.clone().map(get_inner_type);
     let vec_field_names = vec_fields .map(|field| &field.ident);
 
     // Need to default to any db_ignored fields

@@ -1,11 +1,13 @@
 use std::{ops::Deref, sync::Arc};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     data_definition::table::{Identifier, TableColumn},
     BuildSql,
 };
 
-#[derive(PartialEq, Eq, Debug, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
 pub struct PrimaryKeyColumnConstraint {
     index_parameters: Option<IndexParameters>,
 }
@@ -34,7 +36,7 @@ impl BuildSql for CheckExpressionConstraint {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
 pub struct IndexParameters {}
 
 impl BuildSql for IndexParameters {
@@ -61,7 +63,7 @@ impl BuildSql for Vec<Identifier> {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
 pub struct UniqueColumnConstraint {
     is_null_distinct: bool,
     index_parameters: Option<IndexParameters>,
@@ -81,7 +83,7 @@ impl BuildSql for UniqueColumnConstraint {
 }
 
 /// Foreign Key
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct ReferencesConstraint {
     pub ref_table: Identifier,
     pub ref_column: Option<Identifier>,
@@ -112,7 +114,7 @@ impl ReferencesConstraint {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub enum ReferentialAction {
     NoAction,
     Restrict,
@@ -144,7 +146,7 @@ impl BuildSql for ReferentialAction {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub enum ReferencesConstraintMatchType {
     Full,
     Partial,
@@ -194,7 +196,7 @@ impl BuildSql for ReferencesConstraint {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct TableColumnConstraint {
     pub name: Option<Identifier>,
     pub detail: Arc<TableColumnConstraintDetail>,
@@ -271,7 +273,7 @@ impl BuildSql for TableColumnConstraint {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub enum TableColumnConstraintDetail {
     NotNull,
     Null,

@@ -52,7 +52,7 @@ impl DataSystemBuilder {
     //             The type exists in the map but failed to downcast.",
     //         );
     //         boxed.clone()
-    //     })
+
     // }
 
     pub fn build(self) -> Result<UnconnectedDataSystem, crate::Error> {
@@ -149,10 +149,28 @@ impl DataSystem {
     }
 
     pub async fn run_migrations(&self) -> Result<(), crate::Error> {
-        if let Some(migrations) = Migration::compare(
-            None, // TODO: Get previous.
-            self.resources.values().map(|table| table.to_owned()).collect(),
-        ) {
+        fn get_prev_tables_if_exists() -> Option<Vec<Arc<DatabaseTableDefinition>>> {
+            std::fs::read(".table_data/last.migration")
+                .ok()
+                .and_then(|bytes| serde_json::from_slice(bytes.as_slice()).ok())
+        }
+
+        fn save_prev_tables(
+            database: Vec<Arc<DatabaseTableDefinition>>
+        ) -> Result<(), std::io::Error> {
+            let deser = serde_json::to_string(&database)?;
+            let bytes = deser.as_bytes();
+
+            // Currently panicing - failing to serialize.
+            std::fs::write(".table_data/last.migration", bytes)?;
+            Ok(())
+        }
+
+        let current_config: Vec<Arc<DatabaseTableDefinition>> =
+            self.resources.values().map(|table| table.to_owned()).collect();
+        if let Some(migrations) =
+            Migration::compare(get_prev_tables_if_exists(), current_config.clone())
+        {
             let mut transaction = self.pool.begin().await?;
             for action in migrations.actions {
                 let mut builder = QueryBuilder::new("");
@@ -161,6 +179,7 @@ impl DataSystem {
             }
             transaction.commit().await?;
         }
+        // save_prev_tables(current_config)?;
         Ok(())
     }
 }

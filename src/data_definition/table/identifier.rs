@@ -1,9 +1,11 @@
 use std::{ops::Deref, sync::Arc};
 
+use serde::{Deserialize, Serialize};
+
 /// Represents a Database Identifier, for column names and table names.
 /// It's just a string under the hood, but forcing calls to use Identifier::new(String),
 /// we are able to perform field validation.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct Identifier {
     value: Arc<String>,
 }

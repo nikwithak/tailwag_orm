@@ -13,6 +13,7 @@ pub enum FilterComparisonParam {
     Float(f64),
     Bool(bool),
     Timestamp(chrono::NaiveDateTime),
+    Null,
 }
 
 impl FilterComparisonParam {
@@ -28,6 +29,7 @@ impl FilterComparisonParam {
             FilterComparisonParam::Float(val) => builder.push_bind(*val),
             FilterComparisonParam::Bool(val) => builder.push_bind(*val),
             FilterComparisonParam::Timestamp(val) => builder.push_bind(*val),
+            FilterComparisonParam::Null => builder.push("null"),
         };
     }
 }
