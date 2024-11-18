@@ -75,12 +75,10 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
             match get_type_from_field(field) {
                 tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => {
                     quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)
-                    // todo!()
                 },
                 tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => {
                     let field_type = get_inner_type(&field);
                     quote!(pub #field_name: Vec<<#field_type as tailwag::orm::queries::Insertable>::CreateRequest>,)
-                    // todo!()
                 },
                 _ => quote!(pub #field_name: #field_type,)
             }
@@ -149,7 +147,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                 quote!(
                     {
                         let stmt = #field_name.get_insert_statement();
-                        tailwag::orm::data_definition::table::ColumnValue::OneToOne(child_table: stmt.child_table, values: Box::new(stmt.values))
+                        tailwag::orm::data_definition::table::ColumnValue::OneToOne{child_table: stmt.table_name(), value: Box::new(stmt.object_repr().clone())}
                     }
                 )
                 // todo!()

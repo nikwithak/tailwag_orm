@@ -30,7 +30,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
                 quote!(
                     {
                         let stmt = #field_name.get_update_statement();
-                        tailwag::orm::data_definition::table::ColumnValue::OneToOne(child_table: stmt.child_table, values: Box::new(stmt.values))
+                        tailwag::orm::data_definition::table::ColumnValue::OneToOne{child_table: stmt.table_name(), value: Box::new(stmt.object_repr().clone())}
                     }
                 )
                 // todo!()
