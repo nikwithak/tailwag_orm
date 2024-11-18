@@ -112,7 +112,7 @@ pub fn try_get_inner_type(field: &Field) -> Option<&GenericArgument> {
                     let arg = params.args.first();
                     Some(arg?)
                 },
-                _ => panic!("No type T found for Generic<T>"),
+                _ => None,
             }
         },
 
