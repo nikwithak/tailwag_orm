@@ -42,6 +42,24 @@ pub trait GetTableDefinition {
         Self: std::marker::Sized;
 }
 
+impl<T: GetTableDefinition> GetTableDefinition for Option<T> {
+    fn get_table_definition() -> DatabaseTableDefinition
+    where
+        Self: std::marker::Sized,
+    {
+        T::get_table_definition()
+    }
+}
+
+impl<T: GetTableDefinition> GetTableDefinition for Vec<T> {
+    fn get_table_definition() -> DatabaseTableDefinition
+    where
+        Self: std::marker::Sized,
+    {
+        T::get_table_definition()
+    }
+}
+
 /// Wraps a `Query<T>` alongside a DB Pool (using sqlx), to enable ergonomic querying.
 pub struct ExecutableQuery<T> {
     query: Query<T>,

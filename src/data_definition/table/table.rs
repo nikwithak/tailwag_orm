@@ -1,4 +1,7 @@
-use std::collections::BTreeMap;
+use std::{
+    any::TypeId,
+    collections::{BTreeMap, HashMap},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +21,8 @@ pub struct DatabaseTableDefinition {
     // TODO: Composite keys, Constraints, etc.
     // pub columns: Vec<TableColumn>,
     pub columns: BTreeMap<Identifier, TableColumn>, // BTreeMap for testing reasons... yes it adds inefficiency, but shoudln't be enough to matter.
-    pub child_tables: Vec<TableRelationship>,       // local_name to table_name
+    #[serde(skip)]
+    pub child_tables: HashMap<TypeId, Box<DatabaseTableDefinition>>, // Used for auto-adding child tables without explicitly adding them to the Application.
     pub constraints: Vec<TableConstraint>,
 }
 
@@ -28,7 +32,10 @@ pub struct DatabaseTableDefinition {
 ///   (b) loses some type association data. It would be a huuuuge refactor.
 /// (Interestingly, that was the way I *originally* did it, I think. Wish I'd just stuck that way...)
 pub(crate) mod raw_data {
-    use std::collections::BTreeMap;
+    use std::{
+        any::TypeId,
+        collections::{BTreeMap, HashMap},
+    };
 
     use crate::data_definition::table::{Identifier, TableColumn, TableConstraint};
 
@@ -42,7 +49,7 @@ pub(crate) mod raw_data {
         Self: LockedTrait,
     {
         fn table_name(&self) -> Identifier;
-        fn child_tables(&self) -> Vec<TableRelationship>;
+        fn child_tables(&self) -> HashMap<TypeId, Box<DatabaseTableDefinition>>;
         fn constraints(&self) -> &Vec<TableConstraint>;
         fn columns(&self) -> &BTreeMap<Identifier, TableColumn>;
         fn add_column(
@@ -60,22 +67,8 @@ pub(crate) mod raw_data {
             &self.constraints
         }
 
-        fn child_tables(&self) -> Vec<TableRelationship> {
+        fn child_tables(&self) -> HashMap<TypeId, Box<DatabaseTableDefinition>> {
             self.child_tables.clone()
-            // let child_tables =
-            //     self.columns.iter().filter_map(|(col_name, column)| match &column.column_type {
-            //         crate::data_definition::table::DatabaseColumnType::OneToMany(identifier) => {
-            //             Some(TableRelationship::OneToMany(identifier.clone()))
-            //         },
-            //         crate::data_definition::table::DatabaseColumnType::ManyToMany(identifier) => {
-            //             Some(TableRelationship::ManyToMany(identifier.clone()))
-            //         },
-            //         crate::data_definition::table::DatabaseColumnType::OneToOne(identifier) => {
-            //             Some(TableRelationship::OneToOne(identifier.clone()))
-            //         },
-            //         _ => None,
-            //     });
-            // child_tables.collect()
         }
 
         fn columns(&self) -> &BTreeMap<Identifier, TableColumn> {

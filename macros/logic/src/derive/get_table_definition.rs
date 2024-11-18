@@ -3,6 +3,8 @@ use quote::quote;
 use syn::{Data, DeriveInput};
 use tailwag_utils::strings::ToScreamingSnakeCase;
 
+use crate::util::database_table_definition::get_child_table_tokens;
+
 pub fn derive_struct(input: &DeriveInput) -> TokenStream {
     let &DeriveInput {
         ident,
@@ -55,7 +57,6 @@ fn build_get_table_definition(
     // it hard to do one-to-manies in the way I want, because it relies on a child table having references.
     let input_table_definition =
         crate::util::database_table_definition::build_table_definition::<()>(input);
-    // let mut child_tables = Vec::new();
 
     // Build columns
     let table_columns = input_table_definition.columns.values().map(|column| {
@@ -70,7 +71,6 @@ fn build_get_table_definition(
             tailwag_orm::data_definition::table::DatabaseColumnType::Json=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Json),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(child) => {
                 let child = child.to_string();
-                // child_tables.push(quote!(&column));
                 quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(child) => {
@@ -99,15 +99,19 @@ fn build_get_table_definition(
     });
 
     let table_name = input_table_definition.table_name.to_string();
+    let child_tables = get_child_table_tokens(input);
 
     // !! START OF QUOTE
     let tokens = quote!(
         fn get_table_definition() -> tailwag::orm::data_definition::table::DatabaseTableDefinition {
             let table_def:  &tailwag::orm::data_definition::table::DatabaseTableDefinition = #once_cell_name.get_or_init(|| {
-                tailwag::orm::data_definition::table::DatabaseTableDefinition::new(&#table_name)
+                let mut def = tailwag::orm::data_definition::table::DatabaseTableDefinition::new(&#table_name)
                     .expect("Table name is invalid")
                     #(.column(#table_columns))*
                     // #(.constraint(#table_constraints)*) // TODO - weak constriants support currently
+                    ;
+                def.child_tables = #child_tables;
+                def
             });
 
             table_def.clone()

@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 /// TODO: Move the contents of this file outside, into a macro logic crate.
 ///
 /// That was the original point of this crate, but it has evolved into being used as ORM.
@@ -10,6 +11,40 @@ use tailwag_orm::data_definition::table::{
 use tailwag_utils::strings::ToSnakeCase;
 
 use super::attribute_parsing::GetAttribute;
+
+pub(crate) fn get_child_table_tokens(input: &DeriveInput) -> TokenStream {
+    // Panic with error message if we get a non-struct
+    let Data::Struct(data) = &input.data else {
+        panic!("Only Structs are supported.")
+    };
+    let syn::Fields::Named(fields) = &data.fields else {
+        panic!("Unnamed fields found in the struct.")
+    };
+
+    // TODO: Use this to build 1:N and N:N relationships
+    let child_tables_tokens = fields
+        .named
+        .iter()
+        .filter(|f| f.get_attribute("db_ignore").is_none())
+        .filter_map(|f| match get_type_from_field(f) {
+            DatabaseColumnType::OneToOne(_) | DatabaseColumnType::OneToMany(_) => {
+                let syn::Type::Path(f_type) = &f.ty  else {return None};
+                let f_type = &f_type.path;
+                match try_get_inner_type(&f) {
+                    Some(f_type) => Some(quote::quote!((std::any::TypeId::of::<#f_type>(), Box::new(#f_type::get_table_definition())))),
+                    None => Some(quote::quote!((std::any::TypeId::of::<#f_type>(), Box::new(#f_type::get_table_definition())))) ,
+                }
+            },
+            _ => None,
+        });
+    quote::quote!({
+        let mut children_vec = Vec::new();
+        #(children_vec.push(#child_tables_tokens,);)*
+        children_vec
+    }
+    .into_iter()
+    .collect())
+}
 
 pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDefinition {
     let &DeriveInput {
@@ -28,15 +63,14 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
         panic!("Unnamed fields found in the struct.")
     };
 
-    // TODO: Use this to build 1:N and N:N relationships
-    let _child_tables = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none());
-
     let columns = fields.named.iter().filter(|f| f.get_attribute("db_ignore").is_none()).map(|f| {
         let field_name = f.ident.as_ref().expect("Found unnamed field in struct");
 
         let column_type = get_type_from_field(f);
         let column_name = match &column_type {
-            DatabaseColumnType::OneToOne(_) => format!("{field_name}_id"),
+            DatabaseColumnType::OneToOne(_) => {
+                format!("{field_name}_id")
+            },
             DatabaseColumnType::OneToMany(_) => format!("{field_name}"),
             _ => field_name.to_string(),
         };
@@ -68,20 +102,15 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
 pub use super::type_parsing::get_qualified_path;
 pub use super::type_parsing::is_option;
 
-pub fn get_inner_type(field: &Field) -> &GenericArgument {
+pub fn try_get_inner_type(field: &Field) -> Option<&GenericArgument> {
     match &field.ty {
         syn::Type::Path(typepath) => {
-            let type_params = &typepath
-                .path
-                .segments
-                .last()
-                .expect("Option should have an inner type")
-                .arguments;
+            let type_params = &typepath.path.segments.last()?.arguments;
 
             match &type_params {
                 PathArguments::AngleBracketed(params) => {
-                    let arg = params.args.first().expect("No type T found for Option<T>");
-                    arg
+                    let arg = params.args.first();
+                    Some(arg?)
                 },
                 _ => panic!("No type T found for Generic<T>"),
             }
@@ -89,6 +118,9 @@ pub fn get_inner_type(field: &Field) -> &GenericArgument {
 
         _ => todo!(),
     }
+}
+pub fn get_inner_type(field: &Field) -> &GenericArgument {
+    try_get_inner_type(field).unwrap()
 }
 
 pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {

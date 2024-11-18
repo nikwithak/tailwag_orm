@@ -57,51 +57,65 @@ impl DataSystemBuilder {
 
     pub fn build(self) -> Result<UnconnectedDataSystem, crate::Error> {
         let Self {
-            resources,
+            mut resources,
             table_name_to_type,
         } = self;
+
+        let mut stack = resources.clone().into_iter().collect::<Vec<_>>();
+
+        while let Some((type_id, table_def)) = stack.pop() {
+            for (child_type_id, child_def) in table_def.child_tables().into_iter() {
+                stack.push((child_type_id, *child_def.clone()));
+                resources.insert(child_type_id, *child_def);
+            }
+        }
+
         // Put things into a RefCell sot hat we can modify during iteration.
         let resources = resources
             .into_iter()
             .map(|(k, v)| (k, RefCell::new(v)))
             .collect::<HashMap<_, _>>();
+
+        // Make sure all child tables are appropriately added.
+        // let mut children_of_tables = Vec::new();
+
         // First pass: Make sure all child tables exist, and modify them where needed.
         for (_, table_def) in &resources {
             let table_def = table_def.borrow();
             let table_name = table_def.table_name();
             let table_id_col = table_def.columns().get(&Identifier::new_unchecked("id")).unwrap();
             for child_table in table_def.child_tables() {
-                match child_table {
-                    super::table::TableRelationship::OneToMany(child_name) => {
-                        let child_table_type_id = table_name_to_type
-                            .get(&child_name)
-                            .expect(&format!(
-                                "Expected child table {child_name} does not exist in Data System. Aborting."
-                            ));
-                        let mut child_table = resources.get(&child_table_type_id)
-                            .expect(&format!(
-                                "Expected child table {child_name} does not exist in Data System. Aborting."
-                            )).borrow_mut();
-                        // TODO (UUID id requirement): Make this more dynamic when I remove the "must have UUID" requirement
-                        let parent_table_col_name = format!("{table_name}_id");
-                        child_table.add_column(
-                            TableColumn::new_uuid(&parent_table_col_name)?
-                                .non_null()
-                                .fk_to(table_name.clone(), table_id_col.clone()),
-                        );
-                    },
-                    super::table::TableRelationship::ManyToMany(_child_name) => {
-                        todo!("Need to create a NEW join table connecting these")
-                    },
-                    super::table::TableRelationship::OneToOne(child_name) => {
-                        let child_table = table_name_to_type
-                            .get(&child_name)
-                            .and_then(|type_id| resources.get(type_id));
-                        // Just make sure the child table exists - migrations will handle the actual column name down the line.
-                        // TODO: Actually migrations don't do it, it happens in the macro. I should move it here for posterity's sake. Can happen later.
-                        assert!(child_table.is_some());
-                    },
-                }
+                // match child_table {
+                //     super::table::TableRelationship::OneToMany(child_name) => {
+                //         let child_table_type_id = table_name_to_type
+                //             .get(&child_name)
+                //             .expect(&format!(
+                //                 "Expected child table {child_name} does not exist in Data System. Aborting."
+                //             ));
+                //         let mut child_table = resources.get(&child_table_type_id)
+                //             .expect(&format!(
+                //                 "Expected child table {child_name} does not exist in Data System. Aborting."
+                //             )).borrow_mut();
+                //         // TODO (UUID id requirement): Make this more dynamic when I remove the "must have UUID" requirement
+                //         let parent_table_col_name = format!("{table_name}_id");
+                //         child_table.add_column(
+                //             TableColumn::new_uuid(&parent_table_col_name)?
+                //                 .non_null()
+                //                 .fk_to(table_name.clone(), table_id_col.clone()),
+                //         );
+                //     },
+                //     super::table::TableRelationship::ManyToMany(_child_name) => {
+                //         todo!("Need to create a NEW join table connecting these")
+                //     },
+                //     super::table::TableRelationship::OneToOne(child_name) => {
+                //         let child_table = table_name_to_type
+                //             .get(&child_name)
+                //             .and_then(|type_id| resources.get(type_id));
+                //         // Just make sure the child table exists - migrations will handle the actual column name down the line.
+                //         // TODO: Actually migrations don't do it, it happens in the macro. I should move it here for posterity's sake. Can happen later.
+                //         assert!(child_table.is_some());
+                //     },
+                // }
             }
         }
         Ok(UnconnectedDataSystem {
