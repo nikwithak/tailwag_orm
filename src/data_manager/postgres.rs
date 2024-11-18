@@ -264,12 +264,11 @@ where
         item: &T,
     ) -> Result<(), crate::Error> {
         let mut transaction = self.db_pool.begin().await?;
-        let update_statements = item.get_update_statement();
-        for update in update_statements {
-            let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
-            update.build_sql(&mut builder);
-            builder.build().execute(&mut *transaction).await?;
-        }
+        let update_statement = item.get_update_statement();
+
+        let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
+        update_statement.build_sql(&mut builder);
+        builder.build().execute(&mut *transaction).await?;
         transaction.commit().await?;
 
         Ok(())

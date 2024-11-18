@@ -30,8 +30,14 @@ pub enum ColumnValue {
     Timestamp(chrono::NaiveDateTime), // TIMESTAMP
     Uuid(uuid::Uuid),                 // UUID
     Json(String),                     // JSONB
-    OneToMany(Vec<Box<InsertStatement>>),
-    OneToOne(Box<InsertStatement>),
+    OneToMany {
+        child_table: Identifier,
+        values: Vec<Box<ObjectRepr>>,
+    },
+    OneToOne {
+        child_table: Identifier,
+        value: Box<ObjectRepr>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]

@@ -4,12 +4,14 @@ use sqlx::Postgres;
 
 use crate::BuildSql;
 
-use crate::data_definition::table::{ColumnValue, DatabaseTableDefinition, Identifier};
+use crate::data_definition::table::{ColumnValue, DatabaseTableDefinition, Identifier, ObjectRepr};
+
+use super::insert::InsertStatement;
 
 pub struct UpdateStatement {
-    table_name: Identifier,
+    pub(crate) table_name: Identifier,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
-    object_repr: HashMap<Identifier, ColumnValue>,
+    pub(crate) object_repr: HashMap<Identifier, ColumnValue>,
 }
 
 impl UpdateStatement {
@@ -22,14 +24,26 @@ impl UpdateStatement {
             object_repr: object_map,
         }
     }
+
+    pub fn table_name(&self) -> Identifier {
+        self.table_name.clone()
+    }
+    pub fn object_repr(&self) -> &ObjectRepr {
+        &self.object_repr
+    }
 }
 
-impl BuildSql for UpdateStatement {
-    fn build_sql(
+impl UpdateStatement {
+    /// This is a HACKY approach to getting upserts to work as a part of insert / update.
+    /// It ignores OneToMany relationships (they should not be passed in at all, when used properly),
+    /// and does a (SELECT id FROM _table_name_) for OneToOne tables.
+    /// Hacky, but gets the job done.
+    pub fn build_sql_no_build_children(
         &self,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
-        builder.push(format!("UPDATE {} SET ", self.table_name));
+        // builder.push(format!("UPDATE {} SET ", self.table_name));
+        builder.push("UPDATE SET ");
 
         let Some(ColumnValue::Uuid(id)) = self.object_repr.get(&Identifier::new_unchecked("id"))
         else {
@@ -50,14 +64,39 @@ impl BuildSql for UpdateStatement {
                 },
                 ColumnValue::Timestamp(val) => builder.push(column).push(" = ").push_bind(*val),
                 ColumnValue::Uuid(val) => builder.push(column).push(" = ").push_bind(*val),
-                ColumnValue::OneToOne(_) => todo!(),
-                ColumnValue::OneToMany(_) => todo!(),
+                ColumnValue::OneToOne {
+                    child_table,
+                    value: _,
+                } => {
+                    let fk_name = &Identifier::new_unchecked("id"); // TODO: This is the ONLY FK supported for now. Eventually replace with dynamic FKs.
+                    builder.push(format!("(SELECT {fk_name} FROM {child_table})"))
+                    // Safe to inject directly, because `Identifier` is validated at runtime.
+                },
+                ColumnValue::OneToMany {
+                    ..
+                } => todo!(),
             };
             if i < &self.object_repr.len() - 2 {
                 // .len()-2 because we've stripped `id` from it above.
                 builder.push(", ");
             }
         }
-        builder.push(" WHERE id=").push_bind(dbg!(*id));
+        builder.push(format!(" WHERE {}.id=", &self.table_name)).push_bind(dbg!(*id));
+    }
+}
+
+impl BuildSql for UpdateStatement {
+    fn build_sql(
+        &self,
+        builder: &mut sqlx::QueryBuilder<'_, Postgres>,
+    ) {
+        // HACK: This actually does an UPSERT instead of a raw UPDATE.
+        // We accomplish this by converting toa n INSERT statement, then
+        // building the insert with the UPSERT flag set.
+        InsertStatement {
+            table_name: self.table_name.clone(),
+            object_repr: self.object_repr.clone(),
+        }
+        .build_insert_sql(true, builder);
     }
 }

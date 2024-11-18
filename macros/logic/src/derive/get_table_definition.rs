@@ -55,6 +55,7 @@ fn build_get_table_definition(
     // it hard to do one-to-manies in the way I want, because it relies on a child table having references.
     let input_table_definition =
         crate::util::database_table_definition::build_table_definition::<()>(input);
+    // let mut child_tables = Vec::new();
 
     // Build columns
     let table_columns = input_table_definition.columns.values().map(|column| {
@@ -69,6 +70,7 @@ fn build_get_table_definition(
             tailwag_orm::data_definition::table::DatabaseColumnType::Json=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Json),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(child) => {
                 let child = child.to_string();
+                // child_tables.push(quote!(&column));
                 quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(child) => {

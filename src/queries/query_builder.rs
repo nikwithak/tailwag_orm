@@ -33,7 +33,7 @@ pub trait Deleteable {
 }
 
 pub trait Updateable {
-    fn get_update_statement(&self) -> Vec<UpdateStatement>
+    fn get_update_statement(&self) -> UpdateStatement
     where
         Self: std::marker::Sized;
 }

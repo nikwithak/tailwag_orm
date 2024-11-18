@@ -24,16 +24,28 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => {
-                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping // [KNOWN RESTRICTION]
-                quote!(tailwag::orm::data_definition::table::ColumnValue::OneToMany(Default::default()))
+            E::OneToOne(_child_type) => {
+                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
+                // TODO: This assumes ID.
+                quote!(
+                    {
+                        let stmt = #field_name.get_update_statement();
+                        tailwag::orm::data_definition::table::ColumnValue::OneToOne(child_table: stmt.child_table, values: Box::new(stmt.values))
+                    }
+                )
+                // todo!()
             },
-            // tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => todo!("{:?} is a OneToOne relationship that isn't yet supported", &column.column_type),
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_foreign_table_name) => {
-                // column_name_as_string = format!("{column_name}_id");
-                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping // [KNOWN RESTRICTION]
-                quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#field_name.id.clone()))
-
+            E::OneToMany(_child_type) => {
+                quote!(
+                    {
+                        let insert_statements = #field_name.iter().map(|child|Box::new(child.get_update_statement()));
+                        let child_table = insert_statements.clone().find_map(|stmt|Some(stmt.table_name())).unwrap_or(
+                            tailwag::orm::data_definition::table::Identifier::new_unchecked("__nothin_to_insert__")
+                        );
+                        let values = insert_statements.into_iter().map(|stmt|Box::new(stmt.object_repr().clone())).collect();
+                        tailwag::orm::data_definition::table::ColumnValue::OneToMany{child_table, values}
+                    }
+                )
             },
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
@@ -61,41 +73,8 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
         }
     });
 
-    let updateable_children: Vec<syn::Ident> = input_table_definition
-        .columns
-        .values()
-        .filter(|c| !c.is_nullable())
-        .filter_map(|column| {
-            println!("{:?}", column);
-            let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
-            type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-            match &column.column_type {
-                E::OneToMany(_) => None, // TODO NOT SUPPORTED YET,
-                E::ManyToMany(_) => todo!(),
-                E::OneToOne(_) => Some(field_name),
-                _ => None,
-            }
-        })
-        .collect();
-
-    let updateable_optional_children: Vec<syn::Ident> = input_table_definition
-        .columns
-        .values()
-        .filter(|c| c.is_nullable())
-        .filter_map(|column| {
-            let field_name = format_ident!("{}", column.column_name.trim_end_matches("_id"));
-            type E = tailwag_orm::data_definition::table::DatabaseColumnType;
-            match &column.column_type {
-                E::OneToMany(_) => None, // TODO NOT SUPPORTED YET,
-                E::ManyToMany(_) => todo!(),
-                E::OneToOne(_) => Some(field_name),
-                _ => None,
-            }
-        })
-        .collect();
-
     let tokens = quote!(
-        fn get_update_statement(&self) -> Vec<tailwag::orm::object_management::update::UpdateStatement> {
+        fn get_update_statement(&self) -> tailwag::orm::object_management::update::UpdateStatement {
             let mut update_map = std::collections::HashMap::new();
 
             #(#update_maps)*
@@ -105,13 +84,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
                 update_map,
             );
 
-            let mut transaction_statements = Vec::new();
-            #(transaction_statements.append(&mut self.#updateable_children.get_update_statement());)*
-            #(self.#updateable_optional_children.as_ref().map(|c|transaction_statements.append(&mut c.get_update_statement()));)*
-            // TODO: Need to also INSERT any new children added.
-            transaction_statements.push(update);
-
-            transaction_statements
+            update
         }
     );
 

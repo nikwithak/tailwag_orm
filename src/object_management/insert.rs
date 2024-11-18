@@ -5,11 +5,13 @@ use crate::{
     BuildSql,
 };
 
+use super::update::UpdateStatement;
+
 #[derive(Clone)]
 pub struct InsertStatement {
-    table_name: Identifier,
+    pub(crate) table_name: Identifier,
     // TODO: Make this a little more specific? Good enough for now (probably), but needs to be thoroughly tested
-    object_repr: ObjectRepr,
+    pub(crate) object_repr: ObjectRepr,
 }
 
 impl InsertStatement {
@@ -21,6 +23,13 @@ impl InsertStatement {
             table_name,
             object_repr: object_map,
         }
+    }
+
+    pub fn table_name(&self) -> Identifier {
+        self.table_name.clone()
+    }
+    pub fn object_repr(&self) -> &ObjectRepr {
+        &self.object_repr
     }
 }
 
@@ -41,6 +50,7 @@ impl InsertStatement {
     fn build_consecutive_inserts(
         &self,
         prefix: &str,
+        upsert: bool,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
         // This block is a hacky way of propogating my ID to the OneToMany tables later - I need to update this to actually build a SQL for a FK relationship to an existing object.
@@ -61,22 +71,34 @@ impl InsertStatement {
         let mut one_to_many_inserts = Vec::new();
         for (column, value) in &self.object_repr {
             match value {
-                ColumnValue::OneToOne(child_mapping) => {
+                ColumnValue::OneToOne {
+                    ..
+                } => {
                     one_to_one_inserts.push((column, value));
                 },
-                ColumnValue::OneToMany(child_mapping) => one_to_many_inserts.push((column, value)),
+                ColumnValue::OneToMany {
+                    ..
+                } => one_to_many_inserts.push((column, value)),
                 _ => raw_values.push((column, value)),
             }
         }
 
         // Build ONETOONE children
         let mut one_to_one_iter = one_to_one_inserts.into_iter().peekable();
-        while let Some((child_col_name, col_value)) = one_to_one_iter.next() {
-            let ColumnValue::OneToOne(insert_stmt) = col_value else {
+        while let Some((_child_col_name, col_value)) = one_to_one_iter.next() {
+            let ColumnValue::OneToOne {
+                child_table,
+                value,
+            } = col_value
+            else {
                 panic!("Wrong value type received when building one_to_one insert tables. This should not happen.")
             };
-            insert_stmt.build_consecutive_inserts(prefix, builder);
-            raw_values.push((child_col_name, col_value));
+            InsertStatement {
+                table_name: child_table.clone(),
+                object_repr: *value.clone(),
+            }
+            .build_consecutive_inserts(prefix, true, builder);
+            raw_values.push((child_table, col_value));
             // if one_to_one_iter.peek().is_some() {
             builder.push(", ");
             // }
@@ -91,7 +113,7 @@ impl InsertStatement {
                 "{prefix}{table_name} as (INSERT INTO {table_name} ({col_names_joined}) VALUES (",
             ));
             // Begin insert values
-            let mut values_iter = raw_values.into_iter().peekable();
+            let mut values_iter = raw_values.iter().peekable();
             while let Some((_col_name, value)) = values_iter.next() {
                 match value {
                     ColumnValue::Boolean(val) => builder.push_bind(*val),
@@ -102,8 +124,10 @@ impl InsertStatement {
                     },
                     ColumnValue::Timestamp(val) => builder.push_bind(*val),
                     ColumnValue::Uuid(val) => builder.push_bind(*val),
-                    ColumnValue::OneToOne(child_stmt) => {
-                        let col_name = &child_stmt.table_name;
+                    ColumnValue::OneToOne {
+                        child_table: col_name,
+                        value,
+                    } => {
                         let fk_name = &Identifier::new_unchecked("id"); // TODO: This is the ONLY FK supported for now. Eventually replace with dynamic FKs.
                         builder.push(format!("(SELECT {fk_name} FROM {col_name})"))
                         // Safe to inject directly, because `Identifier` is validated at runtime.
@@ -116,6 +140,19 @@ impl InsertStatement {
             }
             // End insert values
             builder.push(")");
+            if upsert {
+                // TODO: Another hardcode of `id`. Also this isn't modeled out as Postgres tokens, I've kinda given up on that idea.
+                let update_statement = UpdateStatement {
+                    table_name: self.table_name.clone(),
+                    object_repr: raw_values
+                        .into_iter()
+                        .map(|(ident, val)| (ident.clone(), val.clone()))
+                        .collect(),
+                };
+                builder.push(" ON CONFLICT (id) DO ");
+                update_statement.build_sql_no_build_children(builder);
+                // builder.push()
+            }
             builder.push(" RETURNING * ");
             builder.push(")");
         }
@@ -124,31 +161,39 @@ impl InsertStatement {
         let mut one_to_many_iter = one_to_many_inserts.into_iter().peekable();
         while let Some((_col_name, stmt)) = one_to_many_iter.next() {
             // TODO: [PERFORMANCE] Some ugly overhead with the clone here...
-            let mut stmt = stmt.clone();
-            let ColumnValue::OneToMany(ref mut insert_stmts) = stmt else {
+            let ColumnValue::OneToMany {
+                child_table,
+                values,
+            } = stmt.clone()
+            else {
                 panic!("Wrong value type received when building one_to_many insert tables. This should not happen.");
             };
             // TODO: I'm faking it here by adding a parent_id to the insert. In future, this should be able to pull from the INSERT result, as above.
+            let insert_stmts = values.into_iter().map(|row| InsertStatement {
+                table_name: child_table.clone(),
+                object_repr: *row,
+            });
 
-            for (i, insert_stmt) in insert_stmts.into_iter().enumerate() {
+            for (i, mut insert_stmt) in insert_stmts.enumerate() {
                 insert_stmt
                     .object_repr
                     .insert(Identifier::new_unchecked("parent_id"), ColumnValue::Uuid(parent_id));
 
                 builder.push(", "); // This should ALWAYS have at least one statement before it.
                 let prefix = format!("{}_{}", &prefix, i);
-                insert_stmt.build_consecutive_inserts(&prefix, builder);
+                insert_stmt.build_consecutive_inserts(&prefix, true, builder);
             }
         }
     }
 
-    fn build_insert_sql(
+    pub(crate) fn build_insert_sql(
         &self,
+        upsert: bool,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
         let table_name = self.table_name.clone();
         builder.push("WITH ");
-        self.build_consecutive_inserts("", builder);
+        self.build_consecutive_inserts("", upsert, builder);
         // Need *something* after the "WITH _ as (INSERT ....) statements"
         builder.push(format!("SELECT * FROM {table_name};"));
     }
@@ -192,6 +237,6 @@ impl BuildSql for InsertStatement {
         &self,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
-        self.build_insert_sql(builder);
+        self.build_insert_sql(false, builder);
     }
 }

@@ -146,11 +146,25 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::OneToOne(_child_type) => {
                 field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
                 // TODO: This assumes ID.
-                quote!(tailwag::orm::data_definition::table::ColumnValue::OneToOne(Box::new(#field_name.get_insert_statement())))
+                quote!(
+                    {
+                        let stmt = #field_name.get_insert_statement();
+                        tailwag::orm::data_definition::table::ColumnValue::OneToOne(child_table: stmt.child_table, values: Box::new(stmt.values))
+                    }
+                )
                 // todo!()
             },
             E::OneToMany(_child_type) => {
-                quote!(tailwag::orm::data_definition::table::ColumnValue::OneToMany(#field_name.iter().map(|child|Box::new(child.get_insert_statement())).collect()))
+                quote!(
+                    {
+                        let insert_statements = #field_name.iter().map(|child|Box::new(child.get_insert_statement()));
+                        let child_table = insert_statements.clone().find_map(|stmt|Some(stmt.table_name())).unwrap_or(
+                            tailwag::orm::data_definition::table::Identifier::new_unchecked("__nothin_to_insert__")
+                        );
+                        let values = insert_statements.into_iter().map(|stmt|Box::new(stmt.object_repr().clone())).collect();
+                        tailwag::orm::data_definition::table::ColumnValue::OneToMany{child_table, values}
+                    }
+                )
             },
             E::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
