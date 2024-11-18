@@ -256,6 +256,7 @@ where
         let mut transaction = self.db_pool.begin().await?;
         let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
         insert_statement.build_sql(&mut builder);
+
         builder.build().execute(&mut *transaction).await?;
         transaction.commit().await?;
 

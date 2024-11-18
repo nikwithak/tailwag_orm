@@ -66,7 +66,7 @@ impl InsertStatement {
             parent_id.clone()
         };
 
-        let mut raw_values = Vec::new();
+        let mut raw_values: Vec<(Identifier, &ColumnValue)> = Vec::new();
         let mut one_to_one_inserts = Vec::new();
         let mut one_to_many_inserts = Vec::new();
         for (column, value) in &self.object_repr {
@@ -79,13 +79,13 @@ impl InsertStatement {
                 ColumnValue::OneToMany {
                     ..
                 } => one_to_many_inserts.push((column, value)),
-                _ => raw_values.push((column, value)),
+                _ => raw_values.push((column.clone(), value)),
             }
         }
 
         // Build ONETOONE children
         let mut one_to_one_iter = one_to_one_inserts.into_iter().peekable();
-        while let Some((_child_col_name, col_value)) = one_to_one_iter.next() {
+        while let Some((child_col_name, col_value)) = one_to_one_iter.next() {
             let ColumnValue::OneToOne {
                 child_table,
                 value,
@@ -98,7 +98,7 @@ impl InsertStatement {
                 object_repr: *value.clone(),
             }
             .build_consecutive_inserts(prefix, true, builder);
-            raw_values.push((child_table, col_value));
+            raw_values.push((child_col_name.clone(), col_value));
             // if one_to_one_iter.peek().is_some() {
             builder.push(", ");
             // }
@@ -108,7 +108,7 @@ impl InsertStatement {
         {
             let table_name = &self.table_name;
             let col_names_joined =
-                raw_values.iter().map(|entry| &(**(entry.0))).collect::<Vec<_>>().join(", ");
+                raw_values.iter().map(|entry| &*(entry.0)).collect::<Vec<_>>().join(", ");
             builder.push(format!(
                 "{prefix}{table_name} as (INSERT INTO {table_name} ({col_names_joined}) VALUES (",
             ));

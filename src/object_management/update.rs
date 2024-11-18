@@ -69,7 +69,10 @@ impl UpdateStatement {
                     value: _,
                 } => {
                     let fk_name = &Identifier::new_unchecked("id"); // TODO: This is the ONLY FK supported for now. Eventually replace with dynamic FKs.
-                    builder.push(format!("(SELECT {fk_name} FROM {child_table})"))
+                    builder
+                        .push(column)
+                        .push(" = ")
+                        .push(format!("(SELECT {fk_name} FROM {child_table})"))
                     // Safe to inject directly, because `Identifier` is validated at runtime.
                 },
                 ColumnValue::OneToMany {
