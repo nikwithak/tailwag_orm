@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use crate::data_manager::GetTableDefinition;
 use crate::queries::Insertable;
 use crate::BuildSql;
-use crate::{data_manager::GetTableDefinition, object_management::insert::InsertStatement};
 
 use crate::data_definition::table::Identifier;
 

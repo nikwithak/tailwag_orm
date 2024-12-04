@@ -30,8 +30,8 @@ impl BuildSql for CreateTable {
             .columns()
             .values()
             .filter(|col| match &col.column_type {
-                crate::data_definition::table::DatabaseColumnType::OneToMany(identifier)
-                | crate::data_definition::table::DatabaseColumnType::ManyToMany(identifier) => {
+                crate::data_definition::table::DatabaseColumnType::OneToMany(_identifier)
+                | crate::data_definition::table::DatabaseColumnType::ManyToMany(_identifier) => {
                     false
                 },
                 _ => true,

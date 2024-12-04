@@ -126,7 +126,7 @@ impl InsertStatement {
                     ColumnValue::Uuid(val) => builder.push_bind(*val),
                     ColumnValue::OneToOne {
                         child_table: col_name,
-                        value,
+                        value: _,
                     } => {
                         let fk_name = &Identifier::new_unchecked("id"); // TODO: This is the ONLY FK supported for now. Eventually replace with dynamic FKs.
                         builder.push(format!("(SELECT {fk_name} FROM {col_name})"))
@@ -196,39 +196,6 @@ impl InsertStatement {
         self.build_consecutive_inserts("", upsert, builder);
         // Need *something* after the "WITH _ as (INSERT ....) statements"
         builder.push(format!("SELECT * FROM {table_name};"));
-    }
-}
-
-impl InsertStatement {
-    fn old_build_sql(
-        &self,
-        builder: &mut sqlx::QueryBuilder<'_, Postgres>,
-    ) {
-        let mut columns: Vec<&str> = Vec::new();
-        let mut values = Vec::new();
-        for (column, value) in &self.object_repr {
-            columns.push(column);
-            values.push(value);
-        }
-        builder
-            .push(format!("INSERT INTO {} ({}) VALUES (", self.table_name, &columns.join(", "),));
-        for (i, value) in values.iter().enumerate() {
-            match value {
-                ColumnValue::Boolean(val) => builder.push_bind(*val),
-                ColumnValue::Int(val) => builder.push_bind(*val),
-                ColumnValue::Float(val) => builder.push_bind(*val),
-                ColumnValue::String(val) | ColumnValue::Json(val) => {
-                    builder.push_bind(val.to_string())
-                },
-                ColumnValue::Timestamp(val) => builder.push_bind(*val),
-                ColumnValue::Uuid(val) => builder.push_bind(*val),
-                _ => todo!("It's getting messy."),
-            };
-            if i < values.len() - 1 {
-                builder.push(", ");
-            }
-        }
-        builder.push(");");
     }
 }
 

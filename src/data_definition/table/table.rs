@@ -39,7 +39,7 @@ pub(crate) mod raw_data {
 
     use crate::data_definition::table::{Identifier, TableColumn, TableConstraint};
 
-    use super::{DatabaseTableDefinition, TableRelationship};
+    use super::DatabaseTableDefinition;
     trait LockedTrait {}
     impl LockedTrait for DatabaseTableDefinition {}
 

@@ -3,7 +3,6 @@ use std::{any::TypeId, cell::RefCell, collections::HashMap, sync::Arc};
 use sqlx::{Postgres, QueryBuilder};
 
 use crate::{
-    data_definition::table::TableColumn,
     data_manager::{GetTableDefinition, PostgresDataProvider},
     migration::Migration,
     queries::Insertable,
@@ -58,12 +57,12 @@ impl DataSystemBuilder {
     pub fn build(self) -> Result<UnconnectedDataSystem, crate::Error> {
         let Self {
             mut resources,
-            table_name_to_type,
+            ..
         } = self;
 
         let mut stack = resources.clone().into_iter().collect::<Vec<_>>();
 
-        while let Some((type_id, table_def)) = stack.pop() {
+        while let Some((_type_id, table_def)) = stack.pop() {
             for (child_type_id, child_def) in table_def.child_tables().into_iter() {
                 stack.push((child_type_id, *child_def.clone()));
                 resources.insert(child_type_id, *child_def);
@@ -82,9 +81,9 @@ impl DataSystemBuilder {
         // First pass: Make sure all child tables exist, and modify them where needed.
         for (_, table_def) in &resources {
             let table_def = table_def.borrow();
-            let table_name = table_def.table_name();
-            let table_id_col = table_def.columns().get(&Identifier::new_unchecked("id")).unwrap();
-            for child_table in table_def.child_tables() {
+            let _table_name = table_def.table_name();
+            let _table_id_col = table_def.columns().get(&Identifier::new_unchecked("id")).unwrap();
+            for _child_table in table_def.child_tables() {
                 // match child_table {
                 //     super::table::TableRelationship::OneToMany(child_name) => {
                 //         let child_table_type_id = table_name_to_type
@@ -169,7 +168,7 @@ impl DataSystem {
                 .and_then(|bytes| serde_json::from_slice(bytes.as_slice()).ok())
         }
 
-        fn save_prev_tables(
+        fn _save_prev_tables(
             database: Vec<Arc<DatabaseTableDefinition>>
         ) -> Result<(), std::io::Error> {
             let deser = serde_json::to_string(&database)?;
@@ -193,6 +192,7 @@ impl DataSystem {
             }
             transaction.commit().await?;
         }
+        // TODO: It's crashing when trying to serialze the migrations. Need to dig in.
         // save_prev_tables(current_config)?;
         Ok(())
     }
