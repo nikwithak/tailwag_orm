@@ -39,7 +39,7 @@ pub trait Id {
 
 impl<T> DataProvider<T> for RestApiDataProvider<T>
 where
-    T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send + Sync + Filterable,
+    T: Serialize + for<'d> Deserialize<'d> + Id + Default + Clone + Send + Filterable,
 {
     // TODO: Figure out how to map CreateRequest
     type CreateRequest = T;

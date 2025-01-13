@@ -23,18 +23,18 @@ pub struct DataSystemBuilder {
 }
 
 impl DataSystemBuilder {
-    pub fn add_resource<T: GetTableDefinition + Send + Sync + 'static>(&mut self) {
+    pub fn add_resource<T: GetTableDefinition + Send + 'static>(&mut self) {
         // TODO: On get_table_definition, need to include child tables too and add them here.
         // Fixes the issue where I have to add endpoints for child resources even if I don't want them.
         let table_def = T::get_table_definition();
         self.add_table_def::<T>(table_def);
     }
-    pub fn with_resource<T: GetTableDefinition + Send + Sync + 'static>(mut self) -> Self {
+    pub fn with_resource<T: GetTableDefinition + Send + 'static>(mut self) -> Self {
         self.add_resource::<T>();
         self
     }
 
-    pub(crate) fn add_table_def<T: Send + Sync + 'static>(
+    pub(crate) fn add_table_def<T: Send + 'static>(
         &mut self,
         table_def: DatabaseTableDefinition,
     ) {
@@ -42,7 +42,7 @@ impl DataSystemBuilder {
         self.table_name_to_type.insert(table_def.table_name.clone(), type_id);
         self.resources.insert(type_id, table_def);
     }
-    // pub fn get<T: GetTableDefinition + Clone + Send + Sync + 'static>(
+    // pub fn get<T: GetTableDefinition + Clone + Send + 'static>(
     //     &self
     // ) -> Option<DatabaseTableDefinition> {
     //     self.resources.get(&TypeId::of::<T>()).map(|t| {
@@ -125,6 +125,7 @@ impl DataSystemBuilder {
     }
 }
 
+#[derive(Clone)]
 pub struct UnconnectedDataSystem {
     resources: Arc<HashMap<TypeId, Arc<DatabaseTableDefinition>>>,
 }
@@ -153,9 +154,7 @@ impl DataSystem {
 }
 
 impl DataSystem {
-    pub fn get<T: Clone + Insertable + Send + Sync + 'static>(
-        &self
-    ) -> Option<PostgresDataProvider<T>> {
+    pub fn get<T: Clone + Insertable + Send + 'static>(&self) -> Option<PostgresDataProvider<T>> {
         self.resources
             .get(&TypeId::of::<T>())
             .map(|t| PostgresDataProvider::new(t.clone(), self.pool.clone()))
@@ -200,7 +199,7 @@ impl DataSystem {
 
 impl<T> TryFrom<&DataSystem> for PostgresDataProvider<T>
 where
-    T: Insertable + Clone + Send + Sync + 'static,
+    T: Insertable + Clone + Send + 'static,
 {
     type Error = String;
 

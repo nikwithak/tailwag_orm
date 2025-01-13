@@ -45,7 +45,6 @@ where
         + Id
         + Serialize
         + Send
-        + Sync
         + Unpin
         + queries::query_builder::Deleteable
         + queries::query_builder::Updateable

@@ -17,9 +17,7 @@ pub struct InMemoryDataProvider<T> {
     items: Arc<Mutex<HashMap<Uuid, T>>>,
 }
 
-impl<T: Clone + Id + Send + Default + Sync + Filterable> DataProvider<T>
-    for InMemoryDataProvider<T>
-{
+impl<T: Clone + Id + Send + Default + Filterable> DataProvider<T> for InMemoryDataProvider<T> {
     type CreateRequest = T;
 
     async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error> {

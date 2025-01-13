@@ -81,14 +81,14 @@ pub struct ExecutableQuery<T> {
 
 impl<T> From<ExecutableQuery<T>> for Vec<T>
 where
-    T: Insertable + for<'r> serde::Deserialize<'r> + Send + Sync + Unpin,
+    T: Insertable + for<'r> serde::Deserialize<'r> + Send + Unpin,
 {
     fn from(val: ExecutableQuery<T>) -> Self {
         futures::executor::block_on(val.execute()).unwrap()
     }
 }
 
-impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Sync + Unpin> ExecutableQuery<T> {
+impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Unpin> ExecutableQuery<T> {
     pub async fn execute(self) -> Result<Vec<T>, Error> {
         // We wrap the whole thing in a `to_json` on the DB side. This makes it supes easy to deserialize.
         // Without his, it got really messy, because it seems that SQLX doesn't support nested deserialization on its own.
@@ -156,7 +156,7 @@ impl<T: Filterable> ExecutableQuery<T> {
 // Migration Handling
 impl<T: Insertable> PostgresDataProvider<T>
 where
-    T: Clone + Send + Sync + std::fmt::Debug + 'static + for<'d> serde::Deserialize<'d>,
+    T: Clone + Send + std::fmt::Debug + 'static + for<'d> serde::Deserialize<'d>,
 {
     pub fn build_migration(&self) -> Option<Migration> {
         Migration::compare(
@@ -197,7 +197,6 @@ where
         + Deleteable
         + Updateable
         + Send
-        + Sync
         + serde::Serialize
         + for<'d> serde::Deserialize<'d>
         + Clone
@@ -253,7 +252,8 @@ where
         let item = item.into();
         let insert_statement = item.get_insert_statement();
 
-        let mut transaction = self.db_pool.begin().await?;
+        let pool = self.db_pool.clone();
+        let mut transaction = pool.begin().await?;
         let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
         insert_statement.build_sql(&mut builder);
 
