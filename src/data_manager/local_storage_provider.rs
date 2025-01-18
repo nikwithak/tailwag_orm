@@ -45,7 +45,6 @@ impl LocalStorageProvider {
     ) -> OrmResult<()> {
         let relative_path = Path::new(relative_path);
         let path = self.get_sanitized_path(relative_path)?;
-        println!("\n\n\n{:?}\n\n\n", &path);
         std::fs::write(dbg!(path), &data)?;
         Ok(())
     }

@@ -192,7 +192,6 @@ async fn main() {
 
     let migs = Migration::compare(Some(&old_def), &new_def).expect("");
     let sql = migs.as_sql();
-    println!("{}", &sql);
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
