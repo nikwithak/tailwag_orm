@@ -12,5 +12,6 @@ description = "The logic for the macro exports, supporting the tailwag_orm crate
 proc-macro2 = "1.0.70"
 quote = "1.0.33"
 syn = { version = "2.0.39", features = ["full", "extra-traits"] }
-tailwag_orm = {version = "0.2.0", path = "../.."}
-tailwag_utils = { version = "0.1.1", path = "../../../utils" }
+# tailwag_orm = {version = "0.2.0", path = "../.."}
+tailwag_orm = { version = "0.2.0", git = "https://github.com/nikwithak/tailwag_orm", branch = "develop" }
+tailwag_utils = { version = "0.1.1", git = "https://github.com/nikwithak/tailwag_utils", branch = "develop"  }

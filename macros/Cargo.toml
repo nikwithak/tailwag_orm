@@ -14,4 +14,6 @@ description = "A collection of macros supporting the tailwag_orm crate."
 
 [dependencies]
 syn = { version = "2.0.39", features = ["extra-traits"] }
-tailwag_orm_macro_logic = {version = "0.2.0", path = "./logic"}
+tailwag_orm_macro_logic = { version = "0.2.0", git = "https://github.com/nikwithak/tailwag_orm", branch = "develop" }
+
+# tailwag_orm_macro_logic = {version = "0.2.0", path = "./logic"}
