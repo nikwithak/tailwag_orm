@@ -1,5 +1,6 @@
 use syn::parse_macro_input;
-use tailwag_orm_macro_logic as logic;
+mod logic;
+mod util;
 
 #[proc_macro_derive(GetTableDefinition, attributes(db_ignore))]
 pub fn derive_get_table_definition(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
