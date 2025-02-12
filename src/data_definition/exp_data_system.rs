@@ -71,7 +71,7 @@ impl DataSystemBuilder {
         }
 
         // Put things into a RefCell sot hat we can modify during iteration.
-        let resources = resources
+        let mut resources = resources
             .into_iter()
             .map(|(k, v)| (k, RefCell::new(v)))
             .collect::<HashMap<_, _>>();
@@ -92,7 +92,7 @@ impl DataSystemBuilder {
                 let col_type = &col_def.column_type;
                 type E = DatabaseColumnType;
                 match col_type {
-                    E::OneToMany(child_name) => {
+                    E::OneToMany(child_name, table) => {
                         let mut child_table= self.table_name_to_type
                             .get(&child_name)
                             .and_then(|type_id|resources.get(&type_id))
@@ -107,7 +107,7 @@ impl DataSystemBuilder {
                                 .fk_to(table_name.clone(), table_id_col.clone()),
                         );
                     },
-                    E::ManyToMany(child_name) => {
+                    E::ManyToMany(child_name, _) => {
                         let child_table = self
                             .table_name_to_type
                             .get(&child_name)
@@ -127,10 +127,8 @@ impl DataSystemBuilder {
                         .with_uuid(&format!("{}_{}", &child_name, &child_pk.column_name))?;
 
                         new_tables.push(join_table);
-
-                        todo!("Need to ADD this table to resources map. Can't do without type_ids")
                     },
-                    E::OneToOne(child_name) => {
+                    E::OneToOne(child_name, _) => {
                         let child_table = self
                             .table_name_to_type
                             .get(&child_name)
@@ -152,6 +150,98 @@ impl DataSystemBuilder {
                 }
             }
         }
+        // Add the join tables to resources map. Since we won't ever use these directly, we can create some dummy types to fill the map.
+
+        struct DummyTypeId;
+        struct DummyTypeId2;
+        struct DummyTypeId3;
+        struct DummyTypeId4;
+        struct DummyTypeId5;
+        // macro_rules! create_dummy_type_ids {
+        //     ($name:ty,) => {
+        //         TypeId::of::<$name>,
+        //     };
+        //     ($first_name:ty, $(name:ty,)*) => {
+        //         TypeId::of::<($first_name, $($name,)*)>,
+        //     };
+        // }
+        // TODO: If I do tuples, this only needs to be one type after all.
+        let mut dummy_type_ids = vec![
+            TypeId::of::<DummyTypeId>(),
+            TypeId::of::<DummyTypeId2>(),
+            TypeId::of::<DummyTypeId3>(),
+            TypeId::of::<DummyTypeId4>(),
+            TypeId::of::<DummyTypeId5>(),
+            TypeId::of::<(DummyTypeId, DummyTypeId)>(),
+            TypeId::of::<(DummyTypeId, DummyTypeId2)>(),
+            TypeId::of::<(DummyTypeId, DummyTypeId3)>(),
+            TypeId::of::<(DummyTypeId, DummyTypeId4)>(),
+            TypeId::of::<(DummyTypeId, DummyTypeId5)>(),
+            TypeId::of::<(DummyTypeId2, DummyTypeId)>(),
+            TypeId::of::<(DummyTypeId2, DummyTypeId2)>(),
+            TypeId::of::<(DummyTypeId2, DummyTypeId3)>(),
+            TypeId::of::<(DummyTypeId2, DummyTypeId4)>(),
+            TypeId::of::<(DummyTypeId2, DummyTypeId5)>(),
+        ];
+        for new_table in new_tables {
+            resources.insert(
+                dummy_type_ids
+                    .pop()
+                    .expect("Must modify the code to support more than 15 join tables"),
+                RefCell::new(new_table),
+            );
+        }
+
+        // TODO: One last pass, to make sure all the child tables are up to date after the changes.
+        // On second thought, I don't think this solves the problem. Need to traverse the whole DB tree bottom up to really make sure.
+        for (parent_type_id, table_def) in &resources {
+            let mut table_def = table_def.borrow_mut();
+            for (_, child_col) in table_def.columns().clone() {
+                match &child_col.column_type {
+                    DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
+                        let mut new_col = (*child_col).clone();
+
+                        let child_table = self
+                            .table_name_to_type
+                            .get(identifier)
+                            .and_then(|i| resources.get(i))
+                            .expect("Child table missing");
+                        new_col.column_type = DatabaseColumnType::OneToMany(
+                            identifier.clone(),
+                            child_table.borrow().clone(),
+                        );
+                    },
+                    DatabaseColumnType::ManyToMany(identifier, database_table_definition) => {
+                        let mut new_col = (*child_col).clone();
+
+                        let child_table = self
+                            .table_name_to_type
+                            .get(identifier)
+                            .and_then(|i| resources.get(i))
+                            .expect("Child table missing");
+                        new_col.column_type = DatabaseColumnType::ManyToMany(
+                            identifier.clone(),
+                            child_table.borrow().clone(),
+                        );
+                    },
+                    DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                        let mut new_col = (*child_col).clone();
+
+                        let child_table = self
+                            .table_name_to_type
+                            .get(identifier)
+                            .and_then(|i| resources.get(i))
+                            .expect("Child table missing");
+                        new_col.column_type = DatabaseColumnType::OneToOne(
+                            identifier.clone(),
+                            child_table.borrow().clone(),
+                        );
+                    },
+                    _ => (),
+                }
+            }
+        }
+
         Ok(UnconnectedDataSystem {
             resources: Arc::new(
                 resources.into_iter().map(|(k, v)| (k, Arc::new(v.into_inner()))).collect(),
@@ -185,6 +275,13 @@ pub struct DataSystem {
 impl DataSystem {
     pub fn builder() -> DataSystemBuilder {
         DataSystemBuilder::default()
+    }
+
+    pub(crate) fn get_table_def(
+        &self,
+        type_id: &TypeId,
+    ) -> Option<Arc<DatabaseTableDefinition>> {
+        self.resources.get(type_id).cloned()
     }
 }
 

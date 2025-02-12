@@ -30,8 +30,10 @@ impl BuildSql for CreateTable {
             .columns()
             .values()
             .filter(|col| match &col.column_type {
-                crate::data_definition::table::DatabaseColumnType::OneToMany(_identifier)
-                | crate::data_definition::table::DatabaseColumnType::ManyToMany(_identifier) => {
+                // OneToMany and ManyToMany don't store the relationship in the parent
+                crate::data_definition::table::DatabaseColumnType::OneToMany(_identifier, _) // Child stores a pointer to parent
+                | crate::data_definition::table::DatabaseColumnType::ManyToMany(_identifier, _) => // Joint able links the tables
+                {
                     false
                 },
                 _ => true,

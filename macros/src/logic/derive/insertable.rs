@@ -73,10 +73,10 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
         |field| {
             let (field_name, field_type) = (&field.ident, field.ty.to_token_stream());
             match get_type_from_field(field) {
-                tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_) => {
+                tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_, _) => {
                     quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)
                 },
-                tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) => {
+                tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) => {
                     let field_type = get_inner_type(&field);
                     quote!(pub #field_name: Vec<<#field_type as tailwag::orm::queries::Insertable>::CreateRequest>,)
                 },
@@ -87,15 +87,15 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
     );
     let field_names = passthrough_fields.clone().filter(
         |field|match get_type_from_field(field) {
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) |
-            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) =>false,
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) |
+            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_, _) =>false,
             _ => true,
         }
     ).map(|field| &field.ident);
     let vec_fields = passthrough_fields.clone().filter(
         |field|match get_type_from_field(field) {
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_) |
-            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) =>true,
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) |
+            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_, _) =>true,
             _ => false,
         }
     );
@@ -141,7 +141,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
-            E::OneToOne(_child_type) => {
+            E::OneToOne(_child_type, _) => {
                 field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
                 // TODO: This assumes ID.
                 quote!(
@@ -152,7 +152,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                 )
                 // todo!()
             },
-            E::OneToMany(_child_type) => {
+            E::OneToMany(_child_type, _) => {
                 quote!(
                     {
                         let insert_statements = #field_name.iter().map(|child|Box::new(child.get_insert_statement()));
@@ -164,7 +164,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                     }
                 )
             },
-            E::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
+            E::ManyToMany(_, _) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 
         

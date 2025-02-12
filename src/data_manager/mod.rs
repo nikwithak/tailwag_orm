@@ -1,5 +1,7 @@
 pub mod local_storage_provider;
 mod postgres;
+use in_memory::InMemoryDataProvider;
+use local_files::LocalFileDataProvider;
 pub use postgres::*;
 use rest_api::Id;
 use serde::{Deserialize, Serialize};
@@ -18,10 +20,11 @@ pub mod local_files;
 // struct MongoDBDataProvider {}
 
 #[allow(unused)]
-enum DataProviderType<T: Insertable> {
+pub enum DataProviderType<T: Insertable> {
     Postgres(PostgresDataProvider<T>),
     // InMemory(InMemoryDataProvider<T>),
-    // LocalFile(LocalFileDataProvider<T>),
+    // JsonFiles(LocalFileDataProvider<T>),
+    // Files(PostgresDataProvider<T>),
 }
 
 struct DataManager<T>
@@ -56,7 +59,8 @@ where
         match &self.inner {
             DataProviderType::Postgres(dp) => dp.all().await,
             // DataProviderType::InMemory(dp) => dp.all().await,
-            // DataProviderType::LocalFile(dp) => dp.all().await,
+            // DataProviderType::JsonFiles(dp) => todo!(),
+            // DataProviderType::Files(dp) => todo!(),
         }
     }
 

@@ -18,6 +18,7 @@ pub struct PostgresDataProvider<T: Insertable> {
     pub table_definition: Arc<DatabaseTableDefinition>,
     pub db_pool: Pool<Postgres>,
     pub _t: PhantomData<T>,
+    // pub(crate) parent_data_system:
 }
 
 impl<T> PostgresDataProvider<T>

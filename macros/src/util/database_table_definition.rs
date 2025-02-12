@@ -27,7 +27,7 @@ pub(crate) fn get_child_table_tokens(input: &DeriveInput) -> TokenStream {
         .iter()
         .filter(|f| f.get_attribute("db_ignore").is_none())
         .filter_map(|f| match get_type_from_field(f) {
-            DatabaseColumnType::OneToOne(_) | DatabaseColumnType::OneToMany(_) => {
+            DatabaseColumnType::OneToOne(_, _) | DatabaseColumnType::OneToMany(_, _) => {
                 let syn::Type::Path(f_type) = &f.ty  else {return None};
                 let f_type = &f_type.path;
                 match try_get_inner_type(&f) {
@@ -68,10 +68,10 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
 
         let column_type = get_type_from_field(f);
         let column_name = match &column_type {
-            DatabaseColumnType::OneToOne(_) => {
+            DatabaseColumnType::OneToOne(_, _) => {
                 format!("{field_name}_id")
             },
-            DatabaseColumnType::OneToMany(_) => format!("{field_name}"),
+            DatabaseColumnType::OneToMany(_, _) => format!("{field_name}"),
             _ => field_name.to_string(),
         };
         let mut column =
@@ -193,13 +193,20 @@ pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
                             .map(|path| path.to_string())
                             .unwrap_or(inner_type.split("::").last().unwrap().to_snake_case());
 
-                        DatabaseColumnType::OneToMany(Identifier::new(&child_table_name).unwrap())
+                        DatabaseColumnType::OneToMany(
+                            Identifier::new(&child_table_name).unwrap(),
+                            DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                        )
                     },
                     // Arc means "Not owned" / shared reference - becomes many-to-many (or maybe could be many-to-one)
-                    "std::sync::Arc" | "sync::Arc" | "Arc" => {
-                        DatabaseColumnType::ManyToMany(Identifier::new(&child_table_name).unwrap())
-                    },
-                    _ => DatabaseColumnType::OneToOne(Identifier::new(&child_table_name).unwrap()),
+                    "std::sync::Arc" | "sync::Arc" | "Arc" => DatabaseColumnType::ManyToMany(
+                        Identifier::new(&child_table_name).unwrap(),
+                        DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                    ),
+                    _ => DatabaseColumnType::OneToOne(
+                        Identifier::new(&child_table_name).unwrap(),
+                        DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                    ),
                 }
             };
             db_type

@@ -125,11 +125,11 @@ impl<T> BuildSql for Query<T> {
                     | E::Timestamp
                     | E::Uuid
                     | E::Json => Some(format!("{table_name}.{col_name}")),
-                    E::OneToMany(child_table) => {
+                    E::OneToMany(child_table, _todo) => {
                         Some(format!("COALESCE(NULLIF(json_agg({child_table})::TEXT, '[null]'), '[]')::JSON as {child_table}"))
                     },
-                    E::ManyToMany(_) => todo!(),
-                    E::OneToOne(_) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
+                    E::ManyToMany(_, _todo) => todo!(),
+                    E::OneToOne(_, _todo) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
                 }
             })
             .peekable();
@@ -146,7 +146,7 @@ impl<T> BuildSql for Query<T> {
         // STEP THREE: Need to impl BuildSql for INNER JOIN
         for child_tbl in self.table.columns.values() {
             match &child_tbl.column_type {
-                crate::data_definition::table::DatabaseColumnType::OneToOne(name) => {
+                crate::data_definition::table::DatabaseColumnType::OneToOne(name, _todo) => {
                     let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
                     group_by.push(name.to_string());
                     query_builder
@@ -159,8 +159,8 @@ impl<T> BuildSql for Query<T> {
                         .push(name)
                         .push("_id ");
                 },
-                crate::data_definition::table::DatabaseColumnType::OneToMany(name)
-                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name) => {
+                crate::data_definition::table::DatabaseColumnType::OneToMany(name, _todo)
+                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name, _todo) => {
                     query_builder
                         .push(" LEFT OUTER JOIN ")
                         .push(name)
