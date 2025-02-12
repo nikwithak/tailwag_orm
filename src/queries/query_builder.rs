@@ -126,7 +126,7 @@ impl<T> BuildSql for Query<T> {
                     | E::Uuid
                     | E::Json => Some(format!("{table_name}.{col_name}")),
                     E::OneToMany(child_table) => {
-                        Some(format!("json_agg({child_table}) as {child_table}"))
+                        Some(format!("COALESCE(NULLIF(json_agg({child_table})::TEXT, '[null]'), '[]')::JSON as {child_table}"))
                     },
                     E::ManyToMany(_) => todo!(),
                     E::OneToOne(_) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
