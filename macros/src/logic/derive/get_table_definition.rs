@@ -78,7 +78,7 @@ fn build_get_table_definition(
                 quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(child) => {
-                let child = format!("{child}_id");
+                let child = &**child;
                 quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))
             }
         };

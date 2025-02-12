@@ -151,6 +151,7 @@ impl<T> BuildSql for Query<T> {
                     group_by.push(name.to_string());
                     query_builder
                         .push(" LEFT OUTER JOIN ")
+                        // TODO: This doesn't work for nested types more than 1 level deep - breaks because we aren't doing a *real* table lookup..
                         .push(name)
                         .push(" ON ")
                         .push(name)

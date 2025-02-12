@@ -3,6 +3,7 @@ use std::{any::TypeId, cell::RefCell, collections::HashMap, sync::Arc};
 use sqlx::{Postgres, QueryBuilder};
 
 use crate::{
+    data_definition::table::{self, DatabaseColumnType, TableColumn},
     data_manager::{GetTableDefinition, PostgresDataProvider},
     migration::Migration,
     queries::Insertable,
@@ -79,42 +80,76 @@ impl DataSystemBuilder {
         // let mut children_of_tables = Vec::new();
 
         // First pass: Make sure all child tables exist, and modify them where needed.
-        for (_, table_def) in &resources {
-            let table_def = table_def.borrow();
-            let _table_name = table_def.table_name();
-            let _table_id_col = table_def.columns().get(&Identifier::new_unchecked("id")).unwrap();
-            for _child_table in table_def.child_tables() {
-                // match child_table {
-                //     super::table::TableRelationship::OneToMany(child_name) => {
-                //         let child_table_type_id = table_name_to_type
-                //             .get(&child_name)
-                //             .expect(&format!(
-                //                 "Expected child table {child_name} does not exist in Data System. Aborting."
-                //             ));
-                //         let mut child_table = resources.get(&child_table_type_id)
-                //             .expect(&format!(
-                //                 "Expected child table {child_name} does not exist in Data System. Aborting."
-                //             )).borrow_mut();
-                //         // TODO (UUID id requirement): Make this more dynamic when I remove the "must have UUID" requirement
-                //         let parent_table_col_name = format!("{table_name}_id");
-                //         child_table.add_column(
-                //             TableColumn::new_uuid(&parent_table_col_name)?
-                //                 .non_null()
-                //                 .fk_to(table_name.clone(), table_id_col.clone()),
-                //         );
-                //     },
-                //     super::table::TableRelationship::ManyToMany(_child_name) => {
-                //         todo!("Need to create a NEW join table connecting these")
-                //     },
-                //     super::table::TableRelationship::OneToOne(child_name) => {
-                //         let child_table = table_name_to_type
-                //             .get(&child_name)
-                //             .and_then(|type_id| resources.get(type_id));
-                //         // Just make sure the child table exists - migrations will handle the actual column name down the line.
-                //         // TODO: Actually migrations don't do it, it happens in the macro. I should move it here for posterity's sake. Can happen later.
-                //         assert!(child_table.is_some());
-                //     },
-                // }
+        let mut new_tables = Vec::new();
+        for (parent_type_id, table_def) in &resources {
+            let mut table_def = table_def.borrow_mut();
+            let table_name = table_def.table_name();
+            let table_id_col =
+                table_def.columns().get(&Identifier::new_unchecked("id")).unwrap().clone();
+            let columns = table_def.columns().clone();
+            // For each column - modify its child table appropriately, if exists.
+            for (col_name, col_def) in columns {
+                let col_type = &col_def.column_type;
+                type E = DatabaseColumnType;
+                match col_type {
+                    E::OneToMany(child_name) => {
+                        let mut child_table= self.table_name_to_type
+                            .get(&child_name)
+                            .and_then(|type_id|resources.get(&type_id))
+                            .expect(&format!(
+                                "Expected child table {child_name} does not exist in Data System. Aborting."
+                            )).borrow_mut();
+                        // TODO (UUID id requirement): Make this more dynamic when I remove the "must have UUID" requirement
+                        let parent_table_col_name = format!("{table_name}_id");
+                        child_table.add_column(
+                            TableColumn::new_uuid(&parent_table_col_name)?
+                                .non_null()
+                                .fk_to(table_name.clone(), table_id_col.clone()),
+                        );
+                    },
+                    E::ManyToMany(child_name) => {
+                        let child_table = self
+                            .table_name_to_type
+                            .get(&child_name)
+                            .and_then(|type_id| resources.get(type_id))
+                            .expect(&format!("Expected child table {child_name} to exist"))
+                            .borrow();
+
+                        let parent_pk = table_def.get_primary_key().expect("PK should exist");
+                        let child_pk = child_table.get_primary_key().expect("PK should exist");
+
+                        let join_table = DatabaseTableDefinition::new(&format!(
+                            "{}__to__{}",
+                            &table_name, &child_name
+                        ))?
+                        // TODO: This doesn't *have* to be UUID
+                        .with_uuid(&format!("{}_{}", &table_name, &parent_pk.column_name))?
+                        .with_uuid(&format!("{}_{}", &child_name, &child_pk.column_name))?;
+
+                        new_tables.push(join_table);
+
+                        todo!("Need to ADD this table to resources map. Can't do without type_ids")
+                    },
+                    E::OneToOne(child_name) => {
+                        let child_table = self
+                            .table_name_to_type
+                            .get(&child_name)
+                            .and_then(|type_id| resources.get(type_id))
+                            .expect(&format!("Expected child table {child_name} to exist"));
+                        let child_pk = child_table
+                            .borrow()
+                            .get_primary_key()
+                            .expect("Child table does not have a primary key to associate to.");
+                        // Just make sure the child table exists - migrations will handle the actual column name down the line.
+                        // TODO: Actually migrations don't do it, it happens in the macro. I should move it here for posterity's sake. Can happen later.
+                        let new_col_def = (*col_def)
+                            .clone()
+                            .fk_to(child_table.borrow().table_name.clone(), child_pk);
+                        // Replace the column in the table definition
+                        table_def.add_column(new_col_def);
+                    },
+                    _ => (), // Nothing to preprocess
+                }
             }
         }
         Ok(UnconnectedDataSystem {

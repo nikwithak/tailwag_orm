@@ -8,13 +8,6 @@ use serde::{Deserialize, Serialize};
 use super::{Identifier, TableColumn, TableConstraint};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
-pub enum TableRelationship {
-    OneToMany(Identifier),
-    ManyToMany(Identifier),
-    OneToOne(Identifier),
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct DatabaseTableDefinition {
     pub table_name: Identifier,
     // TODO: Make it so that there can only be one ID column.
@@ -24,6 +17,12 @@ pub struct DatabaseTableDefinition {
     #[serde(skip)]
     pub child_tables: HashMap<TypeId, Box<DatabaseTableDefinition>>, // Used for auto-adding child tables without explicitly adding them to the Application.
     pub constraints: Vec<TableConstraint>,
+}
+
+impl DatabaseTableDefinition {
+    pub fn get_primary_key(&self) -> Option<TableColumn> {
+        self.columns.iter().map(|(ident, col)| col).find(|col| col.is_pk()).cloned()
+    }
 }
 
 /// Experimental - we need a typeless vbersion of this data for building migrations appropriately.
