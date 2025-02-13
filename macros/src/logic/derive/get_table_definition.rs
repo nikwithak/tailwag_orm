@@ -71,16 +71,16 @@ fn build_get_table_definition(
             tailwag_orm::data_definition::table::DatabaseColumnType::Json=>quote!(tailwag::orm::data_definition::table::DatabaseColumnType::Json),
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(child, _) => {
                 let child = child.to_string();
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), DatabaseTableDefinition::new(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap()))) // TODO: This doesn't have the actual child table. That will get added in post-processing later on.
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), tailwag::orm::data_definition::table::DatabaseTableDefinition::new(#child).unwrap())) // TODO: This doesn't have the actual child table. That will get added in post-processing later on.
                                                                                                                                                                                                     // It's not breaking anything now, but might cause issues if this trait is at all used offscript.
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(child, _) => {
                 let child = child.to_string();
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), DatabaseTableDefinition::new(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap())))
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), tailwag::orm::data_definition::table::DatabaseTableDefinition::new(#child).unwrap()))
             }
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(child, _) => {
                 let child = &**child;
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), DatabaseTableDefinition::new(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap())))
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), tailwag::orm::data_definition::table::DatabaseTableDefinition::new(#child).unwrap()))
             }
         };
         let constraints = column.constraints.iter().map(|constraint| {

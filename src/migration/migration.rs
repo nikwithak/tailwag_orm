@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use sqlx::{Pool, Postgres};
 
@@ -6,8 +6,8 @@ use crate::{
     data_definition::{
         exp_data_system::TableDef,
         table::{
-            raw_data::TableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
-            TableConstraint, TableConstraintDetail,
+            raw_data::TableDefinition, DatabaseTableDefinition, ForeignKeyConstraint, Identifier,
+            TableColumn, TableConstraint, TableConstraintDetail,
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
@@ -21,6 +21,16 @@ pub enum MigrationAction {
     AlterTable(AlterTable),
     CreateTable(CreateTable),
     DropTable(Identifier),
+}
+
+impl MigrationAction {
+    pub fn get_table_name(&self) -> &Identifier {
+        match self {
+            MigrationAction::AlterTable(alter_table) => &alter_table.table_name,
+            MigrationAction::CreateTable(create_table) => &create_table.table_definition.table_name,
+            MigrationAction::DropTable(identifier) => identifier,
+        }
+    }
 }
 
 impl BuildSql for MigrationAction {
@@ -85,7 +95,7 @@ impl Migration {
 
         if let Some(before) = before {
             // Build a map for quick lookup of after_tables, then compare each
-            let mut after_tables = build_table_map(after);
+            let mut after_tables = build_table_map(after.clone());
             for table_before in before {
                 match after_tables
                     .remove(&table_before.table_name())
@@ -127,6 +137,54 @@ impl Migration {
                 .collect();
             actions.append(&mut create_table_actions);
         }
+
+        // Sort actions by dependency order - children must be processed before their parents.
+        let tables = build_table_map(after);
+        actions.sort_by(|lhs, rhs| {
+            let (lhs, rhs) = (lhs.get_table_name(), rhs.get_table_name());
+            let l_table = tables.get(lhs);
+            let r_table = tables.get(rhs);
+            fn is_parent_of(
+                parent: Option<&Arc<DatabaseTableDefinition>>,
+                child: Option<&Arc<DatabaseTableDefinition>>,
+            ) -> bool {
+                let Some(parent) = parent else {
+                    return false;
+                };
+                let Some(child) = child else {
+                    return false;
+                };
+                for (_, col) in parent.columns() {
+                    match &col.column_type {
+                        crate::data_definition::table::DatabaseColumnType::OneToMany(
+                            _,
+                            child_tbl,
+                        )
+                        | crate::data_definition::table::DatabaseColumnType::ManyToMany(
+                            _,
+                            child_tbl,
+                        )
+                        | crate::data_definition::table::DatabaseColumnType::OneToOne(
+                            _,
+                            child_tbl,
+                        ) => {
+                            if child_tbl.table_name == child.table_name {
+                                return true;
+                            }
+                        },
+                        _ => (),
+                    }
+                }
+                false
+            }
+            if is_parent_of(l_table, r_table) {
+                Ordering::Greater
+            } else if is_parent_of(r_table, l_table) {
+                Ordering::Less
+            } else {
+                Ordering::Equal
+            }
+        });
 
         if !actions.is_empty() {
             Some(Self {

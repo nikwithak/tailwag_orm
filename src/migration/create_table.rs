@@ -5,7 +5,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct CreateTable {
-    table_definition: TableDef,
+    pub(crate) table_definition: TableDef,
 }
 
 impl CreateTable {
