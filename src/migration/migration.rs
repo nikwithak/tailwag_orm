@@ -140,49 +140,57 @@ impl Migration {
 
         // Sort actions by dependency order - children must be processed before their parents.
         let tables = build_table_map(after);
-        actions.sort_by(|lhs, rhs| {
-            let (lhs, rhs) = (lhs.get_table_name(), rhs.get_table_name());
-            let l_table = tables.get(lhs);
-            let r_table = tables.get(rhs);
-            fn is_parent_of(
-                parent: Option<&Arc<DatabaseTableDefinition>>,
-                child: Option<&Arc<DatabaseTableDefinition>>,
-            ) -> bool {
-                let Some(parent) = parent else {
-                    return false;
-                };
-                let Some(child) = child else {
-                    return false;
-                };
-                for (_, col) in parent.columns() {
-                    match &col.column_type {
-                        crate::data_definition::table::DatabaseColumnType::OneToMany(
-                            _,
-                            child_tbl,
-                        )
-                        | crate::data_definition::table::DatabaseColumnType::ManyToMany(
-                            _,
-                            child_tbl,
-                        )
-                        | crate::data_definition::table::DatabaseColumnType::OneToOne(
-                            _,
-                            child_tbl,
-                        ) => {
-                            if child_tbl.table_name == child.table_name {
-                                return true;
-                            }
-                        },
-                        _ => (),
-                    }
+
+        fn compare(
+            parent: &Arc<DatabaseTableDefinition>,
+            child: &Arc<DatabaseTableDefinition>,
+        ) -> Ordering {
+            for (_, col) in parent.columns() {
+                match &col.column_type {
+                    crate::data_definition::table::DatabaseColumnType::OneToMany(_, child_tbl) => {
+                        // One To Many: Child has reference to the parent, so parent must come first.
+                        if child_tbl.table_name == child.table_name {
+                            return Ordering::Less;
+                        }
+                    },
+                    crate::data_definition::table::DatabaseColumnType::ManyToMany(_, child_tbl) => {
+                        // Need to juggle the join tables first. Maybe all the join tables come last?
+                        todo!("Many to Many relationships need more attention before they can be used.");
+                    },
+                    crate::data_definition::table::DatabaseColumnType::OneToOne(_, child_tbl) => {
+                        // OneToOne: Parent referenes child, so child must come first.
+                        if child_tbl.table_name == child.table_name {
+                            return Ordering::Greater;
+                        }
+                    },
+                    _ => (), // These have no relation.
                 }
-                false
             }
-            if is_parent_of(l_table, r_table) {
-                Ordering::Greater
-            } else if is_parent_of(r_table, l_table) {
-                Ordering::Less
-            } else {
-                Ordering::Equal
+            Ordering::Equal
+        }
+        actions.sort_by(|lhs, rhs| {
+            let l_table = tables.get(lhs.get_table_name());
+            let r_table = tables.get(rhs.get_table_name());
+
+            let Some(l_table) = l_table else {
+                // Deletes should happen last, so that any FKs can be cleaned up.
+                return Ordering::Greater;
+            };
+            let Some(r_table) = r_table else {
+                // Deletes should happen last, so that any FKs can be cleaned up.
+                return Ordering::Less;
+            };
+
+            let l_to_r = compare(l_table, r_table);
+            let r_to_l = compare(r_table, l_table);
+            match l_to_r {
+                Ordering::Less => Ordering::Less,
+                Ordering::Equal => match r_to_l {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                },
+                Ordering::Greater => Ordering::Greater,
             }
         });
 
