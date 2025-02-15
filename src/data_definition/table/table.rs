@@ -216,11 +216,14 @@ impl DatabaseTableDefinition {
                     },
                     E::ManyToMany(_, _todo) => todo!(),
                     // E::OneToOne(_, _todo) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
-                    E::OneToOne(join_table_ident, _todo) => {
+                    E::OneToOne {
+                        col_name,
+                        ..
+                    } => {
                         // todo!()
                         // Need to loop through ALL columns, and place them deliberately
 
-                        Some(format!("json_agg({})", join_table_ident)) // TODO: UNHACK THIS
+                        Some(format!("json_agg({})", col_name)) // TODO: UNHACK THIS
                     },
                 }
             })
@@ -276,11 +279,12 @@ impl DatabaseTableDefinition {
                         // TODO: Look at join table.
                         todo!()
                     },
-                    super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                    super::DatabaseColumnType::OneToOne{  table_def, .. } => {
+                    // super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
                         let param_name = column_name.strip_suffix("_id").unwrap_or(column_name); // TODO: Store this elsehwere so we don't have to assume ID
                         format!(
                             "'{param_name}', {}",
-                            database_table_definition
+                            table_def
                                 .json_build_object(&format!("{prefix}{table_name}_"))
                         )
                     },
@@ -330,22 +334,21 @@ impl DatabaseTableDefinition {
                 super::DatabaseColumnType::ManyToMany(identifier, database_table_definition) => {
                     todo!()
                 },
-                super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
-                    let joined_table = &*database_table_definition.table_name;
+                // super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                super::DatabaseColumnType::OneToOne {
+                    table_def,
+                    ..
+                } => {
+                    let joined_table = &*table_def.table_name;
                     let joined_table_alias = format!("{table_alias}_{joined_table}");
                     let table_column = &*child_tbl.column_name;
-                    let joined_column = &*database_table_definition
+                    let joined_column = &*table_def
                         .get_primary_key()
-                        .expect(&format!(
-                            "Must have PK to do a join column! {:?}",
-                            &database_table_definition,
-                        ))
+                        .expect(&format!("Must have PK to do a join column! {:?}", &table_def,))
                         .column_name;
                     let stmt = format!("LEFT OUTER JOIN {joined_table} {joined_table_alias} ON {joined_table_alias}.{joined_column} = {table_alias}.{table_column}");
                     results.push(stmt);
-                    results.append(
-                        &mut database_table_definition.get_join_tables(&format!("{table_alias}_")),
-                    )
+                    results.append(&mut table_def.get_join_tables(&format!("{table_alias}_")))
                 },
                 _ => (), // No tables to join
             }

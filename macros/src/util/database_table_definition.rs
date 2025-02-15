@@ -27,7 +27,7 @@ pub(crate) fn get_child_table_tokens(input: &DeriveInput) -> TokenStream {
         .iter()
         .filter(|f| f.get_attribute("db_ignore").is_none())
         .filter_map(|f| match get_type_from_field(f) {
-            DatabaseColumnType::OneToOne(_, _) | DatabaseColumnType::OneToMany(_, _) => {
+            DatabaseColumnType::OneToOne{..} | DatabaseColumnType::OneToMany(_, _) => {
                 let syn::Type::Path(f_type) = &f.ty  else {return None};
                 let f_type = &f_type.path;
                 match try_get_inner_type(&f) {
@@ -68,7 +68,9 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
 
         let column_type = get_type_from_field(f);
         let column_name = match &column_type {
-            DatabaseColumnType::OneToOne(_, _) => {
+            DatabaseColumnType::OneToOne {
+                ..
+            } => {
                 format!("{field_name}_id")
             },
             DatabaseColumnType::OneToMany(_, _) => format!("{field_name}"),
@@ -203,10 +205,11 @@ pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
                         Identifier::new(&child_table_name).unwrap(),
                         DatabaseTableDefinition::new("dummy_table_name").unwrap(),
                     ),
-                    _ => DatabaseColumnType::OneToOne(
-                        Identifier::new(&child_table_name).unwrap(),
-                        DatabaseTableDefinition::new("dummy_table_name").unwrap(),
-                    ),
+                    _ => DatabaseColumnType::OneToOne {
+                        col_name: Identifier::new(&child_table_name).unwrap(),
+                        table_def: DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                        ref_only: field.get_attribute("ref_only").is_some(),
+                    },
                 }
             };
             db_type

@@ -78,9 +78,13 @@ fn build_get_table_definition(
                 let child = child.to_string();
                 quote!(tailwag::orm::data_definition::table::DatabaseColumnType::ManyToMany(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), tailwag::orm::data_definition::table::DatabaseTableDefinition::new(#child).unwrap()))
             }
-            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(child, _) => {
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne{col_name: child, ref_only, ..} => {
                 let child = &**child;
-                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne(tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(), tailwag::orm::data_definition::table::DatabaseTableDefinition::new(#child).unwrap()))
+                quote!(tailwag::orm::data_definition::table::DatabaseColumnType::OneToOne{
+                    col_name: tailwag::orm::data_definition::table::Identifier::new(#child).unwrap(),
+                    table_def: tailwag::orm::data_definition::table::DatabaseTableDefinition::new(#child).unwrap(),
+                    ref_only: #ref_only,
+                })
             }
         };
         let constraints = column.constraints.iter().map(|constraint| {

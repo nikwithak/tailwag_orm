@@ -93,6 +93,7 @@ impl InsertStatement {
             else {
                 panic!("Wrong value type received when building one_to_one insert tables. This should not happen.")
             };
+
             InsertStatement {
                 table_name: child_table.clone(),
                 object_repr: *value.clone(),
@@ -129,7 +130,7 @@ impl InsertStatement {
                         value: _,
                     } => {
                         let fk_name = &Identifier::new_unchecked("id"); // TODO: This is the ONLY FK supported for now. Eventually replace with dynamic FKs.
-                        builder.push(format!("(SELECT {fk_name} FROM {col_name})"))
+                        builder.push(format!("(SELECT {fk_name} FROM {prefix}{col_name})"))
                         // Safe to inject directly, because `Identifier` is validated at runtime.
                     },
                     _ => todo!("This type of insert is not supported yet."),

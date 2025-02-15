@@ -55,7 +55,11 @@ pub enum DatabaseColumnType {
     OneToMany(Identifier, DatabaseTableDefinition), // TODO: Impl this all the way through
     // ManyToOne(DatabaseTableDefinition),
     ManyToMany(Identifier, DatabaseTableDefinition), // TODO: Will need to figure out how I want to represent JoinTables here
-    OneToOne(Identifier, DatabaseTableDefinition), // TODO: With [inline] macro attribute, can make this inline JSON when needed. Depeneds on if we want sortability / searchability or not
+    OneToOne {
+        col_name: Identifier,
+        table_def: DatabaseTableDefinition,
+        ref_only: bool,
+    }, // TODO: With [inline] macro attribute, can make this inline JSON when needed. Depeneds on if we want sortability / searchability or not
 }
 
 impl DatabaseColumnType {
@@ -72,7 +76,9 @@ impl DatabaseColumnType {
             DatabaseColumnType::ManyToMany {
                 ..
             } => todo!(),
-            DatabaseColumnType::OneToOne(_, _) => "UUID", // TODO: These types of relationships only work with id: uuid. This is a big debt.
+            DatabaseColumnType::OneToOne {
+                ..
+            } => "UUID", // TODO: These types of relationships only work with id: uuid. This is a big debt.
         }
     }
 }

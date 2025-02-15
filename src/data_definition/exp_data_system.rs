@@ -133,7 +133,10 @@ impl DataSystemBuilder {
 
                         new_tables.push(join_table);
                     },
-                    E::OneToOne(child_name, _) => {
+                    E::OneToOne {
+                        col_name: child_name,
+                        ..
+                    } => {
                         let child_table = self
                             .table_name_to_type
                             .get(&child_name)
@@ -235,7 +238,12 @@ impl DataSystemBuilder {
                         );
                         table_def.columns.insert(column_name, new_col.into());
                     },
-                    DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                    // DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                    DatabaseColumnType::OneToOne {
+                        col_name: identifier,
+                        ref_only,
+                        ..
+                    } => {
                         let mut new_col = (*child_col).clone();
 
                         let child_table = table_name_to_type
@@ -243,10 +251,11 @@ impl DataSystemBuilder {
                             .and_then(|i| resources.get(i))
                             .expect("Child table missing");
                         link_children(child_table, resources, table_name_to_type);
-                        new_col.column_type = DatabaseColumnType::OneToOne(
-                            identifier.clone(),
-                            child_table.borrow().clone(),
-                        );
+                        new_col.column_type = DatabaseColumnType::OneToOne {
+                            col_name: identifier.clone(),
+                            table_def: child_table.borrow().clone(),
+                            ref_only: *ref_only,
+                        };
                         table_def.columns.insert(column_name, new_col.into());
                     },
                     _ => (),

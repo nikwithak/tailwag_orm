@@ -157,7 +157,10 @@ impl Migration {
                         // Need to juggle the join tables first. Maybe all the join tables come last?
                         todo!("Many to Many relationships need more attention before they can be used.");
                     },
-                    crate::data_definition::table::DatabaseColumnType::OneToOne(_, child_tbl) => {
+                    crate::data_definition::table::DatabaseColumnType::OneToOne {
+                        table_def: child_tbl,
+                        ..
+                    } => {
                         // OneToOne: Parent referenes child, so child must come first.
                         if child_tbl.table_name == child.table_name {
                             return Ordering::Greater;

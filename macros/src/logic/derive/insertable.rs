@@ -73,7 +73,7 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
         |field| {
             let (field_name, field_type) = (&field.ident, field.ty.to_token_stream());
             match get_type_from_field(field) {
-                tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne(_, _) => {
+                tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne{..} => {
                     quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)
                 },
                 tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) => {
@@ -141,7 +141,7 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
-            E::OneToOne(_child_type, _) => {
+            E::OneToOne{ref_only: false,..} => {
                 field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
                 // TODO: This assumes ID.
                 quote!(
@@ -152,6 +152,16 @@ fn build_get_insert_statement(input: &DeriveInput) -> TokenStream {
                 )
                 // todo!()
             },
+            E::OneToOne{ref_only: true, ..}=> {
+                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
+                quote!(
+                    {
+                        // TODO: Assumes ID
+                        use tailwag::orm::data_manager::rest_api::Id;
+                        tailwag::orm::data_definition::table::ColumnValue::Uuid(#field_name.id().clone())
+                    }
+                )
+            } ,
             E::OneToMany(_child_type, _) => {
                 quote!(
                     {
