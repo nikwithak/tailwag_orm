@@ -111,65 +111,46 @@ impl<T> BuildSql for Query<T> {
         let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
         type E = crate::data_definition::table::DatabaseColumnType;
         // STEP ONE: get all table relationships
-        let mut attrs = self
-            .table
-            .columns
-            .values()
-            .filter_map(|col| {
-                let col_name = col.column_name.to_string();
-                match &col.column_type {
-                    E::Boolean
-                    | E::Int
-                    | E::Float
-                    | E::String
-                    | E::Timestamp
-                    | E::Uuid
-                    | E::Json => Some(format!("{table_name}.{col_name}")),
-                    E::OneToMany(child_table, _todo) => {
-                        Some(format!("COALESCE(NULLIF(json_agg({child_table})::TEXT, '[null]'), '[]')::JSON as {child_table}"))
-                    },
-                    E::ManyToMany(_, _todo) => todo!(),
-                    E::OneToOne(_, _todo) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
-                }
-            })
-            .peekable();
+
         query_builder.push(r"SELECT ");
-        while let Some(attr) = attrs.next() {
-            query_builder.push(attr);
-            if attrs.peek().is_some() {
-                query_builder.push(", ");
-            }
-        }
+        query_builder.push(self.table.json_build_object(""));
+        query_builder.push(" json_result");
         query_builder.push(" FROM ");
         query_builder.push(&table_name);
+
         // TODO: Inner Joins -
         // STEP THREE: Need to impl BuildSql for INNER JOIN
-        for child_tbl in self.table.columns.values() {
-            match &child_tbl.column_type {
-                crate::data_definition::table::DatabaseColumnType::OneToOne(name, _todo) => {
-                    let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
-                    group_by.push(name.to_string());
-                    query_builder
-                        .push(" LEFT OUTER JOIN ")
-                        // TODO: This doesn't work for nested types more than 1 level deep - breaks because we aren't doing a *real* table lookup..
-                        .push(name)
-                        .push(" ON ")
-                        .push(name)
-                        .push(".id = ")
-                        .push(name)
-                        .push("_id ");
-                },
-                crate::data_definition::table::DatabaseColumnType::OneToMany(name, _todo)
-                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name, _todo) => {
-                    query_builder
-                        .push(" LEFT OUTER JOIN ")
-                        .push(name)
-                        .push(" ON ")
-                        .push(name)
-                        .push(format!(".parent_id = {table_name}.id")); // TODO: This requires `parent_id` and `id`
-                },
-                _ => {},
-            };
+        // for child_tbl in self.table.columns.values() {
+        //     match &child_tbl.column_type {
+        //         crate::data_definition::table::DatabaseColumnType::OneToOne(name, _todo) => {
+        //             // let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
+        //             group_by.push(name.to_string());
+        //             query_builder
+        //                 .push(" LEFT OUTER JOIN ")
+        //                 // TODO: This doesn't work for nested types more than 1 level deep - breaks because we aren't doing a *real* table lookup..
+        //                 .push(name)
+        //                 .push(" ON ")
+        //                 .push(name)
+        //                 .push(".id = ")
+        //                 .push(name)
+        //                 .push("_id ");
+        //         },
+        //         crate::data_definition::table::DatabaseColumnType::OneToMany(name, _todo)
+        //         | crate::data_definition::table::DatabaseColumnType::ManyToMany(name, _todo) => {
+        //             query_builder
+        //                 .push(" LEFT OUTER JOIN ")
+        //                 .push(name)
+        //                 .push(" ON ")
+        //                 .push(name)
+        //                 .push(format!(".parent_id = {table_name}.id")); // TODO: This requires `parent_id` and `id`
+        //         },
+        //         _ => {},
+        //     };
+        // }
+        for join_stmt in self.table.get_join_tables("") {
+            query_builder.push(" ");
+            query_builder.push(&join_stmt);
+            query_builder.push(" ");
         }
         if let Some(filter) = &self.filter {
             query_builder.push(" WHERE ");

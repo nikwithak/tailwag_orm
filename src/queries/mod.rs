@@ -1,6 +1,8 @@
 mod filters;
+mod join;
 pub(crate) mod query_builder;
 pub use filters::*;
+pub use join::*;
 pub use query_builder::*;
 
 #[cfg(test)]

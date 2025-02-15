@@ -3,7 +3,10 @@ use std::{
     collections::{BTreeMap, HashMap},
 };
 
+use raw_data::TableDefinition;
 use serde::{Deserialize, Serialize};
+
+use crate::queries::{Join, JoinSide, JoinType};
 
 use super::{Identifier, TableColumn, TableConstraint};
 
@@ -178,5 +181,175 @@ impl DatabaseTableDefinition {
         col_name: &str,
     ) -> Result<Self, String> {
         Ok(self.column(TableColumn::uuid(col_name)?))
+    }
+}
+
+impl DatabaseTableDefinition {
+    pub fn build_select_items(
+        &self,
+        prefix: &str,
+    ) -> Vec<String> {
+        type E = crate::data_definition::table::DatabaseColumnType;
+        let table_name = &self.table_name;
+        self.columns
+            .values()
+            .filter_map(|col| {
+                let col_name = col.column_name.to_string();
+                match &col.column_type {
+                    E::Boolean
+                    | E::Int
+                    | E::Float
+                    | E::String
+                    | E::Timestamp
+                    | E::Uuid
+                    | E::Json => Some(format!("{prefix}_{table_name}.{col_name}")),
+                    E::OneToMany(child_table_ident, child_table_def) => {
+                        // TODO
+                        // END TODO
+                        Some(format!(
+                            "COALESCE(NULLIF(json_agg(
+                        json_build_object(
+                        {child_table_ident}
+                        )
+                        )::TEXT, '[null]'), '[]')::JSON as {child_table_ident}"
+                        ))
+                    },
+                    E::ManyToMany(_, _todo) => todo!(),
+                    // E::OneToOne(_, _todo) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
+                    E::OneToOne(join_table_ident, _todo) => {
+                        // todo!()
+                        // Need to loop through ALL columns, and place them deliberately
+
+                        Some(format!("json_agg({})", join_table_ident)) // TODO: UNHACK THIS
+                    },
+                }
+            })
+            .peekable()
+            .collect()
+    }
+
+    pub fn json_build_object(
+        &self,
+        prefix: &str,
+    ) -> String {
+        let table_name = &*self.table_name;
+        let mut attrs = self
+            .columns
+            .values()
+            .map(|column| {
+                let column_name = &*column.column_name;
+                match &column.column_type {
+                    super::DatabaseColumnType::Boolean
+                    | super::DatabaseColumnType::Int
+                    | super::DatabaseColumnType::Float
+                    | super::DatabaseColumnType::String
+                    | super::DatabaseColumnType::Timestamp
+                    | super::DatabaseColumnType::Uuid
+                    | super::DatabaseColumnType::Json => {
+                        // Standard use case - just blop it down
+                        format!("'{column_name}', {prefix}{table_name}.{column_name}")
+                    },
+                    super::DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
+                        // Need to coalesce into an array of json_build_objects
+                        let child_table_name = &*database_table_definition.table_name;
+                        // TODO: Remove the hardcoded .id here
+                        format!(
+                            "'{identifier}', COALESCE(
+                            NULLIF(
+                                json_agg(
+                                    CASE WHEN {prefix}{table_name}_{child_table_name}.id IS NOT NULL THEN 
+                                        {}
+                                    ELSE NULL
+                                    END
+                                )::TEXT,
+                                '[null]'
+                            ), '[]'
+                        )::JSON",
+                            database_table_definition
+                                .json_build_object(&format!("{prefix}{table_name}_"))
+                        )
+                    },
+                    super::DatabaseColumnType::ManyToMany(
+                        identifier,
+                        database_table_definition,
+                    ) => {
+                        // TODO: Look at join table.
+                        todo!()
+                    },
+                    super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                        let param_name = column_name.strip_suffix("_id").unwrap_or(column_name); // TODO: Store this elsehwere so we don't have to assume ID
+                        format!(
+                            "'{param_name}', {}",
+                            database_table_definition
+                                .json_build_object(&format!("{prefix}{table_name}_"))
+                        )
+                    },
+                }
+            })
+            .peekable();
+
+        let mut ret = String::new();
+        ret.push_str("json_build_object(");
+        while let Some(attr) = attrs.next() {
+            ret.push_str(&attr);
+            if attrs.peek().is_some() {
+                ret.push_str(", ");
+            }
+        }
+        ret.push_str(")");
+
+        ret
+    }
+
+    pub fn get_join_tables(
+        &self,
+        prefix: &str,
+    ) -> Vec<String> {
+        let table_alias = format!("{prefix}{}", &*self.table_name);
+        let mut results = Vec::new();
+        for child_tbl in self.columns.values() {
+            match &child_tbl.column_type {
+                super::DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
+                    let joined_table = &*database_table_definition.table_name;
+                    let joined_table_alias = format!("{table_alias}_{joined_table}");
+                    // let joined_column = &*child_tbl.column_name; // TODO: NEed to find joined column name instead of assuming "id"
+                    let joined_column = format!("{}_id", &*self.table_name);
+                    let table_column = &*database_table_definition
+                        .get_primary_key()
+                        .expect(&format!(
+                            "Must have PK to do a join column: {:?}",
+                            &database_table_definition
+                        ))
+                        .column_name;
+                    let stmt = format!("LEFT OUTER JOIN {joined_table} {joined_table_alias} ON {joined_table_alias}.{joined_column} = {table_alias}.{table_column}");
+                    results.push(stmt);
+                    results.append(
+                        &mut database_table_definition.get_join_tables(&format!("{table_alias}_")),
+                    )
+                },
+                super::DatabaseColumnType::ManyToMany(identifier, database_table_definition) => {
+                    todo!()
+                },
+                super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                    let joined_table = &*database_table_definition.table_name;
+                    let joined_table_alias = format!("{table_alias}_{joined_table}");
+                    let table_column = &*child_tbl.column_name;
+                    let joined_column = &*database_table_definition
+                        .get_primary_key()
+                        .expect(&format!(
+                            "Must have PK to do a join column! {:?}",
+                            &database_table_definition,
+                        ))
+                        .column_name;
+                    let stmt = format!("LEFT OUTER JOIN {joined_table} {joined_table_alias} ON {joined_table_alias}.{joined_column} = {table_alias}.{table_column}");
+                    results.push(stmt);
+                    results.append(
+                        &mut database_table_definition.get_join_tables(&format!("{table_alias}_")),
+                    )
+                },
+                _ => (), // No tables to join
+            }
+        }
+        results
     }
 }

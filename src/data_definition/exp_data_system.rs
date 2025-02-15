@@ -1,4 +1,9 @@
-use std::{any::TypeId, cell::RefCell, collections::HashMap, sync::Arc};
+use std::{
+    any::TypeId,
+    cell::{RefCell, RefMut},
+    collections::HashMap,
+    sync::Arc,
+};
 
 use sqlx::{Postgres, QueryBuilder};
 
@@ -185,61 +190,72 @@ impl DataSystemBuilder {
         ];
         for new_table in new_tables {
             resources.insert(
-                dummy_type_ids
-                    .pop()
-                    .expect("Must modify the code to support more than 15 join tables"),
+                dummy_type_ids.pop().expect(
+                    "Must modify the code in tailwag_orm to support more than 15 join tables",
+                ),
                 RefCell::new(new_table),
             );
         }
 
         // TODO: One last pass, to make sure all the child tables are up to date after the changes.
         // On second thought, I don't think this solves the problem. Need to traverse the whole DB tree bottom up to really make sure.
-        for (parent_type_id, table_def) in &resources {
+        fn link_children(
+            table_def: &RefCell<DatabaseTableDefinition>,
+            resources: &HashMap<TypeId, RefCell<DatabaseTableDefinition>>,
+            table_name_to_type: &HashMap<Identifier, TypeId>,
+        ) {
             let mut table_def = table_def.borrow_mut();
-            for (_, child_col) in table_def.columns().clone() {
+            for (column_name, child_col) in table_def.columns().clone() {
                 match &child_col.column_type {
                     DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
                         let mut new_col = (*child_col).clone();
 
-                        let child_table = self
-                            .table_name_to_type
+                        let child_table = table_name_to_type
                             .get(identifier)
                             .and_then(|i| resources.get(i))
                             .expect("Child table missing");
+                        link_children(child_table, resources, table_name_to_type);
                         new_col.column_type = DatabaseColumnType::OneToMany(
                             identifier.clone(),
                             child_table.borrow().clone(),
                         );
+                        table_def.columns.insert(column_name, new_col.into());
                     },
                     DatabaseColumnType::ManyToMany(identifier, database_table_definition) => {
                         let mut new_col = (*child_col).clone();
 
-                        let child_table = self
-                            .table_name_to_type
+                        let child_table = table_name_to_type
                             .get(identifier)
                             .and_then(|i| resources.get(i))
                             .expect("Child table missing");
+                        link_children(child_table, resources, table_name_to_type);
                         new_col.column_type = DatabaseColumnType::ManyToMany(
                             identifier.clone(),
                             child_table.borrow().clone(),
                         );
+                        table_def.columns.insert(column_name, new_col.into());
                     },
                     DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
                         let mut new_col = (*child_col).clone();
 
-                        let child_table = self
-                            .table_name_to_type
+                        let child_table = table_name_to_type
                             .get(identifier)
                             .and_then(|i| resources.get(i))
                             .expect("Child table missing");
+                        link_children(child_table, resources, table_name_to_type);
                         new_col.column_type = DatabaseColumnType::OneToOne(
                             identifier.clone(),
                             child_table.borrow().clone(),
                         );
+                        table_def.columns.insert(column_name, new_col.into());
                     },
                     _ => (),
                 }
             }
+        }
+
+        for (parent_type_id, table_def) in &resources {
+            link_children(table_def, &resources, &self.table_name_to_type);
         }
 
         Ok(UnconnectedDataSystem {

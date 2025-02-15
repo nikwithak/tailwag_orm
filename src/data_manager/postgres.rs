@@ -95,10 +95,10 @@ impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Unpin> ExecutableQu
         // Without his, it got really messy, because it seems that SQLX doesn't support nested deserialization on its own.
         // A little bit more overhead, perhaps, but jeeeeez does it save on dvelopment. And postgres is probably
         // not the limiting factor rn anyway.
-        let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
-        // let mut query_builder = QueryBuilder::new("");
+        // let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
+        let mut query_builder = QueryBuilder::new("");
         self.query.build_sql(&mut query_builder);
-        query_builder.push(") r");
+        // query_builder.push(") r");
 
         log::debug!("SQL query: {}", query_builder.sql());
         let result = query_builder.build().fetch_all(&self.db_pool).await?;
