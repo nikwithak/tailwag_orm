@@ -151,7 +151,7 @@ impl InsertStatement {
                         .collect(),
                 };
                 builder.push(" ON CONFLICT (id) DO ");
-                update_statement.build_sql_no_build_children(builder);
+                update_statement.build_sql_no_build_children(prefix, builder);
                 // builder.push()
             }
             builder.push(" RETURNING * ");

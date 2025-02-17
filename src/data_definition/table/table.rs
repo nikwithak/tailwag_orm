@@ -207,8 +207,8 @@ impl DatabaseTableDefinition {
                         // TODO
                         // END TODO
                         Some(format!(
-                            "COALESCE(json_agg(
-                                json_build_object(
+                            "COALESCE(jsonb_agg(
+                                distinct jsonb_build_object(
                                     {child_table_ident}
                                 )
                             ) filter (where {child_table_ident}), '[]')::JSON as {child_table_ident}"
@@ -223,7 +223,7 @@ impl DatabaseTableDefinition {
                         // todo!()
                         // Need to loop through ALL columns, and place them deliberately
 
-                        Some(format!("json_agg({})", col_name)) // TODO: UNHACK THIS
+                        Some(format!("jsonb_agg({})", col_name)) // TODO: UNHACK THIS
                     },
                 }
             })
@@ -258,7 +258,8 @@ impl DatabaseTableDefinition {
                         // TODO: Remove the hardcoded .id here
                         format!(
                             "'{identifier}', COALESCE(
-                                json_agg(
+                                jsonb_agg(
+                                    distinct 
                                     {}
                                 ) filter (
                                     WHERE {prefix}{table_name}_{child_table_name}.id IS NOT NULL
@@ -292,7 +293,7 @@ impl DatabaseTableDefinition {
             .peekable();
 
         let mut ret = String::new();
-        ret.push_str("json_build_object(");
+        ret.push_str("jsonb_build_object(");
         while let Some(attr) = attrs.next() {
             ret.push_str(&attr);
             if attrs.peek().is_some() {

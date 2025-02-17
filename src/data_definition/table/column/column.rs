@@ -21,7 +21,7 @@ where
 
 pub(crate) type ObjectRepr = HashMap<Identifier, ColumnValue>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ColumnValue {
     Boolean(bool),                    // BOOL or BOOLEAN
     Int(i64),                         // INT

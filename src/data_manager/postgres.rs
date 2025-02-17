@@ -288,6 +288,7 @@ where
 
         let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
         update_statement.build_sql(&mut builder);
+
         builder.build().execute(&mut *transaction).await?;
         transaction.commit().await?;
 
