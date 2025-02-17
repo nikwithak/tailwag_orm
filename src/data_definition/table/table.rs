@@ -207,11 +207,11 @@ impl DatabaseTableDefinition {
                         // TODO
                         // END TODO
                         Some(format!(
-                            "COALESCE(NULLIF(json_agg(
-                        json_build_object(
-                        {child_table_ident}
-                        )
-                        )::TEXT, '[null]'), '[]')::JSON as {child_table_ident}"
+                            "COALESCE(json_agg(
+                                json_build_object(
+                                    {child_table_ident}
+                                )
+                            ) filter (where {child_table_ident}), '[]')::JSON as {child_table_ident}"
                         ))
                     },
                     E::ManyToMany(_, _todo) => todo!(),
@@ -258,16 +258,13 @@ impl DatabaseTableDefinition {
                         // TODO: Remove the hardcoded .id here
                         format!(
                             "'{identifier}', COALESCE(
-                            NULLIF(
                                 json_agg(
-                                    CASE WHEN {prefix}{table_name}_{child_table_name}.id IS NOT NULL THEN 
-                                        {}
-                                    ELSE NULL
-                                    END
-                                )::TEXT,
-                                '[null]'
-                            ), '[]'
-                        )::JSON",
+                                    {}
+                                ) filter (
+                                    WHERE {prefix}{table_name}_{child_table_name}.id IS NOT NULL
+                                ),
+                                '[]'
+                            )::JSON",
                             database_table_definition
                                 .json_build_object(&format!("{prefix}{table_name}_"))
                         )
@@ -279,13 +276,15 @@ impl DatabaseTableDefinition {
                         // TODO: Look at join table.
                         todo!()
                     },
-                    super::DatabaseColumnType::OneToOne{  table_def, .. } => {
-                    // super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
+                    super::DatabaseColumnType::OneToOne {
+                        table_def,
+                        ..
+                    } => {
+                        // super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
                         let param_name = column_name.strip_suffix("_id").unwrap_or(column_name); // TODO: Store this elsehwere so we don't have to assume ID
                         format!(
                             "'{param_name}', {}",
-                            table_def
-                                .json_build_object(&format!("{prefix}{table_name}_"))
+                            table_def.json_build_object(&format!("{prefix}{table_name}_"))
                         )
                     },
                 }

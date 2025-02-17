@@ -118,35 +118,6 @@ impl<T> BuildSql for Query<T> {
         query_builder.push(" FROM ");
         query_builder.push(&table_name);
 
-        // TODO: Inner Joins -
-        // STEP THREE: Need to impl BuildSql for INNER JOIN
-        // for child_tbl in self.table.columns.values() {
-        //     match &child_tbl.column_type {
-        //         crate::data_definition::table::DatabaseColumnType::OneToOne(name, _todo) => {
-        //             // let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
-        //             group_by.push(name.to_string());
-        //             query_builder
-        //                 .push(" LEFT OUTER JOIN ")
-        //                 // TODO: This doesn't work for nested types more than 1 level deep - breaks because we aren't doing a *real* table lookup..
-        //                 .push(name)
-        //                 .push(" ON ")
-        //                 .push(name)
-        //                 .push(".id = ")
-        //                 .push(name)
-        //                 .push("_id ");
-        //         },
-        //         crate::data_definition::table::DatabaseColumnType::OneToMany(name, _todo)
-        //         | crate::data_definition::table::DatabaseColumnType::ManyToMany(name, _todo) => {
-        //             query_builder
-        //                 .push(" LEFT OUTER JOIN ")
-        //                 .push(name)
-        //                 .push(" ON ")
-        //                 .push(name)
-        //                 .push(format!(".parent_id = {table_name}.id")); // TODO: This requires `parent_id` and `id`
-        //         },
-        //         _ => {},
-        //     };
-        // }
         for join_stmt in self.table.get_join_tables("") {
             query_builder.push(" ");
             query_builder.push(&join_stmt);
