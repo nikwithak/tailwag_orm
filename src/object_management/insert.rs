@@ -176,9 +176,10 @@ impl InsertStatement {
             });
 
             for (i, mut insert_stmt) in insert_stmts.enumerate() {
-                insert_stmt
-                    .object_repr
-                    .insert(Identifier::new_unchecked("parent_id"), ColumnValue::Uuid(parent_id));
+                insert_stmt.object_repr.insert(
+                    Identifier::new_unchecked(format!("{}_id", self.table_name)),
+                    ColumnValue::Uuid(parent_id),
+                );
 
                 builder.push(", "); // This should ALWAYS have at least one statement before it.
                 let prefix = format!("{}_{}", &prefix, i);
