@@ -230,6 +230,15 @@ impl Migration {
         let mut after_columns: HashMap<&Identifier, &TableColumn> =
             after.columns().iter().collect();
         for old_column in before.columns().values() {
+            match old_column.column_type {
+                crate::data_definition::table::DatabaseColumnType::ManyToMany(..)
+                | crate::data_definition::table::DatabaseColumnType::OneToMany(..) => {
+                    // These are handled differently - in preprocessing the DataSystem creates the actual table columns / join tables, so those should be handled
+                    // separately. The other tables should already be present in the DatabaseTableDefinition,
+                    continue;
+                },
+                _ => (),
+            };
             match after_columns.remove(&old_column.column_name) {
                 Some(new_column) => {
                     let mut alter_column_actions = Vec::new();
@@ -240,7 +249,7 @@ impl Migration {
 
                     // * NONNULL calculation - Compares `NotNull`
                     {
-                        // Uggggh this is really hacky. Wanna clean this up later.
+                        // TODO: [TECH DEBT] Uggggh this is really hacky. Wanna clean this up later.
                         // Find the existence of a `NotNull` constraint. If it does *not* exist (`.is_none()`) then the field *is* nullable.
                         // A confusing mess of double negative magic going on here.
                         let old_is_nullable = !old_column.constraints.iter().any(|c| match *c.detail {
@@ -319,8 +328,18 @@ impl Migration {
             }
         }
 
-        // Any remianing columns are new
+        // Any remaining columns are new
         for column in after_columns.values() {
+            // Special handling for Many-to-Many or One-to-Many relations
+            match column.column_type {
+                crate::data_definition::table::DatabaseColumnType::ManyToMany(..)
+                | crate::data_definition::table::DatabaseColumnType::OneToMany(..) => {
+                    // These are handled differently - in preprocessing the DataSystem creates the actual table columns / join tables, so those should be handled
+                    // separately. The other tables should already be present in the DatabaseTableDefinition,
+                    continue;
+                },
+                _ => (),
+            };
             actions.push(AlterTableAction::AddColumn((*column).clone()));
         }
 

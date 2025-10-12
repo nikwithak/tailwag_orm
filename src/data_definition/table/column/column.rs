@@ -72,7 +72,7 @@ impl DatabaseColumnType {
             DatabaseColumnType::Timestamp => "TIMESTAMP",
             DatabaseColumnType::Uuid => "UUID",
             DatabaseColumnType::Json => "JSONB",
-            DatabaseColumnType::OneToMany(_, _) => todo!(),
+            DatabaseColumnType::OneToMany(_, _) => "UUID",
             DatabaseColumnType::ManyToMany {
                 ..
             } => todo!(),

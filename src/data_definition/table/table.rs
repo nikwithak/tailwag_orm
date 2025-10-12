@@ -4,7 +4,7 @@ use std::{
 };
 
 use raw_data::TableDefinition;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::queries::{Join, JoinSide, JoinType};
 
@@ -16,10 +16,49 @@ pub struct DatabaseTableDefinition {
     // TODO: Make it so that there can only be one ID column.
     // TODO: Composite keys, Constraints, etc.
     // pub columns: Vec<TableColumn>,
+    #[serde(
+        serialize_with = "serialize_identifier_map",
+        deserialize_with = "deserialize_identifier_map"
+    )]
     pub columns: BTreeMap<Identifier, TableColumn>, // BTreeMap for testing reasons... yes it adds inefficiency, but shoudln't be enough to matter.
     #[serde(skip)]
     pub child_tables: HashMap<TypeId, Box<DatabaseTableDefinition>>, // Used for auto-adding child tables without explicitly adding them to the Application.
     pub constraints: Vec<TableConstraint>,
+}
+
+// Serialize Identifier keys as strings
+fn serialize_identifier_map<S, V: Serialize>(
+    map: &BTreeMap<Identifier, V>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use serde::ser::SerializeMap;
+
+    let mut ser_map = serializer.serialize_map(Some(map.len()))?;
+    for (key, value) in map {
+        // Use Display trait to convert Identifier to string
+        ser_map.serialize_entry(&key.to_string(), value)?;
+    }
+    ser_map.end()
+}
+
+// Deserialize from string keys back to Identifier
+fn deserialize_identifier_map<'de, D, V: Deserialize<'de>>(
+    deserializer: D
+) -> Result<BTreeMap<Identifier, V>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::Error;
+
+    let string_map: BTreeMap<String, V> = BTreeMap::deserialize(deserializer)?;
+
+    string_map
+        .into_iter()
+        .map(|(key, value)| Identifier::new(&key).map(|id| (id, value)).map_err(D::Error::custom))
+        .collect()
 }
 
 impl DatabaseTableDefinition {

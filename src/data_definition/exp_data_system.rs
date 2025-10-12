@@ -1,14 +1,15 @@
 use std::{
     any::TypeId,
     cell::{RefCell, RefMut},
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     sync::Arc,
 };
 
-use sqlx::{Postgres, QueryBuilder};
+use serde::{Deserialize, Serialize};
+use sqlx::{Execute, Postgres, QueryBuilder};
 
 use crate::{
-    data_definition::table::{self, DatabaseColumnType, TableColumn},
+    data_definition::table::{self, DatabaseColumnType, TableColumn, TableConstraint},
     data_manager::{GetTableDefinition, PostgresDataProvider},
     migration::Migration,
     queries::Insertable,
@@ -271,6 +272,7 @@ impl DataSystemBuilder {
             resources: Arc::new(
                 resources.into_iter().map(|(k, v)| (k, Arc::new(v.into_inner()))).collect(),
             ),
+            table_name_to_type: self.table_name_to_type,
         })
     }
 }
@@ -278,6 +280,7 @@ impl DataSystemBuilder {
 #[derive(Clone)]
 pub struct UnconnectedDataSystem {
     resources: Arc<HashMap<TypeId, Arc<DatabaseTableDefinition>>>,
+    table_name_to_type: HashMap<Identifier, TypeId>,
 }
 impl UnconnectedDataSystem {
     pub async fn connect(
@@ -286,6 +289,7 @@ impl UnconnectedDataSystem {
     ) -> DataSystem {
         DataSystem {
             resources: self.resources.clone(),
+            table_name_to_type: self.table_name_to_type.clone(),
             pool,
         }
     }
@@ -294,6 +298,7 @@ impl UnconnectedDataSystem {
 #[derive(Clone)]
 pub struct DataSystem {
     resources: Arc<HashMap<TypeId, Arc<DatabaseTableDefinition>>>,
+    table_name_to_type: HashMap<Identifier, TypeId>,
     pool: sqlx::Pool<Postgres>,
 }
 
@@ -317,39 +322,53 @@ impl DataSystem {
             .map(|t| PostgresDataProvider::new(t.clone(), self.pool.clone()))
     }
 
-    pub async fn run_migrations(&self) -> Result<(), crate::Error> {
-        fn get_prev_tables_if_exists() -> Option<Vec<Arc<DatabaseTableDefinition>>> {
-            std::fs::read(".table_data/last.migration")
+    fn get_prev_tables_if_exists(&self) -> Option<Vec<Arc<DatabaseTableDefinition>>> {
+        let tables: Option<Vec<SerializableTableDefinition>> =
+            std::fs::read(".table_data/last.migration.json")
                 .ok()
-                .and_then(|bytes| serde_json::from_slice(bytes.as_slice()).ok())
-        }
+                .and_then(|bytes| serde_json::from_slice(bytes.as_slice()).ok());
+        tables
+            .into_iter()
+            .flatten()
+            .map(|table| self.to_table_definition(table).map(Arc::new))
+            .collect::<Result<_, _>>()
+            .ok()
+    }
 
-        fn _save_prev_tables(
-            database: Vec<Arc<DatabaseTableDefinition>>
-        ) -> Result<(), std::io::Error> {
-            let deser = serde_json::to_string(&database)?;
-            let bytes = deser.as_bytes();
+    fn save_prev_tables(
+        &self,
+        database: Vec<Arc<DatabaseTableDefinition>>,
+    ) -> Result<(), std::io::Error> {
+        let database = database
+            .into_iter()
+            .map(|t| SerializableTableDefinition::from((*t).clone()))
+            .collect::<Vec<_>>();
+        let deser = serde_json::to_string(&database)?;
+        let bytes = deser.as_bytes();
 
-            // Currently panicing - failing to serialize.
-            std::fs::write(".table_data/last.migration", bytes)?;
-            Ok(())
-        }
+        // Currently panicing - failing to serialize.
+        std::fs::write(".table_data/last.migration.json", bytes)?;
+        Ok(())
+    }
 
+    pub async fn run_migrations(&self) -> Result<(), crate::Error> {
         let current_config: Vec<Arc<DatabaseTableDefinition>> =
             self.resources.values().map(|table| table.to_owned()).collect();
         if let Some(migrations) =
-            Migration::compare(get_prev_tables_if_exists(), current_config.clone())
+            Migration::compare(self.get_prev_tables_if_exists(), current_config.clone())
         {
             let mut transaction = self.pool.begin().await?;
             for action in migrations.actions {
                 let mut builder = QueryBuilder::new("");
                 action.build_sql(&mut builder);
-                builder.build().execute(&mut *transaction).await?;
+                // builder.build().execute(&mut *transaction).await?;
+                let raw_sql = builder.build().sql();
+                sqlx::raw_sql(raw_sql).execute(&mut *transaction).await?;
             }
             transaction.commit().await?;
         }
         // TODO: It's crashing when trying to serialze the migrations. Need to dig in.
-        // save_prev_tables(current_config)?;
+        self.save_prev_tables(current_config)?;
         Ok(())
     }
 }
@@ -365,5 +384,71 @@ where
             return Err("Unable to fetch PostgresDataProvider form DataSystem".to_string());
         };
         Ok(val)
+    }
+}
+
+/// Intermediary struct for serailzing/deserializing with TypeIds, within the datasystem context.
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+struct SerializableTableDefinition {
+    pub table_name: Identifier,
+    pub columns: BTreeMap<String, TableColumn>,
+    #[serde(skip)]
+    pub child_tables: HashMap<String, Box<DatabaseTableDefinition>>,
+    pub constraints: Vec<TableConstraint>,
+}
+
+impl From<DatabaseTableDefinition> for SerializableTableDefinition {
+    fn from(value: DatabaseTableDefinition) -> Self {
+        Self {
+            table_name: value.table_name,
+            columns: value.columns.into_iter().map(|(k, v)| (k.to_string(), v)).collect(),
+            child_tables: value
+                .child_tables
+                .into_iter()
+                .map(|(k, v)| (v.table_name.to_string(), v))
+                .collect(),
+            constraints: value.constraints,
+        }
+    }
+}
+
+impl DataSystem {
+    fn to_table_definition(
+        &self,
+        def: SerializableTableDefinition,
+    ) -> Result<DatabaseTableDefinition, String> {
+        let mut child_tables: HashMap<TypeId, Box<DatabaseTableDefinition>> = Default::default();
+        let mut not_found_tables: Vec<Identifier> = Default::default();
+        for (k, v) in def.child_tables {
+            let ident = Identifier::new(k)?;
+            match self.table_name_to_type.get(&ident) {
+                Some(typeid) => {
+                    child_tables.insert(*typeid, v);
+                },
+                None => {
+                    not_found_tables.push(ident);
+                },
+            }
+        }
+
+        let not_found_tables = not_found_tables.into_iter().map(
+            |i| -> Result<(Identifier, table::TableColumn), String> {
+                Ok((i.clone(), TableColumn::uuid(&i)?.into()))
+            },
+        );
+        Ok(DatabaseTableDefinition {
+            table_name: def.table_name,
+            columns: def
+                .columns
+                .into_iter()
+                .map(|(k, v)| match Identifier::new(k) {
+                    Ok(i) => Ok((i, v)),
+                    Err(e) => Err(e),
+                })
+                // .chain(not_found_tables)
+                .collect::<Result<_, _>>()?,
+            child_tables,
+            constraints: def.constraints,
+        })
     }
 }
