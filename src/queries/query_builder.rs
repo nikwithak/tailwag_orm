@@ -108,10 +108,9 @@ impl<T> BuildSql for Query<T> {
         query_builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
         let table_name = self.table.table_name.clone();
-        let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
-        type E = crate::data_definition::table::DatabaseColumnType;
-        // STEP ONE: get all table relationships
+        let group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
 
+        // STEP ONE: get all table relationships
         query_builder.push(r"SELECT ");
         query_builder.push(self.table.json_build_object(""));
         query_builder.push(" json_result");

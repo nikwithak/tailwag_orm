@@ -2,6 +2,7 @@
 
 use crate::data_definition::table::Identifier;
 
+#[allow(unused)]
 pub struct Join {
     pub(crate) left_table: Identifier,
     pub(crate) left_table_alias: Identifier,

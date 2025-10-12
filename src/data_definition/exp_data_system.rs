@@ -1,6 +1,6 @@
 use std::{
     any::TypeId,
-    cell::{RefCell, RefMut},
+    cell::RefCell,
     collections::{BTreeMap, HashMap},
     sync::Arc,
 };
@@ -87,18 +87,18 @@ impl DataSystemBuilder {
 
         // First pass: Make sure all child tables exist, and modify them where needed.
         let mut new_tables = Vec::new();
-        for (parent_type_id, table_def) in &resources {
+        for (_parent_type_id, table_def) in &resources {
             let mut table_def = table_def.borrow_mut();
             let table_name = table_def.table_name();
             let table_id_col =
                 table_def.columns().get(&Identifier::new_unchecked("id")).unwrap().clone();
             let columns = table_def.columns().clone();
             // For each column - modify its child table appropriately, if exists.
-            for (col_name, col_def) in columns {
+            for (_col_name, col_def) in columns {
                 let col_type = &col_def.column_type;
                 type E = DatabaseColumnType;
                 match col_type {
-                    E::OneToMany(child_name, table) => {
+                    E::OneToMany(child_name, _table) => {
                         let mut child_table= self.table_name_to_type
                             .get(&child_name)
                             .and_then(|type_id|resources.get(&type_id))
@@ -211,7 +211,7 @@ impl DataSystemBuilder {
             let mut table_def = table_def.borrow_mut();
             for (column_name, child_col) in table_def.columns().clone() {
                 match &child_col.column_type {
-                    DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
+                    DatabaseColumnType::OneToMany(identifier, _database_table_definition) => {
                         let mut new_col = (*child_col).clone();
 
                         let child_table = table_name_to_type
@@ -225,7 +225,7 @@ impl DataSystemBuilder {
                         );
                         table_def.columns.insert(column_name, new_col.into());
                     },
-                    DatabaseColumnType::ManyToMany(identifier, database_table_definition) => {
+                    DatabaseColumnType::ManyToMany(identifier, _database_table_definition) => {
                         let mut new_col = (*child_col).clone();
 
                         let child_table = table_name_to_type
@@ -264,7 +264,7 @@ impl DataSystemBuilder {
             }
         }
 
-        for (parent_type_id, table_def) in &resources {
+        for (_parent_type_id, table_def) in &resources {
             link_children(table_def, &resources, &self.table_name_to_type);
         }
 
@@ -307,6 +307,7 @@ impl DataSystem {
         DataSystemBuilder::default()
     }
 
+    #[allow(unused)]
     pub(crate) fn get_table_def(
         &self,
         type_id: &TypeId,
@@ -405,7 +406,7 @@ impl From<DatabaseTableDefinition> for SerializableTableDefinition {
             child_tables: value
                 .child_tables
                 .into_iter()
-                .map(|(k, v)| (v.table_name.to_string(), v))
+                .map(|(_k, v)| (v.table_name.to_string(), v))
                 .collect(),
             constraints: value.constraints,
         }
@@ -431,7 +432,8 @@ impl DataSystem {
             }
         }
 
-        let not_found_tables = not_found_tables.into_iter().map(
+        // TODO: What was the purpose of this?
+        let _not_found_tables = not_found_tables.into_iter().map(
             |i| -> Result<(Identifier, table::TableColumn), String> {
                 Ok((i.clone(), TableColumn::uuid(&i)?.into()))
             },

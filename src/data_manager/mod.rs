@@ -1,7 +1,5 @@
 pub mod local_storage_provider;
 mod postgres;
-use in_memory::InMemoryDataProvider;
-use local_files::LocalFileDataProvider;
 pub use postgres::*;
 use rest_api::Id;
 use serde::{Deserialize, Serialize};
@@ -27,6 +25,7 @@ pub enum DataProviderType<T: Insertable> {
     // Files(PostgresDataProvider<T>),
 }
 
+#[allow(unused)]
 struct DataManager<T>
 where
     T: Filterable + Insertable,

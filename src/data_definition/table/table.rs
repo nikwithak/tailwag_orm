@@ -3,10 +3,7 @@ use std::{
     collections::{BTreeMap, HashMap},
 };
 
-use raw_data::TableDefinition;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-use crate::queries::{Join, JoinSide, JoinType};
 
 use super::{Identifier, TableColumn, TableConstraint};
 
@@ -63,7 +60,7 @@ where
 
 impl DatabaseTableDefinition {
     pub fn get_primary_key(&self) -> Option<TableColumn> {
-        self.columns.iter().map(|(ident, col)| col).find(|col| col.is_pk()).cloned()
+        self.columns.iter().map(|(_ident, col)| col).find(|col| col.is_pk()).cloned()
     }
 }
 
@@ -242,7 +239,7 @@ impl DatabaseTableDefinition {
                     | E::Timestamp
                     | E::Uuid
                     | E::Json => Some(format!("{prefix}_{table_name}.{col_name}")),
-                    E::OneToMany(child_table_ident, child_table_def) => {
+                    E::OneToMany(child_table_ident, _child_table_def) => {
                         // TODO
                         // END TODO
                         Some(format!(
@@ -310,8 +307,8 @@ impl DatabaseTableDefinition {
                         )
                     },
                     super::DatabaseColumnType::ManyToMany(
-                        identifier,
-                        database_table_definition,
+                        _identifier,
+                        _database_table_definition,
                     ) => {
                         // TODO: Look at join table.
                         todo!()
@@ -352,7 +349,7 @@ impl DatabaseTableDefinition {
         let mut results = Vec::new();
         for child_tbl in self.columns.values() {
             match &child_tbl.column_type {
-                super::DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
+                super::DatabaseColumnType::OneToMany(_identifier, database_table_definition) => {
                     let joined_table = &*database_table_definition.table_name;
                     let joined_table_alias = format!("{table_alias}_{joined_table}");
                     // let joined_column = &*child_tbl.column_name; // TODO: NEed to find joined column name instead of assuming "id"
@@ -370,7 +367,7 @@ impl DatabaseTableDefinition {
                         &mut database_table_definition.get_join_tables(&format!("{table_alias}_")),
                     )
                 },
-                super::DatabaseColumnType::ManyToMany(identifier, database_table_definition) => {
+                super::DatabaseColumnType::ManyToMany(_identifier, _database_table_definition) => {
                     todo!()
                 },
                 // super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {

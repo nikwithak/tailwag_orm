@@ -153,7 +153,10 @@ impl Migration {
                             return Ordering::Less;
                         }
                     },
-                    crate::data_definition::table::DatabaseColumnType::ManyToMany(_, child_tbl) => {
+                    crate::data_definition::table::DatabaseColumnType::ManyToMany(
+                        _,
+                        _child_tbl,
+                    ) => {
                         // Need to juggle the join tables first. Maybe all the join tables come last?
                         todo!("Many to Many relationships need more attention before they can be used.");
                     },
