@@ -24,7 +24,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
             E::Timestamp => quote!(tailwag::orm::data_definition::table::ColumnValue::Timestamp(#column_name.clone())),
             E::Uuid => quote!(tailwag::orm::data_definition::table::ColumnValue::Uuid(#column_name.clone())),
             E::Json => quote!(tailwag::orm::data_definition::table::ColumnValue::Json(#column_name.to_string())),
-            E::OneToOne(_child_type) => {
+            E::OneToOne{ref_only: false, ..}=>{
                 field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
                 // TODO: This assumes ID.
                 quote!(
@@ -35,7 +35,17 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
                 )
                 // todo!()
             },
-            E::OneToMany(_child_type) => {
+            E::OneToOne{ref_only: true, ..}=> {
+                field_name = format_ident!("{}", column.column_name.trim_end_matches("_id").to_string()); // Hack to work around soem ugliness with the DataDefinition / column mapping
+                quote!(
+                    {
+                        use tailwag::orm::data_manager::rest_api::Id;
+                        // TODO: This still assumes ID...
+                        tailwag::orm::data_definition::table::ColumnValue::Uuid(#field_name.id().clone())
+                    }
+                )
+            } ,
+            E::OneToMany(_child_type, _) => {
                 quote!(
                     {
                         let insert_statements = #field_name.iter().map(|child|Box::new(child.get_update_statement()));
@@ -47,7 +57,7 @@ fn build_get_update_statement(input: &DeriveInput) -> TokenStream {
                     }
                 )
             },
-            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
+            tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_, _) => todo!("{:?} is a ManyToMany relationship that isn't yet supported", &column.column_type),
         };
 
         if column.is_nullable() {

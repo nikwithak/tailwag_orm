@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 /// InMemoryDataProvider - Wraps a HashMap in the DatProvider interface.
 /// Status: Prototype / Hacky
-/// Notes: Lots of data duplication, not memory efficient, and blocks on reads due to the Arc<Mutex>, which is required to fit the trait signtautres and enable Clone
+/// Notes: Lots of data duplication, not memory efficient, and blocks on reads due to the Arc<Mutex>, which is required to fit the trait signtatures and enable Clone
 
 #[derive(Clone, Default)]
 pub struct InMemoryDataProvider<T> {

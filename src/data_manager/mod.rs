@@ -18,12 +18,14 @@ pub mod local_files;
 // struct MongoDBDataProvider {}
 
 #[allow(unused)]
-enum DataProviderType<T: Insertable> {
+pub enum DataProviderType<T: Insertable> {
     Postgres(PostgresDataProvider<T>),
     // InMemory(InMemoryDataProvider<T>),
-    // LocalFile(LocalFileDataProvider<T>),
+    // JsonFiles(LocalFileDataProvider<T>),
+    // Files(PostgresDataProvider<T>),
 }
 
+#[allow(unused)]
 struct DataManager<T>
 where
     T: Filterable + Insertable,
@@ -56,7 +58,8 @@ where
         match &self.inner {
             DataProviderType::Postgres(dp) => dp.all().await,
             // DataProviderType::InMemory(dp) => dp.all().await,
-            // DataProviderType::LocalFile(dp) => dp.all().await,
+            // DataProviderType::JsonFiles(dp) => todo!(),
+            // DataProviderType::Files(dp) => todo!(),
         }
     }
 

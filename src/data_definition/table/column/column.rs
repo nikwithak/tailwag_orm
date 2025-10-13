@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::data_manager::GetTableDefinition;
 use crate::queries::Insertable;
 use crate::BuildSql;
+use crate::{data_definition::table::DatabaseTableDefinition, data_manager::GetTableDefinition};
 
 use crate::data_definition::table::Identifier;
 
@@ -21,7 +21,7 @@ where
 
 pub(crate) type ObjectRepr = HashMap<Identifier, ColumnValue>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ColumnValue {
     Boolean(bool),                    // BOOL or BOOLEAN
     Int(i64),                         // INT
@@ -52,10 +52,14 @@ pub enum DatabaseColumnType {
 
     // These next few that define relationship types are a hacky way of building cross-table relationships -
     // I'm dealing with a consequence of deciding that tables would be locked once they were fully built, but this will require that I re-do them down the line.
-    OneToMany(Identifier), // TODO: Impl this all the way through
+    OneToMany(Identifier, DatabaseTableDefinition), // TODO: Impl this all the way through
     // ManyToOne(DatabaseTableDefinition),
-    ManyToMany(Identifier), // TODO: Will need to figure out how I want to represent JoinTables here
-    OneToOne(Identifier), // TODO: With [inline] macro attribute, can make this inline JSON when needed. Depeneds on if we want sortability / searchability or not
+    ManyToMany(Identifier, DatabaseTableDefinition), // TODO: Will need to figure out how I want to represent JoinTables here
+    OneToOne {
+        col_name: Identifier,
+        table_def: DatabaseTableDefinition,
+        ref_only: bool,
+    }, // TODO: With [inline] macro attribute, can make this inline JSON when needed. Depeneds on if we want sortability / searchability or not
 }
 
 impl DatabaseColumnType {
@@ -68,11 +72,13 @@ impl DatabaseColumnType {
             DatabaseColumnType::Timestamp => "TIMESTAMP",
             DatabaseColumnType::Uuid => "UUID",
             DatabaseColumnType::Json => "JSONB",
-            DatabaseColumnType::OneToMany(_) => todo!(),
+            DatabaseColumnType::OneToMany(_, _) => "UUID",
             DatabaseColumnType::ManyToMany {
                 ..
             } => todo!(),
-            DatabaseColumnType::OneToOne(_) => "UUID", // TODO: These types of relationships only work with id: uuid. This is a big debt.
+            DatabaseColumnType::OneToOne {
+                ..
+            } => "UUID", // TODO: These types of relationships only work with id: uuid. This is a big debt.
         }
     }
 }

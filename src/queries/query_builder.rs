@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use crate::{
-    data_definition::table::{DatabaseTableDefinition, Identifier},
+    data_definition::table::{DatabaseTableDefinition, Identifier, JsonBuildObjectResponse},
     object_management::{
         delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
     },
@@ -109,66 +109,24 @@ impl<T> BuildSql for Query<T> {
     ) {
         let table_name = self.table.table_name.clone();
         let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
-        type E = crate::data_definition::table::DatabaseColumnType;
+
         // STEP ONE: get all table relationships
-        let mut attrs = self
-            .table
-            .columns
-            .values()
-            .filter_map(|col| {
-                let col_name = col.column_name.to_string();
-                match &col.column_type {
-                    E::Boolean
-                    | E::Int
-                    | E::Float
-                    | E::String
-                    | E::Timestamp
-                    | E::Uuid
-                    | E::Json => Some(format!("{table_name}.{col_name}")),
-                    E::OneToMany(child_table) => {
-                        Some(format!("COALESCE(NULLIF(json_agg({child_table})::TEXT, '[null]'), '[]')::JSON as {child_table}"))
-                    },
-                    E::ManyToMany(_) => todo!(),
-                    E::OneToOne(_) => Some(col_name.trim_end_matches("_id").to_string()), // TODO: UNHACK THIS
-                }
-            })
-            .peekable();
+        let JsonBuildObjectResponse {
+            sql,
+            group_by: mut addtl_group_by,
+        } = self.table.json_build_object("");
+        group_by.append(&mut addtl_group_by);
+
         query_builder.push(r"SELECT ");
-        while let Some(attr) = attrs.next() {
-            query_builder.push(attr);
-            if attrs.peek().is_some() {
-                query_builder.push(", ");
-            }
-        }
+        query_builder.push(sql);
+        query_builder.push(" json_result");
         query_builder.push(" FROM ");
         query_builder.push(&table_name);
-        // TODO: Inner Joins -
-        // STEP THREE: Need to impl BuildSql for INNER JOIN
-        for child_tbl in self.table.columns.values() {
-            match &child_tbl.column_type {
-                crate::data_definition::table::DatabaseColumnType::OneToOne(name) => {
-                    let name = name.strip_suffix("_id").unwrap(); // TODO: UNHACK THIS
-                    group_by.push(name.to_string());
-                    query_builder
-                        .push(" LEFT OUTER JOIN ")
-                        .push(name)
-                        .push(" ON ")
-                        .push(name)
-                        .push(".id = ")
-                        .push(name)
-                        .push("_id ");
-                },
-                crate::data_definition::table::DatabaseColumnType::OneToMany(name)
-                | crate::data_definition::table::DatabaseColumnType::ManyToMany(name) => {
-                    query_builder
-                        .push(" LEFT OUTER JOIN ")
-                        .push(name)
-                        .push(" ON ")
-                        .push(name)
-                        .push(format!(".parent_id = {table_name}.id")); // TODO: This requires `parent_id` and `id`
-                },
-                _ => {},
-            };
+
+        for join_stmt in self.table.get_join_tables("") {
+            query_builder.push(" ");
+            query_builder.push(&join_stmt);
+            query_builder.push(" ");
         }
         if let Some(filter) = &self.filter {
             query_builder.push(" WHERE ");

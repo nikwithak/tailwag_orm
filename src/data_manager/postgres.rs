@@ -18,6 +18,7 @@ pub struct PostgresDataProvider<T: Insertable> {
     pub table_definition: Arc<DatabaseTableDefinition>,
     pub db_pool: Pool<Postgres>,
     pub _t: PhantomData<T>,
+    // pub(crate) parent_data_system:
 }
 
 impl<T> PostgresDataProvider<T>
@@ -94,10 +95,10 @@ impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Unpin> ExecutableQu
         // Without his, it got really messy, because it seems that SQLX doesn't support nested deserialization on its own.
         // A little bit more overhead, perhaps, but jeeeeez does it save on dvelopment. And postgres is probably
         // not the limiting factor rn anyway.
-        let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
-        // let mut query_builder = QueryBuilder::new("");
+        // let mut query_builder = QueryBuilder::new("SELECT to_json(r) as json_result FROM (");
+        let mut query_builder = QueryBuilder::new("");
         self.query.build_sql(&mut query_builder);
-        query_builder.push(") r");
+        // query_builder.push(") r");
 
         log::debug!("SQL query: {}", query_builder.sql());
         let result = query_builder.build().fetch_all(&self.db_pool).await?;
@@ -287,6 +288,7 @@ where
 
         let mut builder: QueryBuilder<'_, Postgres> = QueryBuilder::new("");
         update_statement.build_sql(&mut builder);
+
         builder.build().execute(&mut *transaction).await?;
         transaction.commit().await?;
 

@@ -93,6 +93,7 @@ impl InsertStatement {
             else {
                 panic!("Wrong value type received when building one_to_one insert tables. This should not happen.")
             };
+
             InsertStatement {
                 table_name: child_table.clone(),
                 object_repr: *value.clone(),
@@ -129,7 +130,7 @@ impl InsertStatement {
                         value: _,
                     } => {
                         let fk_name = &Identifier::new_unchecked("id"); // TODO: This is the ONLY FK supported for now. Eventually replace with dynamic FKs.
-                        builder.push(format!("(SELECT {fk_name} FROM {col_name})"))
+                        builder.push(format!("(SELECT {fk_name} FROM {prefix}{col_name})"))
                         // Safe to inject directly, because `Identifier` is validated at runtime.
                     },
                     _ => todo!("This type of insert is not supported yet."),
@@ -150,7 +151,7 @@ impl InsertStatement {
                         .collect(),
                 };
                 builder.push(" ON CONFLICT (id) DO ");
-                update_statement.build_sql_no_build_children(builder);
+                update_statement.build_sql_no_build_children(prefix, builder);
                 // builder.push()
             }
             builder.push(" RETURNING * ");
@@ -175,9 +176,10 @@ impl InsertStatement {
             });
 
             for (i, mut insert_stmt) in insert_stmts.enumerate() {
-                insert_stmt
-                    .object_repr
-                    .insert(Identifier::new_unchecked("parent_id"), ColumnValue::Uuid(parent_id));
+                insert_stmt.object_repr.insert(
+                    Identifier::new_unchecked(format!("{}_id", self.table_name)),
+                    ColumnValue::Uuid(parent_id),
+                );
 
                 builder.push(", "); // This should ALWAYS have at least one statement before it.
                 let prefix = format!("{}_{}", &prefix, i);

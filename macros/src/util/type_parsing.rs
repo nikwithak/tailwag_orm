@@ -1,10 +1,12 @@
 use syn::{Field, GenericArgument, PathArguments, Type, TypePath};
 
+#[allow(unused)]
 pub trait GetQualifiedPath {
     fn get_qualified_path(&self) -> String;
     fn get_qualified_path_for_option(&self) -> String;
 }
 
+#[allow(unused)]
 pub trait IsOption {
     fn is_option(&self) -> bool;
 }
@@ -23,6 +25,7 @@ impl GetQualifiedPath for syn::Field {
     }
 }
 
+#[allow(unused)]
 pub fn get_type_str(ty: &Type) -> String {
     match ty {
         syn::Type::Path(typepath) => get_qualified_path(typepath),
@@ -52,6 +55,7 @@ pub fn is_option(field: &Field) -> bool {
 
 /// Gives you the primary type of the field. If it's an Option, then this will return the qualified path string for the Option's inner type.
 /// If not, it returns the qualified path string for the entire type.
+#[allow(unused)]
 pub fn extract_option_type(field: &Field) -> String {
     let syn::Type::Path(typepath) = &field.ty else {
         panic!("No typepath found")

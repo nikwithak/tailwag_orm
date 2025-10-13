@@ -27,7 +27,7 @@ pub(crate) fn get_child_table_tokens(input: &DeriveInput) -> TokenStream {
         .iter()
         .filter(|f| f.get_attribute("db_ignore").is_none())
         .filter_map(|f| match get_type_from_field(f) {
-            DatabaseColumnType::OneToOne(_) | DatabaseColumnType::OneToMany(_) => {
+            DatabaseColumnType::OneToOne{..} | DatabaseColumnType::OneToMany(_, _) => {
                 let syn::Type::Path(f_type) = &f.ty  else {return None};
                 let f_type = &f_type.path;
                 match try_get_inner_type(&f) {
@@ -68,21 +68,31 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
 
         let column_type = get_type_from_field(f);
         let column_name = match &column_type {
-            DatabaseColumnType::OneToOne(_) => {
+            DatabaseColumnType::OneToOne {
+                ..
+            } => {
                 format!("{field_name}_id")
             },
-            DatabaseColumnType::OneToMany(_) => format!("{field_name}"),
+            DatabaseColumnType::OneToMany(_, _) => format!("{field_name}"),
             _ => field_name.to_string(),
         };
-        let mut column =
-            TableColumn::new(&column_name, column_type, Vec::new()).expect("Invalid table_name");
+
+        let mut column = TableColumn::new(&column_name, column_type.clone(), Vec::new())
+            .expect("Invalid table_name");
+
         // TODO: Handle #[flatten], which will flatten the pieces into a single table. Will that work? Gonna be tough in a derive macro.
 
         if f.get_attribute("primary_key").is_some() || &field_name.to_string() == "id" {
             column = column.pk();
         }
 
-        if !is_option(f) {
+        if !is_option(f)
+            && !(
+                // Workaround for One-to-many with reference types. Eventually will be many-to-many.
+                matches!(column_type, DatabaseColumnType::OneToMany(..))
+                    && f.get_attribute("ref_only").is_some()
+            )
+        {
             column = column.non_null();
         }
 
@@ -193,13 +203,21 @@ pub fn get_type_from_field(field: &Field) -> DatabaseColumnType {
                             .map(|path| path.to_string())
                             .unwrap_or(inner_type.split("::").last().unwrap().to_snake_case());
 
-                        DatabaseColumnType::OneToMany(Identifier::new(&child_table_name).unwrap())
+                        DatabaseColumnType::OneToMany(
+                            Identifier::new(&child_table_name).unwrap(),
+                            DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                        )
                     },
                     // Arc means "Not owned" / shared reference - becomes many-to-many (or maybe could be many-to-one)
-                    "std::sync::Arc" | "sync::Arc" | "Arc" => {
-                        DatabaseColumnType::ManyToMany(Identifier::new(&child_table_name).unwrap())
+                    "std::sync::Arc" | "sync::Arc" | "Arc" => DatabaseColumnType::ManyToMany(
+                        Identifier::new(&child_table_name).unwrap(),
+                        DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                    ),
+                    _ => DatabaseColumnType::OneToOne {
+                        col_name: Identifier::new(&child_table_name).unwrap(),
+                        table_def: DatabaseTableDefinition::new("dummy_table_name").unwrap(),
+                        ref_only: field.get_attribute("ref_only").is_some(),
                     },
-                    _ => DatabaseColumnType::OneToOne(Identifier::new(&child_table_name).unwrap()),
                 }
             };
             db_type

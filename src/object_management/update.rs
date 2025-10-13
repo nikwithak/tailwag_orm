@@ -40,6 +40,7 @@ impl UpdateStatement {
     /// Hacky, but gets the job done.
     pub fn build_sql_no_build_children(
         &self,
+        prefix: &str,
         builder: &mut sqlx::QueryBuilder<'_, Postgres>,
     ) {
         // builder.push(format!("UPDATE {} SET ", self.table_name));
@@ -72,7 +73,7 @@ impl UpdateStatement {
                     builder
                         .push(column)
                         .push(" = ")
-                        .push(format!("(SELECT {fk_name} FROM {child_table})"))
+                        .push(format!("(SELECT {fk_name} FROM {prefix}{child_table})"))
                     // Safe to inject directly, because `Identifier` is validated at runtime.
                 },
                 ColumnValue::OneToMany {

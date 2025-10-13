@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use sqlx::{Pool, Postgres};
 
@@ -6,8 +6,8 @@ use crate::{
     data_definition::{
         exp_data_system::TableDef,
         table::{
-            raw_data::TableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
-            TableConstraint, TableConstraintDetail,
+            raw_data::TableDefinition, DatabaseTableDefinition, ForeignKeyConstraint, Identifier,
+            TableColumn, TableConstraint, TableConstraintDetail,
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
@@ -21,6 +21,16 @@ pub enum MigrationAction {
     AlterTable(AlterTable),
     CreateTable(CreateTable),
     DropTable(Identifier),
+}
+
+impl MigrationAction {
+    pub fn get_table_name(&self) -> &Identifier {
+        match self {
+            MigrationAction::AlterTable(alter_table) => &alter_table.table_name,
+            MigrationAction::CreateTable(create_table) => &create_table.table_definition.table_name,
+            MigrationAction::DropTable(identifier) => identifier,
+        }
+    }
 }
 
 impl BuildSql for MigrationAction {
@@ -85,7 +95,7 @@ impl Migration {
 
         if let Some(before) = before {
             // Build a map for quick lookup of after_tables, then compare each
-            let mut after_tables = build_table_map(after);
+            let mut after_tables = build_table_map(after.clone());
             for table_before in before {
                 match after_tables
                     .remove(&table_before.table_name())
@@ -128,6 +138,68 @@ impl Migration {
             actions.append(&mut create_table_actions);
         }
 
+        // Sort actions by dependency order - children must be processed before their parents.
+        let tables = build_table_map(after);
+
+        fn compare(
+            parent: &Arc<DatabaseTableDefinition>,
+            child: &Arc<DatabaseTableDefinition>,
+        ) -> Ordering {
+            for (_, col) in parent.columns() {
+                match &col.column_type {
+                    crate::data_definition::table::DatabaseColumnType::OneToMany(_, child_tbl) => {
+                        // One To Many: Child has reference to the parent, so parent must come first.
+                        if child_tbl.table_name == child.table_name {
+                            return Ordering::Less;
+                        }
+                    },
+                    crate::data_definition::table::DatabaseColumnType::ManyToMany(
+                        _,
+                        _child_tbl,
+                    ) => {
+                        // Need to juggle the join tables first. Maybe all the join tables come last?
+                        todo!("Many to Many relationships need more attention before they can be used.");
+                    },
+                    crate::data_definition::table::DatabaseColumnType::OneToOne {
+                        table_def: child_tbl,
+                        ..
+                    } => {
+                        // OneToOne: Parent referenes child, so child must come first.
+                        if child_tbl.table_name == child.table_name {
+                            return Ordering::Greater;
+                        }
+                    },
+                    _ => (), // These have no relation.
+                }
+            }
+            Ordering::Equal
+        }
+        actions.sort_by(|lhs, rhs| {
+            let l_table = tables.get(lhs.get_table_name());
+            let r_table = tables.get(rhs.get_table_name());
+
+            let Some(l_table) = l_table else {
+                // Deletes should happen last, so that any FKs can be cleaned up.
+                return Ordering::Greater;
+            };
+            let Some(r_table) = r_table else {
+                // Deletes should happen last, so that any FKs can be cleaned up.
+                return Ordering::Less;
+            };
+
+            let l_to_r = compare(l_table, r_table);
+            let r_to_l = compare(r_table, l_table);
+            match l_to_r {
+                Ordering::Less => Ordering::Less,
+                Ordering::Equal => match r_to_l {
+                    Ordering::Less => Ordering::Greater,
+                    Ordering::Equal => Ordering::Equal,
+                    Ordering::Greater => Ordering::Less,
+                },
+                Ordering::Greater => Ordering::Greater,
+            }
+        });
+
         if !actions.is_empty() {
             Some(Self {
                 actions,
@@ -161,6 +233,15 @@ impl Migration {
         let mut after_columns: HashMap<&Identifier, &TableColumn> =
             after.columns().iter().collect();
         for old_column in before.columns().values() {
+            match old_column.column_type {
+                crate::data_definition::table::DatabaseColumnType::ManyToMany(..)
+                | crate::data_definition::table::DatabaseColumnType::OneToMany(..) => {
+                    // These are handled differently - in preprocessing the DataSystem creates the actual table columns / join tables, so those should be handled
+                    // separately. The other tables should already be present in the DatabaseTableDefinition,
+                    continue;
+                },
+                _ => (),
+            };
             match after_columns.remove(&old_column.column_name) {
                 Some(new_column) => {
                     let mut alter_column_actions = Vec::new();
@@ -171,7 +252,7 @@ impl Migration {
 
                     // * NONNULL calculation - Compares `NotNull`
                     {
-                        // Uggggh this is really hacky. Wanna clean this up later.
+                        // TODO: [TECH DEBT] Uggggh this is really hacky. Wanna clean this up later.
                         // Find the existence of a `NotNull` constraint. If it does *not* exist (`.is_none()`) then the field *is* nullable.
                         // A confusing mess of double negative magic going on here.
                         let old_is_nullable = !old_column.constraints.iter().any(|c| match *c.detail {
@@ -250,8 +331,18 @@ impl Migration {
             }
         }
 
-        // Any remianing columns are new
+        // Any remaining columns are new
         for column in after_columns.values() {
+            // Special handling for Many-to-Many or One-to-Many relations
+            match column.column_type {
+                crate::data_definition::table::DatabaseColumnType::ManyToMany(..)
+                | crate::data_definition::table::DatabaseColumnType::OneToMany(..) => {
+                    // These are handled differently - in preprocessing the DataSystem creates the actual table columns / join tables, so those should be handled
+                    // separately. The other tables should already be present in the DatabaseTableDefinition,
+                    continue;
+                },
+                _ => (),
+            };
             actions.push(AlterTableAction::AddColumn((*column).clone()));
         }
 

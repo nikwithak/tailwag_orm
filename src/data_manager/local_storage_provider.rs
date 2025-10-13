@@ -3,11 +3,22 @@ use std::path::{Path, PathBuf};
 use crate::OrmResult;
 
 #[derive(Clone)]
-pub struct LocalStorageProvider {
+pub struct LocalStorageFileProvider {
     root_path: Box<Path>,
 }
 
-impl LocalStorageProvider {
+impl LocalStorageFileProvider {
+    /// Creates a LocalStorageProvider that saves files to the provided `directory`.
+    /// This struct will naively do its best to prevent requests from accessing files
+    /// outside the sanitized path.
+    pub fn new<'a>(directory: &str) -> OrmResult<Self> {
+        let directory: &Path = Path::new(directory);
+        std::fs::create_dir_all(directory)?;
+        Ok(LocalStorageFileProvider {
+            root_path: directory.into(),
+        })
+    }
+
     fn get_sanitized_path(
         &self,
         relative_path: &Path,
@@ -20,6 +31,7 @@ impl LocalStorageProvider {
             .filter_map(|c| c.as_os_str().to_str())
             .find(|c| *c == "..")
             .is_some();
+
         // TODO: Actually sanitize  it here.
         if !full_path.starts_with(&self.root_path)
             || relative_path.has_root()
@@ -28,14 +40,6 @@ impl LocalStorageProvider {
             Err(crate::Error::InvalidPath)?;
         }
         Ok(full_path)
-    }
-
-    pub fn new<'a>(directory: &str) -> OrmResult<Self> {
-        let directory: &Path = Path::new(directory);
-        std::fs::create_dir_all(directory)?;
-        Ok(LocalStorageProvider {
-            root_path: directory.into(),
-        })
     }
 
     pub fn save_file(

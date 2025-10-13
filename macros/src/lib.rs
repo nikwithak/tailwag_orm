@@ -2,7 +2,7 @@ use syn::parse_macro_input;
 mod logic;
 mod util;
 
-#[proc_macro_derive(GetTableDefinition, attributes(db_ignore))]
+#[proc_macro_derive(GetTableDefinition, attributes(db_ignore, ref_only))]
 pub fn derive_get_table_definition(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input);
     let impl_trait_tokens = logic::derive::get_table_definition::derive_struct(&input);

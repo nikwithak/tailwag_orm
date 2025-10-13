@@ -10,7 +10,8 @@ use std::{fs, marker::PhantomData, path::PathBuf};
 
 use super::rest_api::Id;
 
-/// UNTESTED - USE AT YOUR OWN RISK
+/// Stores data objects as JSON files on local disk. Intended for local development in lieu of PostgresDataProviders.
+/// Very loosely tested - not recommended for Production use.
 #[derive(Clone)]
 pub struct LocalFileDataProvider<T> {
     pub table_definition: DatabaseTableDefinition,
