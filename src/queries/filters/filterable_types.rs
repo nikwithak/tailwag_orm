@@ -10,6 +10,10 @@ pub trait Filterable {
     type FilterType: Default;
 }
 
+impl<T: Filterable> Filterable for Option<T> {
+    type FilterType = T::FilterType;
+}
+
 // Trying out the type-state pattern here.
 trait TypeFilter {}
 macro_rules! typetype {
@@ -40,6 +44,7 @@ macro_rules! impl_filter_for {
 
 impl<T: TypeFilter> TypeFilter for Option<T> {}
 impl<T: TypeFilter> TypeFilter for Vec<T> {}
+// impl<T: Filterable> TypeFilter for T {}
 // ^^^^ Allows for base types only
 // vvvv Allows for custom types (only - breaks basic types)
 // impl<T: Filterable> TypeFilter for Option<T> {}
