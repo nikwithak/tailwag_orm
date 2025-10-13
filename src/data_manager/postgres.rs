@@ -1,3 +1,4 @@
+use crate::queries::filterable_types::WithPrefix;
 use crate::{
     data_definition::table::{DatabaseTableDefinition, Identifier},
     migration::Migration,
@@ -119,7 +120,7 @@ impl<T: Filterable> ExecutableQuery<T> {
     where
         F: Fn(T::FilterType) -> Filter,
     {
-        let filter = derive_filter(T::FilterType::default());
+        let filter = derive_filter(T::FilterType::with_prefix(""));
         self.query = self.query.filter(filter);
         self
     }
@@ -215,7 +216,7 @@ where
     ) -> Result<Option<T>, crate::Error> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
-            filter: Some(predicate(<T as Filterable>::FilterType::default())),
+            filter: Some(predicate(<T as Filterable>::FilterType::with_prefix(""))),
             limit: Some(2),
             order_by: None,
             _t: Default::default(),
@@ -307,7 +308,7 @@ where
     ) -> Self::R {
         let query = Query::<T> {
             table: self.table_definition.clone(),
-            filter: Some(predicate(T::FilterType::default())),
+            filter: Some(predicate(T::FilterType::with_prefix(""))),
             limit: None,
             order_by: None,
             _t: Default::default(),

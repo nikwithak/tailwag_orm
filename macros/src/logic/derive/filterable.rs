@@ -50,8 +50,8 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 let field_ident_str = format!("{table_name}.{field_ident}");
                 let orig_type = field.ty.clone();
                 quote!(#field_ident: tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(
-                    tailwag::orm::data_definition::table::Identifier::new_unchecked(#field_ident_str)
-                ))
+                    tailwag::orm::data_definition::table::Identifier::new_unchecked(format!("{}{}", prefix.to_string(), #field_ident_str)))
+                )
             });
 
             // These are for filtering based on children
@@ -67,7 +67,8 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                     let field_ident = field.ident.clone().expect("Should only have named fields.");
                     // let field_ident_str = format!("{table_name}.{field_ident}");
                     let orig_type = field.ty.clone();
-                    quote!(#field_ident: Default::default())
+                    let table_name = table_name.to_string();
+                    quote!(#field_ident: <#orig_type as Filterable>::FilterType::with_prefix(format!("{}{}_",prefix.to_string(),#table_name)))
 
                     //     tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(
                     //     tailwag::orm::data_definition::table::Identifier::new_unchecked(#field_ident_str)
@@ -77,12 +78,14 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
             // OUTPUT STARTS HERE
             quote!(
                 pub struct #filter_type_struct_ident {
+                    prefix: String,
                     #(#new_fields,)*
                     #(#child_fields,)*
                 }
-                impl Default for #filter_type_struct_ident {
-                    fn default() -> Self {
+                impl tailwag::orm::queries::filterable_types::WithPrefix for #filter_type_struct_ident {
+                    fn with_prefix<T: ToString>(prefix: T) -> Self {
                         Self {
+                            prefix: prefix.to_string(),
                             #(#default_fields,)*
                             #(#default_child_fields,)*
                         }

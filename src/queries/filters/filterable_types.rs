@@ -7,11 +7,15 @@ use crate::data_definition::table::Identifier;
 use super::Filter;
 
 pub trait Filterable {
-    type FilterType: Default;
+    type FilterType: WithPrefix;
 }
 
 impl<T: Filterable> Filterable for Option<T> {
     type FilterType = T::FilterType;
+}
+
+pub trait WithPrefix {
+    fn with_prefix<T: ToString>(prefix: T) -> Self;
 }
 
 // Trying out the type-state pattern here.
