@@ -220,6 +220,10 @@ impl DatabaseTableDefinition {
     }
 }
 
+pub(crate) struct JsonBuildObjectResponse {
+    pub sql: String,
+    pub group_by: Vec<String>,
+}
 impl DatabaseTableDefinition {
     pub fn build_select_items(
         &self,
@@ -270,8 +274,10 @@ impl DatabaseTableDefinition {
     pub fn json_build_object(
         &self,
         prefix: &str,
-    ) -> String {
+    ) -> JsonBuildObjectResponse {
         let table_name = &*self.table_name;
+        let mut group_by: Vec<String> = Vec::new();
+
         let mut attrs = self
             .columns
             .values()
@@ -304,6 +310,7 @@ impl DatabaseTableDefinition {
                             )::JSON",
                             database_table_definition
                                 .json_build_object(&format!("{prefix}{table_name}_"))
+                                .sql
                         )
                     },
                     super::DatabaseColumnType::ManyToMany(
@@ -319,10 +326,15 @@ impl DatabaseTableDefinition {
                     } => {
                         // super::DatabaseColumnType::OneToOne(identifier, database_table_definition) => {
                         let param_name = column_name.strip_suffix("_id").unwrap_or(column_name); // TODO: Store this elsehwere so we don't have to assume ID
-                        format!(
-                            "'{param_name}', {}",
-                            table_def.json_build_object(&format!("{prefix}{table_name}_"))
-                        )
+                        let JsonBuildObjectResponse {
+                            sql,
+                            group_by: mut new_group_by,
+                        } = table_def.json_build_object(&format!("{prefix}{table_name}_"));
+                        // We need to carry the required "group by" IDs forward.
+                        // TODO: More {id} tech debt - need to detract form the ID requirement on EVERY table.
+                        group_by.push(format!("{prefix}{table_name}_{}.id", &table_def.table_name));
+                        group_by.append(&mut new_group_by);
+                        format!("'{param_name}', {}", sql)
                     },
                 }
             })
@@ -338,7 +350,10 @@ impl DatabaseTableDefinition {
         }
         ret.push_str(")");
 
-        ret
+        JsonBuildObjectResponse {
+            sql: ret,
+            group_by,
+        }
     }
 
     pub fn get_join_tables(

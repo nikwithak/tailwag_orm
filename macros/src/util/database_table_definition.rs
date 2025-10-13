@@ -76,15 +76,23 @@ pub(crate) fn build_table_definition<T>(input: &DeriveInput) -> DatabaseTableDef
             DatabaseColumnType::OneToMany(_, _) => format!("{field_name}"),
             _ => field_name.to_string(),
         };
-        let mut column =
-            TableColumn::new(&column_name, column_type, Vec::new()).expect("Invalid table_name");
+
+        let mut column = TableColumn::new(&column_name, column_type.clone(), Vec::new())
+            .expect("Invalid table_name");
+
         // TODO: Handle #[flatten], which will flatten the pieces into a single table. Will that work? Gonna be tough in a derive macro.
 
         if f.get_attribute("primary_key").is_some() || &field_name.to_string() == "id" {
             column = column.pk();
         }
 
-        if !is_option(f) {
+        if !is_option(f)
+            && !(
+                // Workaround for One-to-many with reference types. Eventually will be many-to-many.
+                matches!(column_type, DatabaseColumnType::OneToMany(..))
+                    && f.get_attribute("ref_only").is_some()
+            )
+        {
             column = column.non_null();
         }
 

@@ -107,11 +107,13 @@ impl DataSystemBuilder {
                             )).borrow_mut();
                         // TODO (UUID id requirement): Make this more dynamic when I remove the "must have UUID" requirement
                         let parent_table_col_name = format!("{table_name}_id");
-                        child_table.add_column(
-                            TableColumn::new_uuid(&parent_table_col_name)?
-                                .non_null()
-                                .fk_to(table_name.clone(), table_id_col.clone()),
-                        );
+                        let mut new_column = TableColumn::new_uuid(&parent_table_col_name)?
+                            .fk_to(table_name.clone(), table_id_col.clone());
+
+                        if !col_def.is_nullable() {
+                            new_column = new_column.non_null();
+                        }
+                        child_table.add_column(new_column);
                     },
                     E::ManyToMany(child_name, _) => {
                         let child_table = self

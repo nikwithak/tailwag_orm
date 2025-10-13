@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{Data, DeriveInput, Ident};
-use tailwag_utils::macro_utils::attribute_parsing::GetAttribute;
+use syn::{Data, DeriveInput, Ident, token::Type};
+use tailwag_utils::macro_utils::{attribute_parsing::GetAttribute, type_parsing::{GetQualifiedPath, IsOption}};
 
 use crate::util::database_table_definition::{get_inner_type, get_type_from_field};
 
@@ -74,7 +74,12 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
             let (field_name, field_type) = (&field.ident, field.ty.to_token_stream());
             match get_type_from_field(field) {
                 tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne{..} => {
-                    quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)
+                    if field.is_option() {
+                        let field_type = syn::parse_str::<TokenStream>(&field.get_qualified_path_for_option()).expect("Failed to get internal type for Option<_>");
+                        quote!(pub #field_name: Option<<#field_type as tailwag::orm::queries::Insertable>::CreateRequest>,)
+                    } else {
+                        quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)
+                    }
                 },
                 tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) => {
                     let field_type = get_inner_type(&field);
@@ -89,9 +94,12 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
         |field|match get_type_from_field(field) {
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) |
             tailwag_orm::data_definition::table::DatabaseColumnType::ManyToMany(_, _) =>false,
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne {..} if field.is_option() => false,
             _ => true,
         }
-    ).map(|field| &field.ident);
+    )
+    .map(|field| &field.ident);
+
     let vec_fields = passthrough_fields.clone().filter(
         |field|match get_type_from_field(field) {
             tailwag_orm::data_definition::table::DatabaseColumnType::OneToMany(_, _) |
@@ -99,6 +107,14 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
             _ => false,
         }
     );
+    let option_field_names = passthrough_fields.clone().filter(
+        |field|match get_type_from_field(field) {
+            tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne{..} if field.is_option() => true,
+            _ => false
+        }
+    
+    // );
+    ).map(|field|syn::parse_str::<TokenStream>(&field.get_qualified_path_for_option().to_lowercase()).expect("Failed to parse path")); 
     let vec_field_names = vec_fields .map(|field| &field.ident);
 
     // Need to default to any db_ignored fields
@@ -115,6 +131,7 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
                     id: uuid::Uuid::new_v4(),
                     #(#field_names: val.#field_names.into(),)*
                     #(#vec_field_names: val.#vec_field_names.into_iter().map(<_ as From<_>>::from).collect(),)*
+                    #(#option_field_names: val.#option_field_names.map(<_ as From<_>>::from),)*
                     #(#ignored_fields: Default::default(),)*
                 }
             }

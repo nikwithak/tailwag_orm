@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Display, marker::PhantomData, sync::Arc};
 
 use crate::{
-    data_definition::table::{DatabaseTableDefinition, Identifier},
+    data_definition::table::{DatabaseTableDefinition, Identifier, JsonBuildObjectResponse},
     object_management::{
         delete::DeleteStatement, insert::InsertStatement, update::UpdateStatement,
     },
@@ -108,11 +108,17 @@ impl<T> BuildSql for Query<T> {
         query_builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
     ) {
         let table_name = self.table.table_name.clone();
-        let group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
+        let mut group_by: Vec<String> = vec![format!("{}.id", &self.table.table_name)];
 
         // STEP ONE: get all table relationships
+        let JsonBuildObjectResponse {
+            sql,
+            group_by: mut addtl_group_by,
+        } = self.table.json_build_object("");
+        group_by.append(&mut addtl_group_by);
+
         query_builder.push(r"SELECT ");
-        query_builder.push(self.table.json_build_object(""));
+        query_builder.push(sql);
         query_builder.push(" json_result");
         query_builder.push(" FROM ");
         query_builder.push(&table_name);
