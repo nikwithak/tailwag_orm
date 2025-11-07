@@ -23,7 +23,10 @@ pub fn derive_updateable(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     impl_trait_tokens.into()
 }
 
-#[proc_macro_derive(Insertable, attributes(create_type, db_ignore, string, create_ignore))]
+#[proc_macro_derive(
+    Insertable,
+    attributes(create_type, db_ignore, string, create_ignore, ref_only)
+)]
 pub fn derive_insertable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input);
     let impl_trait_tokens = logic::derive::insertable::derive_struct(&input);

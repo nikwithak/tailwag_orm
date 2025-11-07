@@ -23,6 +23,14 @@ impl<T> BuildSql for DeleteStatement<T> {
 }
 
 impl<T> DeleteStatement<T> {
+    pub fn with_filter(
+        mut self,
+        filter: Filter,
+    ) -> Self {
+        self.filter = filter & self.filter;
+        self
+    }
+
     pub fn new(
         table_def: DatabaseTableDefinition,
         filter: Filter,

@@ -325,6 +325,7 @@ impl DataSystem {
             .map(|t| PostgresDataProvider::new(t.clone(), self.pool.clone()))
     }
 
+    // TODO: Move to internal mod for building
     fn get_prev_tables_if_exists(&self) -> Option<Vec<Arc<DatabaseTableDefinition>>> {
         let tables: Option<Vec<SerializableTableDefinition>> =
             std::fs::read(".table_data/last.migration.json")
@@ -346,10 +347,11 @@ impl DataSystem {
             .into_iter()
             .map(|t| SerializableTableDefinition::from((*t).clone()))
             .collect::<Vec<_>>();
-        let deser = serde_json::to_string(&database)?;
+        let deser = serde_json::to_string_pretty(&database)?;
         let bytes = deser.as_bytes();
 
         // Currently panicing - failing to serialize.
+        std::fs::create_dir_all(".table_data").ok();
         std::fs::write(".table_data/last.migration.json", bytes)?;
         Ok(())
     }

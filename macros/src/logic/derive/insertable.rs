@@ -74,8 +74,9 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
             let (field_name, field_type) = (&field.ident, field.ty.to_token_stream());
             match get_type_from_field(field) {
                 tailwag_orm::data_definition::table::DatabaseColumnType::OneToOne{..} => {
-                    if field.is_option() {
-                        let field_type = syn::parse_str::<TokenStream>(&field.get_qualified_path_for_option()).expect("Failed to get internal type for Option<_>");
+                    if field.get_attribute("ref_only").is_some() {
+                        quote!(pub #field_name: #field_type,)
+                    } else if field.is_option() { let field_type = syn::parse_str::<TokenStream>(&field.get_qualified_path_for_option()).expect("Failed to get internal type for Option<_>");
                         quote!(pub #field_name: Option<<#field_type as tailwag::orm::queries::Insertable>::CreateRequest>,)
                     } else {
                         quote!(pub #field_name: <#field_type as tailwag::orm::queries::Insertable>::CreateRequest,)

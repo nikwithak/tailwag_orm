@@ -19,7 +19,26 @@ pub struct PostgresDataProvider<T: Insertable> {
     pub table_definition: Arc<DatabaseTableDefinition>,
     pub db_pool: Pool<Postgres>,
     pub _t: PhantomData<T>,
+    pub default_filter: Option<Filter>,
     // pub(crate) parent_data_system:
+}
+
+impl<T> PostgresDataProvider<T>
+where
+    T: Insertable + Filterable,
+{
+    pub fn with_default_filter<F>(
+        mut self,
+        filter: F,
+    ) -> Self
+    where
+        F: Fn(T::FilterType) -> Filter,
+    {
+        // TODO: Figure out how to restrict this, without making it "pub". "pub" allows a malicious endpoint to strip the filter.
+        let filter = filter(T::FilterType::with_prefix(""));
+        self.default_filter = Some(filter);
+        self
+    }
 }
 
 impl<T> PostgresDataProvider<T>
@@ -34,6 +53,22 @@ where
             table_definition,
             db_pool,
             _t: PhantomData,
+            default_filter: None,
+        }
+    }
+
+    fn new_query(&self) -> ExecutableQuery<T> {
+        let query = Query::<T> {
+            table: self.table_definition.clone(),
+            filter: self.default_filter.clone(),
+            limit: None,
+            order_by: None,
+            _t: Default::default(),
+        };
+
+        ExecutableQuery {
+            query,
+            db_pool: self.db_pool.clone(),
         }
     }
 }
@@ -191,9 +226,7 @@ where
     }
 }
 
-// #[async_trait]
 impl<T> super::traits::DataProvider<T> for PostgresDataProvider<T>
-// impl<'a, T> PostgresDataProvider<T>
 where
     T: Insertable
         + Deleteable
@@ -208,23 +241,13 @@ where
         + Filterable
         + Default,
 {
-    type CreateRequest = T::CreateRequest; // TODO: Implement this based ont he implementaiton of Insertable?
+    type CreateRequest = T::CreateRequest; // TODO: Implement this based on the implementaiton of Insertable?
 
     async fn get(
         &self,
         predicate: impl Fn(<T as Filterable>::FilterType) -> crate::queries::Filter,
     ) -> Result<Option<T>, crate::Error> {
-        let query = Query::<T> {
-            table: self.table_definition.clone(),
-            filter: Some(predicate(<T as Filterable>::FilterType::with_prefix(""))),
-            limit: Some(2),
-            order_by: None,
-            _t: Default::default(),
-        };
-        let query = ExecutableQuery {
-            query,
-            db_pool: self.db_pool.clone(),
-        };
+        let query = self.new_query().with_filter(predicate).limit(2);
         let mut results = query.execute().await?;
         if results.len() > 1 {
             return Err(crate::Error::DataIntegrity("Multiple items found for ID {}".to_string()));
@@ -233,17 +256,7 @@ where
     }
 
     async fn all(&self) -> Result<impl Iterator<Item = T>, crate::Error> {
-        let query = Query::<T> {
-            table: self.table_definition.clone(),
-            filter: None,
-            limit: None,
-            order_by: None,
-            _t: Default::default(),
-        };
-        let query = ExecutableQuery {
-            query,
-            db_pool: self.db_pool.clone(),
-        };
+        let query = self.new_query();
         Ok(query.execute().await?.into_iter())
     }
 
@@ -270,7 +283,11 @@ where
         item: T,
     ) -> Result<(), crate::Error> {
         let mut builder: QueryBuilder<'_, Postgres> = sqlx::QueryBuilder::new("");
-        item.get_delete_statement().build_sql(&mut builder);
+        let mut delete_stmt = item.get_delete_statement();
+        if let Some(filter) = &self.default_filter {
+            delete_stmt = delete_stmt.with_filter(filter.clone());
+        }
+        delete_stmt.build_sql(&mut builder);
         let query = builder.build();
         dbg!(&query.sql());
         if query.execute(&self.db_pool).await?.rows_affected() > 1 {
@@ -284,6 +301,7 @@ where
         &self,
         item: &T,
     ) -> Result<(), crate::Error> {
+        // TODO: No default_filter checks in place here!!
         let mut transaction = self.db_pool.begin().await?;
         let update_statement = item.get_update_statement();
 

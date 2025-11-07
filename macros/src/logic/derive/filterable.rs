@@ -22,7 +22,14 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
 
     fn is_base_type(field: &&Field) -> bool {
         match get_type_from_field(field) {
-            tailwag_utils::macro_utils::type_parsing::BaseType::Other => false,
+            tailwag_utils::macro_utils::type_parsing::BaseType::Other => {
+                // TODO: Wire this through for string-like types!
+                // if field.get_attribute("string").is_some() {
+                //     true
+                // } else {
+                false
+                // }
+            },
             _ => true,
         }
     }
@@ -59,7 +66,12 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                 filterable_fields.clone().filter(|f| !is_base_type(f)).map(|field| {
                     let field_ident = field.ident.clone().expect("Should only have named fields.");
                     let orig_type = field.ty.clone();
-                    quote!(pub #field_ident: <#orig_type as Filterable>::FilterType)
+                    if field.get_attribute("string").is_some() {
+                        // To treat enums as string-like types
+                        quote!(pub #field_ident: tailwag::orm::queries::filterable_types::FilterableType<String>)
+                    } else {
+                        quote!(pub #field_ident: <#orig_type as Filterable>::FilterType)
+                    }
                 });
 
             let default_child_fields =
@@ -68,7 +80,15 @@ pub fn derive_struct(input: &DeriveInput) -> TokenStream {
                     // let field_ident_str = format!("{table_name}.{field_ident}");
                     let orig_type = field.ty.clone();
                     let table_name = table_name.to_string();
-                    quote!(#field_ident: <#orig_type as Filterable>::FilterType::with_prefix(format!("{}{}_",prefix.to_string(),#table_name)))
+                    if field.get_attribute("string").is_some() {
+                        // To treat enums as string-like types
+                        let field_ident_str = format!("{table_name}.{field_ident}");
+                        quote!(#field_ident: tailwag::orm::queries::filterable_types::FilterableType::<String>::new(
+                            tailwag::orm::data_definition::table::Identifier::new_unchecked(format!("{}{}", prefix.to_string(), #field_ident_str)))
+                        )
+                    } else {
+                        quote!(#field_ident: <#orig_type as Filterable>::FilterType::with_prefix(format!("{}{}_",prefix.to_string(),#table_name)))
+                    }
 
                     //     tailwag::orm::queries::filterable_types::FilterableType::<#orig_type>::new(
                     //     tailwag::orm::data_definition::table::Identifier::new_unchecked(#field_ident_str)

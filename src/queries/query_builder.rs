@@ -14,7 +14,6 @@ use super::Filter;
 pub struct Query<T> {
     pub(crate) table: Arc<DatabaseTableDefinition>,
     pub(crate) filter: Option<Filter>,
-
     pub(crate) limit: Option<usize>,
     pub(crate) _t: PhantomData<T>,
     pub(crate) order_by: Option<OrderBy>,

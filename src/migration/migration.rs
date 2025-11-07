@@ -162,10 +162,13 @@ impl Migration {
                     },
                     crate::data_definition::table::DatabaseColumnType::OneToOne {
                         table_def: child_tbl,
-                        ..
+                        col_name: _,
+                        ref_only,
                     } => {
                         // OneToOne: Parent referenes child, so child must come first.
                         if child_tbl.table_name == child.table_name {
+                            println!("{} > {}", &parent.table_name, &child_tbl.table_name);
+                            // return Ordering::Greater;
                             return Ordering::Greater;
                         }
                     },
@@ -201,6 +204,19 @@ impl Migration {
         });
 
         if !actions.is_empty() {
+            let mut i = 0;
+            for action in &actions {
+                println!(
+                    "{i} : {:?}{}",
+                    action.get_table_name(),
+                    match action {
+                        MigrationAction::AlterTable(_) => "ALTER",
+                        MigrationAction::CreateTable(_) => "CREATE",
+                        MigrationAction::DropTable(_) => "DROP",
+                    }
+                );
+                i += 1;
+            }
             Some(Self {
                 actions,
             })
