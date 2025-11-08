@@ -295,23 +295,38 @@ impl DatabaseTableDefinition {
                         format!("'{column_name}', {prefix}{table_name}.{column_name}")
                     },
                     super::DatabaseColumnType::OneToMany(identifier, database_table_definition) => {
+                        // This is getting even more convoluted. Soon I may need to finally rewrite major chunks of the ORM.
+                        // TODO: [ORM REWRITE] - Remove all json_agg calls, and move to a function for parsing the rows individually. Write a parser to agg all results together. like `table__childtable__id`
                         // Need to coalesce into an array of json_build_objects
                         let child_table_name = &*database_table_definition.table_name;
+                        let parent_table = &*self.table_name;
+
+                        group_by
+                            .push(format!("{prefix}{parent_table}_{child_table_name}__json.json"));
+
                         // TODO: Remove the hardcoded .id here
                         format!(
                             "'{identifier}', COALESCE(
-                                jsonb_agg(
-                                    distinct 
-                                    {}
-                                ) filter (
-                                    WHERE {prefix}{table_name}_{child_table_name}.id IS NOT NULL
-                                ),
+                                {prefix}{parent_table}_{child_table_name}__json.json,
                                 '[]'
-                            )::JSON",
-                            database_table_definition
-                                .json_build_object(&format!("{prefix}{table_name}_"))
-                                .sql
+                            )::JSON"
                         )
+                        // ^^^^^WIP - fixing the nested json_agg calls
+                        // vvvvvOLD - WOrks for basic nesting, but not more compicated
+                        //format!(
+                        // "'{identifier}', (select COALESCE(
+                        //     jsonb_agg(
+                        //         distinct
+                        //         {}
+                        //     ) filter (
+                        //         WHERE {prefix}{table_name}_{child_table_name}.id IS NOT NULL
+                        //     ),
+                        //     '[]'
+                        // )::JSON)",
+                        // database_table_definition
+                        //     .json_build_object(&format!("{prefix}{table_name}_"))
+                        //     .sql
+                        // )
                     },
                     super::DatabaseColumnType::ManyToMany(
                         _identifier,
@@ -376,11 +391,35 @@ impl DatabaseTableDefinition {
                             &database_table_definition
                         ))
                         .column_name;
-                    let stmt = format!("LEFT OUTER JOIN {joined_table} {joined_table_alias} ON {joined_table_alias}.{joined_column} = {table_alias}.{table_column}");
+                    // TODO [CURRENT]: This should be a WITH instead of a JOIN.  Need corresponding changes to the parent SELECT
+                    let join_tables =
+                        &mut database_table_definition.get_join_tables(&format!("{table_alias}_"));
+                    let mut stmt = format!(
+                        "LEFT OUTER JOIN LATERAL (
+                            SELECT jsonb_agg(
+                                {}
+                            ) as json
+                            FROM {joined_table} {joined_table_alias}",
+                        &database_table_definition
+                            .json_build_object(&format!("{table_alias}_"))
+                            .sql
+                    );
+
+                    for join_stmt in join_tables {
+                        stmt.push_str(" ");
+                        stmt.push_str(&join_stmt);
+                        stmt.push_str(" ");
+                    }
+
+                    stmt.push_str(&format!(
+                        " WHERE {joined_table_alias}.{joined_column} = {table_alias}.{table_column}
+                        ) {joined_table_alias}__json ON true"
+                    ));
                     results.push(stmt);
-                    results.append(
-                        &mut database_table_definition.get_join_tables(&format!("{table_alias}_")),
-                    )
+                    // Don't add results to broader join tables - they're only needed here!
+                    // results.append(
+                    //     &mut database_table_definition.get_join_tables(&format!("{table_alias}_")),
+                    // )
                 },
                 super::DatabaseColumnType::ManyToMany(_identifier, _database_table_definition) => {
                     todo!()

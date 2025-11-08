@@ -102,6 +102,13 @@ where
 }
 
 impl<T> BuildSql for Query<T> {
+    // #[cfg(not(Bfeature = "sql_json"))]
+    // fn build_sql(
+    //     &self,
+    //     query_builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
+    // ) {
+    // }
+    // #[cfg(feature = "sql_json")]
     fn build_sql(
         &self,
         query_builder: &mut sqlx::QueryBuilder<'_, sqlx::Postgres>,
@@ -116,6 +123,7 @@ impl<T> BuildSql for Query<T> {
         } = self.table.json_build_object("");
         group_by.append(&mut addtl_group_by);
 
+        // WITH  one_to_many_child__json
         query_builder.push(r"SELECT ");
         query_builder.push(sql);
         query_builder.push(" json_result");
