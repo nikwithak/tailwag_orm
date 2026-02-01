@@ -4,7 +4,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::{
     data_definition::{
-        exp_data_system::TableDef,
+        data_system::TableDef,
         table::{
             raw_data::TableDefinition, DatabaseTableDefinition, ForeignKeyConstraint, Identifier,
             TableColumn, TableConstraint, TableConstraintDetail,

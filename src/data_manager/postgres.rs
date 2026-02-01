@@ -43,6 +43,30 @@ where
 
 impl<T> PostgresDataProvider<T>
 where
+    T: Insertable
+        + Deleteable
+        + Updateable
+        + Send
+        + serde::Serialize
+        + for<'d> serde::Deserialize<'d>
+        + Clone
+        + Unpin
+        + Id
+        // + Serialize
+        + Filterable
+        + Default,
+{
+    pub async fn get_many(
+        &self,
+        predicate: impl Fn(<T as Filterable>::FilterType) -> crate::queries::Filter,
+    ) -> Result<impl Iterator<Item = T>, crate::Error> {
+        let query = self.new_query().with_filter(predicate);
+        Ok(query.execute().await?.into_iter())
+    }
+}
+
+impl<T> PostgresDataProvider<T>
+where
     T: Insertable,
 {
     pub fn new(
@@ -57,7 +81,7 @@ where
         }
     }
 
-    fn new_query(&self) -> ExecutableQuery<T> {
+    pub fn new_query(&self) -> ExecutableQuery<T> {
         let query = Query::<T> {
             table: self.table_definition.clone(),
             filter: self.default_filter.clone(),

@@ -1,5 +1,5 @@
 use crate::{
-    data_definition::{exp_data_system::TableDef, table::raw_data::TableDefinition},
+    data_definition::{data_system::TableDef, table::raw_data::TableDefinition},
     AsSql, BuildSql,
 };
 
