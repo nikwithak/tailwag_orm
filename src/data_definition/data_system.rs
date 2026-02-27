@@ -46,9 +46,21 @@ impl DataSystemBuilder {
         table_def: DatabaseTableDefinition,
     ) {
         let type_id = TypeId::of::<T>();
+        self.add_table_def_for_type_id(type_id, table_def);
+    }
+
+    fn add_table_def_for_type_id(
+        &mut self,
+        type_id: TypeId,
+        table_def: DatabaseTableDefinition,
+    ) {
         self.table_name_to_type.insert(table_def.table_name.clone(), type_id);
+        for (child_type_id, child_def) in table_def.child_tables() {
+            self.add_table_def_for_type_id(child_type_id, *child_def);
+        }
         self.resources.insert(type_id, table_def);
     }
+
     // pub fn get<T: GetTableDefinition + Clone + Send + 'static>(
     //     &self
     // ) -> Option<DatabaseTableDefinition> {

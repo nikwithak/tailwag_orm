@@ -271,7 +271,7 @@ impl DatabaseTableDefinition {
             .collect()
     }
 
-    pub fn json_build_object(
+    pub(crate) fn json_build_object(
         &self,
         prefix: &str,
     ) -> JsonBuildObjectResponse {
@@ -356,6 +356,9 @@ impl DatabaseTableDefinition {
             .peekable();
 
         let mut ret = String::new();
+        ret.push_str("CASE WHEN ");
+        ret.push_str(&format!("{prefix}{table_name}.id"));
+        ret.push_str(" IS NULL THEN NULL ELSE ");
         ret.push_str("jsonb_build_object(");
         while let Some(attr) = attrs.next() {
             ret.push_str(&attr);
@@ -363,8 +366,8 @@ impl DatabaseTableDefinition {
                 ret.push_str(", ");
             }
         }
-        ret.push_str(")");
-
+        ret.push_str(") ");
+        ret.push_str("END ");
         JsonBuildObjectResponse {
             sql: ret,
             group_by,
