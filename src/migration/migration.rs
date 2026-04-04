@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, collections::HashMap, sync::Arc};
+use std::{
+    any::TypeId,
+    cmp::Ordering,
+    collections::{HashMap, HashSet, VecDeque},
+    sync::Arc,
+};
 
 use sqlx::{Pool, Postgres};
 
@@ -16,7 +21,7 @@ use crate::{
 
 use super::{AlterTable, CreateTable};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum MigrationAction {
     AlterTable(AlterTable),
     CreateTable(CreateTable),
@@ -141,67 +146,87 @@ impl Migration {
         // Sort actions by dependency order - children must be processed before their parents.
         let tables = build_table_map(after);
 
-        fn compare(
-            parent: &Arc<DatabaseTableDefinition>,
-            child: &Arc<DatabaseTableDefinition>,
-        ) -> Ordering {
-            for (_, col) in parent.columns() {
-                match &col.column_type {
-                    crate::data_definition::table::DatabaseColumnType::OneToMany(_, child_tbl) => {
-                        // One To Many: Child has reference to the parent, so parent must come first.
-                        if child_tbl.table_name == child.table_name {
-                            return Ordering::Less;
-                        }
-                    },
-                    crate::data_definition::table::DatabaseColumnType::ManyToMany(
-                        _,
-                        _child_tbl,
-                    ) => {
-                        // Need to juggle the join tables first. Maybe all the join tables come last?
-                        todo!("Many to Many relationships need more attention before they can be used.");
-                    },
-                    crate::data_definition::table::DatabaseColumnType::OneToOne {
-                        table_def: child_tbl,
-                        col_name: _,
-                        ref_only,
-                    } => {
-                        // OneToOne: Parent referenes child, so child must come first.
-                        if child_tbl.table_name == child.table_name {
-                            println!("{} > {}", &parent.table_name, &child_tbl.table_name);
-                            // return Ordering::Greater;
-                            return Ordering::Greater;
-                        }
-                    },
-                    _ => (), // These have no relation.
+        // Use Kahn's Algorithm for a topological sort.
+        let actions = {
+            let node_map: HashMap<Identifier, MigrationAction> =
+                actions.into_iter().map(|a| (a.get_table_name().clone(), a)).collect();
+            let known_ids: HashSet<Identifier> = node_map.keys().cloned().collect();
+
+            // in_degree lid] = number of constraints not yet satisfied.
+            let mut in_degree: HashMap<Identifier, usize> =
+                known_ids.iter().map(|i| (i.clone(), 0)).collect();
+
+            let mut edges: HashMap<Identifier, Vec<Identifier>> =
+                known_ids.iter().map(|id| (id.clone(), vec![])).collect();
+
+            for parent in node_map.values() {
+                let table = tables.get(&parent.get_table_name()).ok_or(()).unwrap(); // TODO: Gracefully error
+                for child in table.columns().values() {
+                    match &child.column_type {
+                        crate::data_definition::table::DatabaseColumnType::OneToMany(
+                            identifier,
+                            database_table_definition,
+                        ) => {
+                            // Child has references to parent, so parent must come first.
+                            if known_ids.contains(&child.column_name) {
+                                edges
+                                    .entry(identifier.clone())
+                                    .or_default()
+                                    .push(parent.get_table_name().clone());
+                                *in_degree.entry(identifier.clone()).or_insert(0) += 1;
+                            }
+                        },
+                        crate::data_definition::table::DatabaseColumnType::OneToOne {
+                            col_name: identifier,
+                            ..
+                        } => {
+                            // Parent has refs to child, so child must come first.
+                            if known_ids.contains(&child.column_name) {
+                                edges
+                                    .entry(parent.get_table_name().clone())
+                                    .or_default()
+                                    .push(identifier.clone());
+                                *in_degree.entry(identifier.clone()).or_insert(0) += 1;
+                            }
+                        },
+                        crate::data_definition::table::DatabaseColumnType::ManyToMany(..) => {
+                            todo!("Many to Many relationships are not yet supported.");
+                        },
+                        _ => (),
+                    }
                 }
             }
-            Ordering::Equal
-        }
-        actions.sort_by(|lhs, rhs| {
-            let l_table = tables.get(lhs.get_table_name());
-            let r_table = tables.get(rhs.get_table_name());
 
-            let Some(l_table) = l_table else {
-                // Deletes should happen last, so that any FKs can be cleaned up.
-                return Ordering::Greater;
-            };
-            let Some(r_table) = r_table else {
-                // Deletes should happen last, so that any FKs can be cleaned up.
-                return Ordering::Less;
-            };
+            // Kahn's algo: Start with all nodes that have no predecessors.
+            let mut queue: VecDeque<Identifier> = VecDeque::new();
+            let mut first_batch: Vec<_> = in_degree
+                .iter()
+                .filter(|(_, &deg)| deg == 0)
+                .map(|(id, _)| id.clone())
+                .collect();
+            // We sort the values for deterministic / consistent order. Not mandatory, but makes testing consisent.
+            first_batch.sort_unstable();
+            queue.extend(first_batch);
 
-            let l_to_r = compare(l_table, r_table);
-            let r_to_l = compare(r_table, l_table);
-            match l_to_r {
-                Ordering::Less => Ordering::Less,
-                Ordering::Equal => match r_to_l {
-                    Ordering::Less => Ordering::Greater,
-                    Ordering::Equal => Ordering::Equal,
-                    Ordering::Greater => Ordering::Less,
-                },
-                Ordering::Greater => Ordering::Greater,
+            let mut result: Vec<MigrationAction> = Vec::with_capacity(node_map.len());
+            while let Some(id) = queue.pop_front() {
+                result.push(node_map[&id].clone());
+                if let Some(neighbors) = edges.get(&id) {
+                    let mut next_batch: Vec<Identifier> = Vec::new();
+                    for neighbor in neighbors {
+                        let deg = in_degree.entry(neighbor.clone()).or_insert(0);
+                        *deg -= 1;
+                        if *deg == 0 {
+                            next_batch.push(neighbor.clone());
+                        }
+                    }
+                    next_batch.sort_unstable();
+                    queue.extend(next_batch);
+                }
             }
-        });
+
+            result
+        };
 
         if !actions.is_empty() {
             let mut i = 0;

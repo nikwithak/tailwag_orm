@@ -3,7 +3,7 @@ use crate::{
     AsSql, BuildSql,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CreateTable {
     pub(crate) table_definition: TableDef,
 }
