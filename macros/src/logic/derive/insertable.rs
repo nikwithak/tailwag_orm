@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{Data, DeriveInput, Ident, token::Type};
-use tailwag_utils::macro_utils::{attribute_parsing::GetAttribute, type_parsing::{GetQualifiedPath, IsOption}};
+use tailwag_utils::{macro_utils::{attribute_parsing::GetAttribute, type_parsing::{GetQualifiedPath, IsOption}}, strings::ToSnakeCase};
 
 use crate::util::database_table_definition::{get_inner_type, get_type_from_field};
 
@@ -115,7 +115,7 @@ fn build_create_request(input: &DeriveInput) -> (Ident, TokenStream) {
         }
     
     // );
-    ).map(|field|syn::parse_str::<TokenStream>(&field.get_qualified_path_for_option().to_lowercase()).expect("Failed to parse path")); 
+    ).map(|field|syn::parse_str::<TokenStream>(&field.get_qualified_path_for_option().to_snake_case()).expect("Failed to parse path")); 
     let vec_field_names = vec_fields .map(|field| &field.ident);
 
     // Need to default to any db_ignored fields
