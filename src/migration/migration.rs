@@ -1,6 +1,4 @@
 use std::{
-    any::TypeId,
-    cmp::Ordering,
     collections::{HashMap, HashSet, VecDeque},
     sync::Arc,
 };
@@ -11,8 +9,8 @@ use crate::{
     data_definition::{
         data_system::TableDef,
         table::{
-            raw_data::TableDefinition, DatabaseTableDefinition, ForeignKeyConstraint, Identifier,
-            TableColumn, TableConstraint, TableConstraintDetail,
+            raw_data::TableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
+            TableConstraint, TableConstraintDetail,
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
@@ -165,7 +163,7 @@ impl Migration {
                     match &child.column_type {
                         crate::data_definition::table::DatabaseColumnType::OneToMany(
                             identifier,
-                            database_table_definition,
+                            ..,
                         ) => {
                             // Child has references to parent, so parent must come first.
                             if known_ids.contains(&child.column_name) {
