@@ -1,6 +1,4 @@
 use std::{
-    any::TypeId,
-    cmp::Ordering,
     collections::{HashMap, HashSet, VecDeque},
     sync::Arc,
 };
@@ -11,8 +9,8 @@ use crate::{
     data_definition::{
         data_system::TableDef,
         table::{
-            raw_data::TableDefinition, DatabaseTableDefinition, ForeignKeyConstraint, Identifier,
-            TableColumn, TableConstraint, TableConstraintDetail,
+            raw_data::TableDefinition, ForeignKeyConstraint, Identifier, TableColumn,
+            TableConstraint, TableConstraintDetail,
         },
     },
     migration::{AlterColumn, AlterColumnAction, AlterTableAction},
@@ -136,7 +134,7 @@ impl Migration {
             )
         } else {
             // New database - only creates!
-            let mut create_table_actions = after
+            let mut create_table_actions: Vec<MigrationAction> = after
                 .iter()
                 .map(|t| MigrationAction::CreateTable(CreateTable::new(t.clone())))
                 .collect();
@@ -164,29 +162,29 @@ impl Migration {
                 for child in table.columns().values() {
                     match &child.column_type {
                         crate::data_definition::table::DatabaseColumnType::OneToMany(
-                            identifier,
-                            database_table_definition,
+                            _col_nameidentifiei,
+                            table_def,
                         ) => {
                             // Child has references to parent, so parent must come first.
-                            if known_ids.contains(&child.column_name) {
-                                edges
-                                    .entry(identifier.clone())
-                                    .or_default()
-                                    .push(parent.get_table_name().clone());
-                                *in_degree.entry(identifier.clone()).or_insert(0) += 1;
-                            }
-                        },
-                        crate::data_definition::table::DatabaseColumnType::OneToOne {
-                            col_name: identifier,
-                            ..
-                        } => {
-                            // Parent has refs to child, so child must come first.
-                            if known_ids.contains(&child.column_name) {
+                            if known_ids.contains(&table_def.table_name()) {
                                 edges
                                     .entry(parent.get_table_name().clone())
                                     .or_default()
-                                    .push(identifier.clone());
-                                *in_degree.entry(identifier.clone()).or_insert(0) += 1;
+                                    .push(table_def.table_name());
+                                *in_degree.entry(table_def.table_name()).or_insert(0) += 1;
+                            }
+                        },
+                        crate::data_definition::table::DatabaseColumnType::OneToOne {
+                            table_def,
+                            ..
+                        } => {
+                            // Parent has refs to child, so child must come first.
+                            if known_ids.contains(&table_def.table_name()) {
+                                edges
+                                    .entry(table_def.table_name())
+                                    .or_default()
+                                    .push(parent.get_table_name().clone());
+                                *in_degree.entry(parent.get_table_name().clone()).or_insert(0) += 1;
                             }
                         },
                         crate::data_definition::table::DatabaseColumnType::ManyToMany(..) => {
@@ -229,19 +227,6 @@ impl Migration {
         };
 
         if !actions.is_empty() {
-            let mut i = 0;
-            for action in &actions {
-                println!(
-                    "{i} : {:?}{}",
-                    action.get_table_name(),
-                    match action {
-                        MigrationAction::AlterTable(_) => "ALTER",
-                        MigrationAction::CreateTable(_) => "CREATE",
-                        MigrationAction::DropTable(_) => "DROP",
-                    }
-                );
-                i += 1;
-            }
             Some(Self {
                 actions,
             })
