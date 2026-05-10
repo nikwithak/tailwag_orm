@@ -165,9 +165,10 @@ impl<T: Insertable + for<'d> serde::Deserialize<'d> + Send + Unpin> ExecutableQu
         let results = result.into_iter().map(|row| {
             let rowresult: serde_json::Value = row.get("json_result");
             log::debug!("Result: {:?}", rowresult.to_string());
-            serde_json::from_value::<T>(rowresult).unwrap()
+            serde_json::from_value::<T>(rowresult)
         });
-        Ok(results.collect())
+        let results: Result<_, serde_json::Error> = results.collect();
+        results.map_err(|e| Error::Decode(Box::new(e)))
     }
 }
 
