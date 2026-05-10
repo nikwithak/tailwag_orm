@@ -158,6 +158,10 @@ impl Migration {
                 known_ids.iter().map(|id| (id.clone(), vec![])).collect();
 
             for parent in node_map.values() {
+                if let MigrationAction::DropTable(_) = parent {
+                    // Skip the deletes. This may cause some order of operations issues in the future, but it fixes the immediate use case
+                    continue;
+                }
                 let table = tables.get(&parent.get_table_name()).ok_or(()).unwrap(); // TODO: Gracefully error
                 for child in table.columns().values() {
                     match &child.column_type {
