@@ -91,7 +91,7 @@ mod test {
         };
 
         // Act
-        let queries = dbg!(create_table.as_sql());
+        let queries = create_table.as_sql();
         // let mut queries = result_sql.split("\n").collect::<Vec<&str>>();
 
         #[rustfmt::skip]

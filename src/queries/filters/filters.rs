@@ -139,21 +139,25 @@ impl BuildSql for Filter {
         match self {
             Filter::And(children) => {
                 let mut iter = children.iter().peekable();
+                builder.push("(");
                 while let Some(child) = iter.next() {
                     child.build_sql(builder);
                     if iter.peek().is_some() {
                         builder.push(" AND ");
                     }
                 }
+                builder.push(")");
             },
             Filter::Or(children) => {
                 let mut iter = children.iter().peekable();
+                builder.push("(");
                 while let Some(child) = iter.next() {
                     child.build_sql(builder);
                     if iter.peek().is_some() {
                         builder.push(" OR ");
                     }
                 }
+                builder.push(")");
             },
             Filter::Equal(l, r)
             | Filter::NotEqual(l, r)

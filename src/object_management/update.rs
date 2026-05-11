@@ -85,7 +85,7 @@ impl UpdateStatement {
                 builder.push(", ");
             }
         }
-        builder.push(format!(" WHERE {}.id=", &self.table_name)).push_bind(dbg!(*id));
+        builder.push(format!(" WHERE {}.id=", &self.table_name)).push_bind(*id);
     }
 }
 

@@ -236,7 +236,7 @@ where
 
             let sql = sql.into_sql();
             let mut transaction = self.db_pool.begin().await.unwrap();
-            match sqlx::query(dbg!(&sql)).execute(&mut *transaction).await {
+            match sqlx::query(&sql).execute(&mut *transaction).await {
                 Ok(_) => {},
                 Err(e) => {
                     log::error!("Failed to run migrations");
@@ -314,7 +314,7 @@ where
         }
         delete_stmt.build_sql(&mut builder);
         let query = builder.build();
-        dbg!(&query.sql());
+        &query.sql();
         if query.execute(&self.db_pool).await?.rows_affected() > 1 {
             panic!("Deleted more than one row in a Delete operation. This should not happen.");
         }
