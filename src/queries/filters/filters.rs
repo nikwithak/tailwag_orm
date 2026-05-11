@@ -137,12 +137,21 @@ impl BuildSql for Filter {
         builder: &mut QueryBuilder<Postgres>,
     ) {
         match self {
-            Filter::And(children) | Filter::Or(children) => {
+            Filter::And(children) => {
                 let mut iter = children.iter().peekable();
                 while let Some(child) = iter.next() {
                     child.build_sql(builder);
                     if iter.peek().is_some() {
                         builder.push(" AND ");
+                    }
+                }
+            },
+            Filter::Or(children) => {
+                let mut iter = children.iter().peekable();
+                while let Some(child) = iter.next() {
+                    child.build_sql(builder);
+                    if iter.peek().is_some() {
+                        builder.push(" OR ");
                     }
                 }
             },
